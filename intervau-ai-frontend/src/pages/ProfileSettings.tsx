@@ -15,6 +15,7 @@ import {
   Loader,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 import api from "@/services/api";
 
@@ -48,6 +49,7 @@ interface SecuritySettings {
 
 export default function ProfileSettings() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useApp();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<
@@ -81,7 +83,6 @@ export default function ProfileSettings() {
     ],
   });
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<UserProfile>(profile);
   const [loading, setLoading] = useState(false);
@@ -97,7 +98,7 @@ export default function ProfileSettings() {
   });
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
-  // Load user profile and preferences on mount
+  // Load user profile on mount
   useEffect(() => {
     if (user) {
       setProfile({
@@ -120,30 +121,7 @@ export default function ProfileSettings() {
         bio: user.bio || "",
       });
     }
-
-    // Load dark mode preference from localStorage
-    const savedDarkMode = localStorage.getItem("darkMode") === "true";
-    setIsDarkMode(savedDarkMode);
-    applyDarkMode(savedDarkMode);
   }, [user]);
-
-  // Apply dark mode to the entire app
-  const applyDarkMode = (isDark: boolean) => {
-    const htmlElement = document.documentElement;
-    if (isDark) {
-      htmlElement.classList.add("dark");
-    } else {
-      htmlElement.classList.remove("dark");
-    }
-    localStorage.setItem("darkMode", isDark.toString());
-  };
-
-  // Handle dark mode toggle
-  const handleDarkModeToggle = () => {
-    const newDarkMode = !isDarkMode;
-    setIsDarkMode(newDarkMode);
-    applyDarkMode(newDarkMode);
-  };
 
   // Handle image upload to Cloudinary
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -690,33 +668,33 @@ export default function ProfileSettings() {
 
             {/* Preferences Tab */}
             {activeTab === "preferences" && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-8">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
                   Preferences
                 </h2>
 
                 <div className="space-y-6">
                   {/* Theme */}
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                       Theme
                     </h3>
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center space-x-3">
-                        <Moon className="w-5 h-5 text-gray-600" />
-                        <span className="font-medium text-gray-900">
+                        <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        <span className="font-medium text-gray-900 dark:text-white">
                           Dark Mode
                         </span>
                       </div>
                       <button
-                        onClick={handleDarkModeToggle}
+                        onClick={toggleTheme}
                         className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                          isDarkMode ? "bg-blue-600" : "bg-gray-300"
+                          theme === "dark" ? "bg-blue-600" : "bg-gray-300"
                         }`}
                       >
                         <span
                           className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                            isDarkMode ? "translate-x-7" : "translate-x-1"
+                            theme === "dark" ? "translate-x-7" : "translate-x-1"
                           }`}
                         />
                       </button>
@@ -724,17 +702,17 @@ export default function ProfileSettings() {
                   </div>
 
                   {/* Notifications */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                       Notifications
                     </h3>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 dark:text-white">
                             Email Notifications
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             Receive updates via email
                           </p>
                         </div>
@@ -758,12 +736,12 @@ export default function ProfileSettings() {
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 dark:text-white">
                             Interview Reminders
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             Get notified before interviews
                           </p>
                         </div>
@@ -787,12 +765,12 @@ export default function ProfileSettings() {
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 dark:text-white">
                             Weekly Reports
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             Summary of your activity each week
                           </p>
                         </div>
@@ -816,12 +794,12 @@ export default function ProfileSettings() {
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 dark:text-white">
                             Community Updates
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             News and updates from our community
                           </p>
                         </div>
@@ -848,13 +826,13 @@ export default function ProfileSettings() {
                   </div>
 
                   {/* Language & Region */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                       Language & Region
                     </h3>
-                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <Globe className="w-5 h-5 text-gray-600" />
-                      <select className="flex-1 bg-transparent font-medium text-gray-900 focus:outline-none cursor-pointer">
+                    <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <Globe className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <select className="flex-1 bg-transparent font-medium text-gray-900 dark:text-white focus:outline-none cursor-pointer">
                         <option>English (US)</option>
                         <option>Spanish (ES)</option>
                         <option>French (FR)</option>
@@ -869,21 +847,21 @@ export default function ProfileSettings() {
 
             {/* Security Tab */}
             {activeTab === "security" && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-8">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
                   Security Settings
                 </h2>
 
                 <div className="space-y-6">
                   {/* Security Alert */}
-                  <div className="p-6 bg-orange-50 rounded-lg border-2 border-orange-200">
+                  <div className="p-6 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
                     <div className="flex items-start space-x-3">
-                      <Lock className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <Lock className="w-6 h-6 text-orange-600 dark:text-orange-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-bold text-orange-900 mb-1">
+                        <h3 className="font-bold text-orange-900 dark:text-orange-200 mb-1">
                           Password Security
                         </h3>
-                        <p className="text-sm text-orange-800">
+                        <p className="text-sm text-orange-800 dark:text-orange-300">
                           Keep your account secure by using a strong, unique
                           password
                         </p>
@@ -895,26 +873,26 @@ export default function ProfileSettings() {
                   {!showPasswordForm ? (
                     <button
                       onClick={() => setShowPasswordForm(true)}
-                      className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors group"
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
                     >
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-white">
                         Change Password
                       </span>
-                      <span className="text-gray-400 group-hover:text-gray-600">
+                      <span className="text-gray-400 group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-400">
                         →
                       </span>
                     </button>
                   ) : (
                     <form
                       onSubmit={handleChangePassword}
-                      className="p-6 bg-gray-50 rounded-lg border border-gray-200"
+                      className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                     >
-                      <h3 className="font-bold text-gray-900 mb-4">
+                      <h3 className="font-bold text-gray-900 dark:text-white mb-4">
                         Change Password
                       </h3>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Current Password
                           </label>
                           <input
@@ -926,14 +904,14 @@ export default function ProfileSettings() {
                                 current: e.target.value,
                               })
                             }
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter current password"
                             required
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             New Password
                           </label>
                           <input
@@ -945,18 +923,18 @@ export default function ProfileSettings() {
                                 new: e.target.value,
                               })
                             }
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter new password"
                             required
                           />
-                          <p className="text-xs text-gray-600 mt-1">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                             Password must be at least 6 characters with
                             uppercase, lowercase, and numbers
                           </p>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Confirm Password
                           </label>
                           <input
@@ -968,7 +946,7 @@ export default function ProfileSettings() {
                                 confirm: e.target.value,
                               })
                             }
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Confirm new password"
                             required
                           />
@@ -992,7 +970,7 @@ export default function ProfileSettings() {
                                 confirm: "",
                               });
                             }}
-                            className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                            className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
                           >
                             Cancel
                           </button>
@@ -1003,16 +981,16 @@ export default function ProfileSettings() {
 
                   {/* Two-Factor Authentication */}
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                       Two-Factor Authentication
                     </h3>
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 dark:text-white">
                             2FA Status
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             {security.twoFactorEnabled
                               ? "Enabled"
                               : "Not enabled"}
@@ -1029,30 +1007,30 @@ export default function ProfileSettings() {
 
                   {/* Active Sessions */}
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                       Active Sessions
                     </h3>
                     <div className="space-y-3">
                       {security.activeSessions.map((session) => (
                         <div
                           key={session.id}
-                          className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                          className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-gray-900 dark:text-white">
                               {session.device}
                             </p>
                             {session.current ? (
-                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full">
                                 Current
                               </span>
                             ) : (
-                              <button className="text-sm text-red-600 hover:text-red-700 font-medium">
+                              <button className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">
                                 Sign out
                               </button>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             Last active: {session.lastActive}
                           </p>
                         </div>
@@ -1061,18 +1039,18 @@ export default function ProfileSettings() {
                   </div>
 
                   {/* Danger Zone */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-lg font-bold text-red-600 mb-4">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4">
                       Danger Zone
                     </h3>
                     <button
                       onClick={handleDeleteAccount}
                       disabled={loading}
-                      className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium border border-red-200 disabled:opacity-50"
+                      className="w-full px-6 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors font-medium border border-red-200 dark:border-red-800 disabled:opacity-50"
                     >
                       Delete Account
                     </button>
-                    <p className="text-xs text-gray-600 mt-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                       This action cannot be undone. Please be certain.
                     </p>
                   </div>

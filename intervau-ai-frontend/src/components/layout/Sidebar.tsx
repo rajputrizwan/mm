@@ -57,9 +57,9 @@ export default function Sidebar() {
     <>
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
       >
-        <Menu className="w-6 h-6 text-gray-700" />
+        <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
       </button>
 
       {sidebarOpen && (
@@ -70,12 +70,12 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-40 ${
+        className={`fixed lg:sticky top-0 left-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 z-40 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         } ${sidebarOpen ? "w-64" : "lg:w-20"}`}
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <div
               className={`flex items-center space-x-3 transition-opacity duration-200 ${
                 !sidebarOpen && "lg:opacity-0 lg:w-0 lg:overflow-hidden"
@@ -84,7 +84,7 @@ export default function Sidebar() {
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Video className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-xl text-gray-900 whitespace-nowrap">
+              <span className="font-bold text-xl text-gray-900 dark:text-white whitespace-nowrap">
                 Intervau.AI
               </span>
             </div>
@@ -95,20 +95,20 @@ export default function Sidebar() {
             )}
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 hover:bg-gray-100 rounded transition-colors"
+              className="lg:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
             >
-              <X className="w-5 h-5 text-gray-600" />
+              <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
 
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-white border border-gray-200 rounded-full items-center justify-center hover:bg-gray-50 transition-colors shadow-md z-50"
+            className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-md z-50"
           >
             {sidebarOpen ? (
-              <ChevronLeft className="w-4 h-4 text-gray-600" />
+              <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-gray-600" />
+              <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             )}
           </button>
 
@@ -118,7 +118,7 @@ export default function Sidebar() {
                 !sidebarOpen && "lg:opacity-0 lg:h-0 lg:overflow-hidden"
               }`}
             >
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Main Menu
               </p>
             </div>
@@ -138,8 +138,8 @@ export default function Sidebar() {
                       sidebarOpen ? "space-x-3" : "lg:justify-center"
                     } px-3 py-2.5 rounded-lg transition-all duration-200 ${
                       isActive
-                        ? "bg-blue-50 text-blue-600"
-                        : "text-gray-700 hover:bg-gray-100"
+                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     }`}
                   >
                     <Icon
@@ -160,7 +160,7 @@ export default function Sidebar() {
             </nav>
           </div>
 
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4">
             <div
               className={`flex items-center mb-3 transition-all duration-200 ${
                 sidebarOpen ? "space-x-3" : "lg:justify-center"
@@ -176,10 +176,12 @@ export default function Sidebar() {
                   !sidebarOpen && "lg:opacity-0 lg:w-0 lg:overflow-hidden"
                 }`}
               >
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {user.name}
                 </p>
-                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                  {user.role}
+                </p>
               </div>
             </div>
             <button
@@ -187,7 +189,7 @@ export default function Sidebar() {
               title={!sidebarOpen ? "Logout" : undefined}
               className={`w-full flex items-center ${
                 sidebarOpen ? "space-x-3" : "lg:justify-center"
-              } px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200`}
+              } px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200`}
             >
               <LogOut className="w-5 h-5 flex-shrink-0" />
               <span

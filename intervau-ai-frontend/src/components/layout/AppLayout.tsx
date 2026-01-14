@@ -14,11 +14,13 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
   const { sidebarOpen } = useApp();
 
   if (!user) {
-    return <div className="min-h-screen bg-gray-50">{children}</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">{children}</div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
       <Sidebar />
 
       <div
@@ -26,22 +28,22 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
       >
         <Header title={title} />
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-950">
           <div className="container mx-auto px-6 py-8">{children}</div>
         </main>
 
-        <footer className="bg-white border-t border-gray-200 py-4">
+        <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-4">
           <div className="container mx-auto px-6">
-            <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-600">
+            <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-600 dark:text-gray-400">
               <p>© 2025 Intervau.AI. All rights reserved.</p>
               <div className="flex space-x-6 mt-2 md:mt-0">
-                <button className="hover:text-gray-900 transition-colors">
+                <button className="hover:text-gray-900 dark:hover:text-gray-300 transition-colors">
                   Privacy
                 </button>
-                <button className="hover:text-gray-900 transition-colors">
+                <button className="hover:text-gray-900 dark:hover:text-gray-300 transition-colors">
                   Terms
                 </button>
-                <button className="hover:text-gray-900 transition-colors">
+                <button className="hover:text-gray-900 dark:hover:text-gray-300 transition-colors">
                   Support
                 </button>
               </div>

@@ -1,5 +1,5 @@
-import { Request, Response } from "express";
-import { Interview } from "../models/Interview";
+import { Request, Response } from 'express';
+import { Interview } from '../models/Interview';
 
 export class InterviewController {
   static async create(req: Request, res: Response) {
@@ -11,7 +11,7 @@ export class InterviewController {
         jobPositionId,
         type,
         hrId: (req as any).user?.id,
-        status: "scheduled",
+        status: 'scheduled',
         scheduledAt: new Date(),
       });
 
@@ -24,7 +24,7 @@ export class InterviewController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to create interview",
+        message: 'Failed to create interview',
       });
     }
   }
@@ -32,8 +32,8 @@ export class InterviewController {
   static async getAll(req: Request, res: Response) {
     try {
       const interviews = await Interview.find()
-        .populate("candidateId", "name email")
-        .populate("jobPositionId", "title");
+        .populate('candidateId', 'name email')
+        .populate('jobPositionId', 'title');
 
       res.status(200).json({
         success: true,
@@ -42,7 +42,7 @@ export class InterviewController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to fetch interviews",
+        message: 'Failed to fetch interviews',
       });
     }
   }
@@ -51,15 +51,15 @@ export class InterviewController {
     try {
       const { id } = req.params;
       const interview = await Interview.findById(id)
-        .populate("candidateId")
-        .populate("jobPositionId")
-        .populate("questions")
-        .populate("answers");
+        .populate('candidateId')
+        .populate('jobPositionId')
+        .populate('questions')
+        .populate('answers');
 
       if (!interview) {
         return res.status(404).json({
           success: false,
-          message: "Interview not found",
+          message: 'Interview not found',
         });
       }
 
@@ -70,7 +70,7 @@ export class InterviewController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to fetch interview",
+        message: 'Failed to fetch interview',
       });
     }
   }
@@ -89,7 +89,7 @@ export class InterviewController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to update interview",
+        message: 'Failed to update interview',
       });
     }
   }
@@ -101,12 +101,12 @@ export class InterviewController {
 
       res.status(200).json({
         success: true,
-        message: "Interview deleted successfully",
+        message: 'Interview deleted successfully',
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to delete interview",
+        message: 'Failed to delete interview',
       });
     }
   }
@@ -121,7 +121,7 @@ export class InterviewController {
         {
           feedback,
           score,
-          status: "completed",
+          status: 'completed',
           endedAt: new Date(),
         },
         { new: true }
@@ -134,7 +134,7 @@ export class InterviewController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to submit feedback",
+        message: 'Failed to submit feedback',
       });
     }
   }
@@ -146,7 +146,7 @@ export class InterviewController {
       const interview = await Interview.findByIdAndUpdate(
         id,
         {
-          status: "in_progress",
+          status: 'in_progress',
           startedAt: new Date(),
         },
         { new: true }
@@ -159,7 +159,7 @@ export class InterviewController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to start interview",
+        message: 'Failed to start interview',
       });
     }
   }

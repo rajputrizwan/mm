@@ -1,5 +1,5 @@
-import { Request, Response } from "express";
-import { JobPosition } from "../models/JobPosition";
+import { Request, Response } from 'express';
+import { JobPosition } from '../models/JobPosition';
 
 export class PositionController {
   static async create(req: Request, res: Response) {
@@ -18,7 +18,7 @@ export class PositionController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to create position",
+        message: 'Failed to create position',
       });
     }
   }
@@ -26,9 +26,9 @@ export class PositionController {
   static async getAll(req: Request, res: Response) {
     try {
       const positions = await JobPosition.find()
-        .populate("hrId", "name email")
-        .populate("applicants")
-        .populate("interviews");
+        .populate('hrId', 'name email')
+        .populate('applicants')
+        .populate('interviews');
 
       res.status(200).json({
         success: true,
@@ -37,7 +37,7 @@ export class PositionController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to fetch positions",
+        message: 'Failed to fetch positions',
       });
     }
   }
@@ -46,14 +46,14 @@ export class PositionController {
     try {
       const { id } = req.params;
       const position = await JobPosition.findById(id)
-        .populate("hrId")
-        .populate("applicants")
-        .populate("interviews");
+        .populate('hrId')
+        .populate('applicants')
+        .populate('interviews');
 
       if (!position) {
         return res.status(404).json({
           success: false,
-          message: "Position not found",
+          message: 'Position not found',
         });
       }
 
@@ -64,7 +64,7 @@ export class PositionController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to fetch position",
+        message: 'Failed to fetch position',
       });
     }
   }
@@ -83,7 +83,7 @@ export class PositionController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to update position",
+        message: 'Failed to update position',
       });
     }
   }
@@ -95,12 +95,12 @@ export class PositionController {
 
       res.status(200).json({
         success: true,
-        message: "Position deleted successfully",
+        message: 'Position deleted successfully',
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to delete position",
+        message: 'Failed to delete position',
       });
     }
   }
@@ -125,7 +125,7 @@ export class PositionController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to add applicant",
+        message: 'Failed to add applicant',
       });
     }
   }

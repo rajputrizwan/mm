@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 import { User } from '../models/User';
 import { Candidate } from '../models/Candidate';
@@ -476,10 +476,11 @@ export class AuthController {
    * Helper method to generate access token
    */
   private static generateAccessToken(user: any): string {
+    const options: SignOptions = { expiresIn: config.jwtExpiresIn as any };
     return jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       config.jwtSecret as string,
-      { expiresIn: config.jwtExpiresIn }
+      options
     );
   }
 
@@ -487,8 +488,11 @@ export class AuthController {
    * Helper method to generate refresh token
    */
   private static generateRefreshToken(user: any): string {
-    return jwt.sign({ id: user._id, email: user.email }, config.jwtRefreshSecret as string, {
-      expiresIn: config.jwtRefreshExpiresIn,
-    });
+    const options: SignOptions = { expiresIn: config.jwtRefreshExpiresIn as any };
+    return jwt.sign(
+      { id: user._id, email: user.email },
+      config.jwtRefreshSecret as string,
+      options
+    );
   }
 }

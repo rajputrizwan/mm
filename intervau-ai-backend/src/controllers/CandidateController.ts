@@ -1,5 +1,5 @@
-import { Request, Response } from "express";
-import { Candidate } from "../models/Candidate";
+import { Request, Response } from 'express';
+import { Candidate } from '../models/Candidate';
 
 export class CandidateController {
   static async create(req: Request, res: Response) {
@@ -18,17 +18,14 @@ export class CandidateController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to create candidate",
+        message: 'Failed to create candidate',
       });
     }
   }
 
   static async getAll(req: Request, res: Response) {
     try {
-      const candidates = await Candidate.find().populate(
-        "userId",
-        "name email"
-      );
+      const candidates = await Candidate.find().populate('userId', 'name email');
       res.status(200).json({
         success: true,
         data: candidates,
@@ -36,7 +33,7 @@ export class CandidateController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to fetch candidates",
+        message: 'Failed to fetch candidates',
       });
     }
   }
@@ -44,12 +41,12 @@ export class CandidateController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const candidate = await Candidate.findById(id).populate("userId");
+      const candidate = await Candidate.findById(id).populate('userId');
 
       if (!candidate) {
         return res.status(404).json({
           success: false,
-          message: "Candidate not found",
+          message: 'Candidate not found',
         });
       }
 
@@ -60,7 +57,7 @@ export class CandidateController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to fetch candidate",
+        message: 'Failed to fetch candidate',
       });
     }
   }
@@ -79,7 +76,7 @@ export class CandidateController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to update candidate",
+        message: 'Failed to update candidate',
       });
     }
   }
@@ -91,12 +88,12 @@ export class CandidateController {
 
       res.status(200).json({
         success: true,
-        message: "Candidate deleted successfully",
+        message: 'Candidate deleted successfully',
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to delete candidate",
+        message: 'Failed to delete candidate',
       });
     }
   }
@@ -124,7 +121,7 @@ export class CandidateController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to update resume",
+        message: 'Failed to update resume',
       });
     }
   }
