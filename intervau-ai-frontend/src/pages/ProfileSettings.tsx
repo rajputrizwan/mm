@@ -360,13 +360,13 @@ export default function ProfileSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
             Settings & Profile
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 dark:text-gray-400">
             Manage your account and preferences
           </p>
         </div>
@@ -376,8 +376,8 @@ export default function ProfileSettings() {
           <div
             className={`mb-6 p-4 rounded-lg border flex items-center space-x-3 ${
               message.type === "success"
-                ? "bg-green-50 border-green-200 text-green-700"
-                : "bg-red-50 border-red-200 text-red-700"
+                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400"
+                : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400"
             }`}
           >
             {message.type === "success" ? (
@@ -391,15 +391,17 @@ export default function ProfileSettings() {
 
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Sidebar Menu */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 h-fit">
-            <h3 className="font-bold text-gray-900 mb-4">Settings Menu</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 h-fit">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">
+              Settings Menu
+            </h3>
             <div className="space-y-2">
               <button
                 onClick={() => setActiveTab("profile")}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                   activeTab === "profile"
-                    ? "bg-blue-100 text-blue-700 border border-blue-200"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                    : "text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 }`}
               >
                 <User className="w-5 h-5" />
@@ -409,8 +411,8 @@ export default function ProfileSettings() {
                 onClick={() => setActiveTab("preferences")}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                   activeTab === "preferences"
-                    ? "bg-blue-100 text-blue-700 border border-blue-200"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                    : "text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 }`}
               >
                 <Bell className="w-5 h-5" />
@@ -420,19 +422,19 @@ export default function ProfileSettings() {
                 onClick={() => setActiveTab("security")}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                   activeTab === "security"
-                    ? "bg-blue-100 text-blue-700 border border-blue-200"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                    : "text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 }`}
               >
                 <Lock className="w-5 h-5" />
                 <span className="font-medium">Security</span>
               </button>
             </div>
-            <div className="border-t border-gray-200 mt-6 pt-6">
+            <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-6">
               <button
                 onClick={handleLogout}
                 disabled={loading}
-                className="w-full flex items-center space-x-3 text-red-600 hover:text-red-700 px-4 py-3 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                className="w-full flex items-center space-x-3 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400 px-4 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
               >
                 {loading ? (
                   <Loader className="w-5 h-5 animate-spin" />
@@ -448,8 +450,8 @@ export default function ProfileSettings() {
           <div className="lg:col-span-3">
             {/* Profile Tab */}
             {activeTab === "profile" && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-8">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
                   Profile Information
                 </h2>
 
@@ -457,10 +459,10 @@ export default function ProfileSettings() {
                   {/* Profile Picture */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                         Profile Picture
                       </h3>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 dark:text-gray-400">
                         Upload a profile photo for your account
                       </p>
                     </div>
@@ -503,7 +505,7 @@ export default function ProfileSettings() {
                     <>
                       {/* Edit Mode */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           Full Name
                         </label>
                         <input
@@ -512,13 +514,13 @@ export default function ProfileSettings() {
                           onChange={(e) =>
                             handleInputChange("name", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Enter your full name"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           Email Address
                         </label>
                         <input
@@ -527,13 +529,13 @@ export default function ProfileSettings() {
                           onChange={(e) =>
                             handleInputChange("email", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Enter your email"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           Phone Number
                         </label>
                         <input
@@ -542,13 +544,13 @@ export default function ProfileSettings() {
                           onChange={(e) =>
                             handleInputChange("phone", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Enter your phone number"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                           Bio
                         </label>
                         <textarea
@@ -557,7 +559,7 @@ export default function ProfileSettings() {
                             handleInputChange("bio", e.target.value)
                           }
                           rows={4}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                           placeholder="Tell us about yourself"
                         />
                       </div>
@@ -566,7 +568,7 @@ export default function ProfileSettings() {
                         <button
                           onClick={handleSaveProfile}
                           disabled={loading}
-                          className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {loading ? (
                             <Loader className="w-4 h-4 animate-spin" />
@@ -581,7 +583,7 @@ export default function ProfileSettings() {
                             setIsEditing(false);
                           }}
                           disabled={loading}
-                          className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
+                          className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -590,65 +592,67 @@ export default function ProfileSettings() {
                   ) : (
                     <>
                       {/* View Mode */}
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <User className="w-5 h-5 text-gray-600" />
-                            <span className="text-sm text-gray-600">
+                            <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
                               Full Name
                             </span>
                           </div>
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-gray-900 dark:text-white">
                             {profile.name || "Not provided"}
                           </span>
                         </div>
                       </div>
 
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <Mail className="w-5 h-5 text-gray-600" />
-                            <span className="text-sm text-gray-600">
+                            <Mail className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
                               Email Address
                             </span>
                           </div>
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-gray-900 dark:text-white">
                             {profile.email}
                           </span>
                         </div>
                       </div>
 
                       {profile.phone && (
-                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
                               Phone Number
                             </span>
-                            <span className="font-semibold text-gray-900">
+                            <span className="font-semibold text-gray-900 dark:text-white">
                               {profile.phone}
                             </span>
                           </div>
                         </div>
                       )}
 
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <Briefcase className="w-5 h-5 text-gray-600" />
-                            <span className="text-sm text-gray-600">Role</span>
+                            <Briefcase className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Role
+                            </span>
                           </div>
-                          <span className="font-semibold text-gray-900 capitalize">
+                          <span className="font-semibold text-gray-900 dark:text-white capitalize">
                             {profile.role}
                           </span>
                         </div>
                       </div>
 
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
                             Member Since
                           </span>
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-gray-900 dark:text-white">
                             {formatDate(profile.createdAt)}
                           </span>
                         </div>
@@ -656,7 +660,7 @@ export default function ProfileSettings() {
 
                       <button
                         onClick={() => setIsEditing(true)}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors font-medium"
                       >
                         Edit Profile
                       </button>
