@@ -204,6 +204,22 @@ export const api = {
 
   getResumeAnalysis: (resumeId: string) =>
     request<any>(`/resume/${resumeId}/analysis`),
+
+  // Profile Management
+  updateProfile: (data: any) =>
+    request<any>("/auth/profile", { method: "PUT", body: data }),
+
+  changePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) =>
+    request("/auth/change-password", { method: "POST", body: data }),
+
+  deleteAccount: (password: string) =>
+    request("/auth/account", { method: "DELETE", body: { password } }),
+
+  apiLogout: () => request("/auth/logout", { method: "POST" }),
 };
 
 // Export token management functions

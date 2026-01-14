@@ -9,7 +9,11 @@ export interface IUser extends Document {
   phone?: string;
   bio?: string;
   isEmailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   lastLogin?: Date;
+  isActive: boolean;
+  refreshTokens: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +41,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ['candidate', 'hr', 'admin'],
       default: 'candidate',
+      required: true,
     },
     avatar: String,
     phone: String,
@@ -45,7 +50,21 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
-    lastLogin: Date,
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    refreshTokens: [
+      {
+        type: String,
+      },
+    ],
   },
   {
     timestamps: true,
