@@ -213,8 +213,7 @@ export const api = {
     currentPassword: string;
     newPassword: string;
     confirmPassword: string;
-  }) =>
-    request("/auth/change-password", { method: "POST", body: data }),
+  }) => request("/auth/change-password", { method: "POST", body: data }),
 
   deleteAccount: (password: string) =>
     request("/auth/account", { method: "DELETE", body: { password } }),
