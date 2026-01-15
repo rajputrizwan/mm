@@ -166,11 +166,11 @@ export default function FAQ() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h1>
-          <p className="text-xl text-gray-600">Find answers to common questions about Intervau.AI</p>
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">Frequently Asked Questions</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400">Find answers to common questions about Intervau.AI</p>
         </div>
 
         <div className="mb-12">
@@ -181,7 +181,7 @@ export default function FAQ() {
               placeholder="Search questions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+              className="w-full pl-12 pr-4 py-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
             />
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function FAQ() {
           <div className="space-y-6">
             {filteredFAQs.map((category) => (
               <div key={category.category}>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">{category.category}</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{category.category}</h2>
                 <div className="space-y-3">
                   {category.questions.map((item, idx) => {
                     const itemId = `${category.category}-${idx}`;
@@ -199,7 +199,7 @@ export default function FAQ() {
                     return (
                       <div
                         key={itemId}
-                        className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all"
+                        className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all"
                       >
                         <button
                           onClick={() => toggleExpand(itemId)}
@@ -207,15 +207,14 @@ export default function FAQ() {
                         >
                           <h3 className="text-lg font-semibold text-gray-900 text-left">{item.question}</h3>
                           <ChevronDown
-                            className={`w-5 h-5 text-gray-600 flex-shrink-0 transition-transform ${
-                              isExpanded ? 'rotate-180' : ''
-                            }`}
+                            className={`w-5 h-5 text-gray-600 dark:text-gray-400 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''
+                              }`}
                           />
                         </button>
 
                         {isExpanded && (
-                          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                            <p className="text-gray-700 leading-relaxed">{item.answer}</p>
+                          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{item.answer}</p>
                           </div>
                         )}
                       </div>
@@ -226,15 +225,15 @@ export default function FAQ() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
-            <p className="text-gray-600 text-lg">No questions match your search.</p>
+          <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+            <p className="text-gray-600 dark:text-gray-400 text-lg">No questions match your search.</p>
           </div>
         )}
 
         <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl shadow-lg p-12 text-white text-center mt-16">
           <h2 className="text-2xl font-bold mb-3">Didn't find what you're looking for?</h2>
           <p className="text-lg mb-6">Our support team is here to help</p>
-          <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+          <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 dark:hover:bg-gray-100 transition-colors">
             Contact Support
           </button>
         </div>

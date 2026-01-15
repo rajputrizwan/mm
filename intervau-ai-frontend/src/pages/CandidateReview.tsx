@@ -91,7 +91,7 @@ export default function CandidateReview() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <button className="text-blue-600 hover:text-blue-700 font-medium mb-4">
@@ -99,16 +99,16 @@ export default function CandidateReview() {
           </button>
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 {candidateData.name}
               </h1>
-              <p className="text-gray-600">{candidateData.position}</p>
+              <p className="text-gray-600 dark:text-gray-400">{candidateData.position}</p>
             </div>
             <div className="text-right">
               <div className="inline-block px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-3">
                 {t("candidateReview.highlyQualified")}
               </div>
-              <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ml-auto">
+              <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ml-auto">
                 <Download className="w-4 h-4" />
                 <span>{t("candidateReview.exportReport")}</span>
               </button>
@@ -118,52 +118,52 @@ export default function CandidateReview() {
 
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.candidateInformation")}
               </h2>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
                     <Mail className="w-5 h-5 text-blue-600" />
-                    <span className="text-gray-600">{candidateData.email}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{candidateData.email}</span>
                   </div>
                   <div className="flex items-center space-x-2 mb-4">
                     <Phone className="w-5 h-5 text-blue-600" />
-                    <span className="text-gray-600">{candidateData.phone}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{candidateData.phone}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Briefcase className="w-5 h-5 text-blue-600" />
-                    <span className="text-gray-600">
+                    <span className="text-gray-600 dark:text-gray-400">
                       {candidateData.yearsExperience}{" "}
                       {t("candidateReview.yearsExperience")}
                     </span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-2 font-medium">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
                     {t("candidateReview.location")}
                   </p>
-                  <p className="text-gray-900 mb-4">{candidateData.location}</p>
-                  <p className="text-sm text-gray-600 mb-2 font-medium">
+                  <p className="text-gray-900 dark:text-white mb-4">{candidateData.location}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
                     {t("candidateReview.appliedDate")}
                   </p>
-                  <p className="text-gray-900">{candidateData.appliedDate}</p>
+                  <p className="text-gray-900 dark:text-white">{candidateData.appliedDate}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.professionalSummary")}
               </h2>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                 {candidateData.summary}
               </p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.performanceScores")}
               </h2>
               <div className="space-y-4">
@@ -171,7 +171,7 @@ export default function CandidateReview() {
                   <div key={item.label}>
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {item.label}
                         </span>
                         <span className="text-xs text-gray-500 ml-2">
@@ -193,19 +193,19 @@ export default function CandidateReview() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.skillsMatch")}
               </h2>
               <div className="space-y-4">
                 {skillsMatch.map((skill) => (
                   <div
                     key={skill.skill}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
                   >
                     <div className="flex items-center space-x-4 flex-1">
                       <div className="flex items-center space-x-3">
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                           {skill.skill}
                         </span>
                         {skill.required && (
@@ -234,8 +234,8 @@ export default function CandidateReview() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                 {t("candidateReview.interviewTranscripts")}
               </h2>
               <div className="space-y-6">
@@ -247,24 +247,23 @@ export default function CandidateReview() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <div className="flex items-center space-x-3 mb-1">
-                          <h3 className="font-semibold text-gray-900">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
                             {interview.type === "live"
                               ? t("candidateReview.liveInterview")
                               : t("candidateReview.mockInterview")}
                           </h3>
                           <span
-                            className={`text-xs font-medium px-2 py-1 rounded ${
-                              interview.type === "live"
-                                ? "bg-purple-100 text-purple-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
+                            className={`text-xs font-medium px-2 py-1 rounded ${interview.type === "live"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-blue-100 text-blue-700"
+                              }`}
                           >
                             {interview.type === "live"
                               ? t("candidateReview.interviews")
                               : t("candidateReview.mockInterview")}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           {interview.interviewer}
                         </p>
                       </div>
@@ -282,7 +281,7 @@ export default function CandidateReview() {
                       <span>•</span>
                       <span>{interview.duration}</span>
                     </div>
-                    <p className="text-gray-700 mb-3">{interview.feedback}</p>
+                    <p className="text-gray-700 dark:text-gray-300 mb-3">{interview.feedback}</p>
                     <button className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium text-sm">
                       <Eye className="w-4 h-4" />
                       <span>{t("candidateReview.viewFullTranscript")}</span>
@@ -316,8 +315,8 @@ export default function CandidateReview() {
               </button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 <span>{t("candidateReview.strengths")}</span>
               </h3>
@@ -325,7 +324,7 @@ export default function CandidateReview() {
                 {strengths.map((strength, idx) => (
                   <li
                     key={idx}
-                    className="flex space-x-3 text-sm text-gray-700"
+                    className="flex space-x-3 text-sm text-gray-700 dark:text-gray-300"
                   >
                     <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                     <span>{strength}</span>
@@ -334,8 +333,8 @@ export default function CandidateReview() {
               </ul>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <AlertCircle className="w-5 h-5 text-amber-500" />
                 <span>{t("candidateReview.areasToImprove")}</span>
               </h3>
@@ -352,18 +351,18 @@ export default function CandidateReview() {
               </ul>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.recommendation")}
               </h3>
-              <p className="text-sm text-gray-700 mb-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
                 {t("candidateReview.recommendedForPosition")}
               </p>
               <div className="space-y-2">
                 <button className="w-full py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors">
                   {t("candidateReview.approveAndProceed")}
                 </button>
-                <button className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                <button className="w-full py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   {t("candidateReview.addToPool")}
                 </button>
               </div>

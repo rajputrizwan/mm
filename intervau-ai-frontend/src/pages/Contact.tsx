@@ -53,30 +53,30 @@ export default function Contact() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">Get in Touch</h1>
-          <p className="text-xl text-gray-600">Have questions? We'd love to hear from you. Send us a message!</p>
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">Get in Touch</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400">Have questions? We'd love to hear from you. Send us a message!</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8 mb-16">
           {contactMethods.map((method, idx) => {
             const Icon = method.icon;
             return (
-              <div key={idx} className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all">
+              <div key={idx} className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all">
                 <Icon className="w-12 h-12 text-blue-600 mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{method.title}</h3>
-                <p className="text-lg font-semibold text-gray-900 mb-1">{method.content}</p>
-                <p className="text-sm text-gray-600">{method.description}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{method.title}</h3>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{method.content}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{method.description}</p>
               </div>
             );
           })}
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12">
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-800">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Send us a Message</h2>
 
             {submitted ? (
               <div className="bg-green-50 border-2 border-green-200 rounded-lg p-8 text-center">
@@ -89,39 +89,39 @@ export default function Contact() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="john@example.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Subject</label>
                   <select
                     name="subject"
                     value={formData.subject}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select a subject</option>
                     <option value="general">General Inquiry</option>
@@ -133,14 +133,14 @@ export default function Contact() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Message</label>
                   <textarea
                     name="message"
                     value={formData.message}
                     onChange={handleInputChange}
                     required
                     rows={5}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     placeholder="Tell us how we can help..."
                   />
                 </div>
@@ -166,30 +166,30 @@ export default function Contact() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Popular Topics</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-800">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Popular Topics</h3>
               <div className="space-y-3">
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <button className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                   • How to get started
                 </button>
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <button className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                   • Account & security
                 </button>
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <button className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                   • Billing & plans
                 </button>
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <button className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                   • Technical support
                 </button>
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <button className="w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                   • Features & tips
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">For Partners</h3>
-              <p className="text-gray-600 mb-4">Interested in partnering with Intervau.AI? We're always open to exciting collaboration opportunities.</p>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-800">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">For Partners</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Interested in partnering with Intervau.AI? We're always open to exciting collaboration opportunities.</p>
               <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                 Business Inquiry
               </button>

@@ -70,22 +70,21 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h1>
-          <p className="text-2xl text-gray-600">Choose the plan that fits your needs</p>
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">Simple, Transparent Pricing</h1>
+          <p className="text-2xl text-gray-600 dark:text-gray-400">Choose the plan that fits your needs</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-2xl p-8 transition-all ${
-                plan.highlighted
-                  ? 'bg-gradient-to-br from-blue-600 to-cyan-600 text-white shadow-2xl scale-105'
-                  : 'bg-white text-gray-900 border border-gray-200 shadow-lg hover:shadow-xl'
-              }`}
+              className={`rounded-2xl p-8 transition-all ${plan.highlighted
+                ? 'bg-gradient-to-br from-blue-600 to-cyan-600 text-white shadow-2xl scale-105'
+                : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl'
+                }`}
             >
               {plan.highlighted && (
                 <div className="flex items-center space-x-2 mb-4">
@@ -95,23 +94,22 @@ export default function Pricing() {
               )}
 
               <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-              <p className={`text-sm mb-6 ${plan.highlighted ? 'text-blue-100' : 'text-gray-600'}`}>
+              <p className={`text-sm mb-6 ${plan.highlighted ? 'text-blue-100' : 'text-gray-600 dark:text-gray-400'}`}>
                 {plan.description}
               </p>
 
               <div className="mb-6">
                 <span className="text-4xl font-bold">{plan.price}</span>
                 {plan.price !== 'Free' && plan.price !== 'Custom' && (
-                  <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600'}>/month</span>
+                  <span className={plan.highlighted ? 'text-blue-100' : 'text-gray-600 dark:text-gray-400'}>/month</span>
                 )}
               </div>
 
               <button
-                className={`w-full py-3 rounded-lg font-semibold mb-8 transition-all ${
-                  plan.highlighted
-                    ? 'bg-white text-blue-600 hover:bg-blue-50'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
+                className={`w-full py-3 rounded-lg font-semibold mb-8 transition-all ${plan.highlighted
+                  ? 'bg-white text-blue-600 hover:bg-blue-50'
+                  : 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600'
+                  }`}
               >
                 {plan.cta}
               </button>
@@ -122,7 +120,7 @@ export default function Pricing() {
                     {feature.included ? (
                       <Check className="w-5 h-5 flex-shrink-0 text-green-500" />
                     ) : (
-                      <X className="w-5 h-5 flex-shrink-0 text-gray-300" />
+                      <X className="w-5 h-5 flex-shrink-0 text-gray-300 dark:text-gray-600" />
                     )}
                     <span className={feature.included ? '' : 'opacity-50'}>
                       {feature.text}
@@ -134,34 +132,34 @@ export default function Pricing() {
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Feature Comparison</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 p-8 mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Feature Comparison</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b-2 border-gray-300">
-                  <th className="text-left py-4 px-4 font-bold text-gray-900">Features</th>
-                  <th className="text-center py-4 px-4 font-bold text-gray-900">Starter</th>
-                  <th className="text-center py-4 px-4 font-bold text-gray-900">Professional</th>
-                  <th className="text-center py-4 px-4 font-bold text-gray-900">Enterprise</th>
+                <tr className="border-b-2 border-gray-300 dark:border-gray-700">
+                  <th className="text-left py-4 px-4 font-bold text-gray-900 dark:text-white">Features</th>
+                  <th className="text-center py-4 px-4 font-bold text-gray-900 dark:text-white">Starter</th>
+                  <th className="text-center py-4 px-4 font-bold text-gray-900 dark:text-white">Professional</th>
+                  <th className="text-center py-4 px-4 font-bold text-gray-900 dark:text-white">Enterprise</th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonFeatures.map((feature, idx) => (
-                  <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4 font-medium text-gray-900">{feature}</td>
+                  <tr key={idx} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="py-4 px-4 font-medium text-gray-900 dark:text-white">{feature}</td>
                     <td className="py-4 px-4 text-center">
                       {idx < 4 ? (
                         <Check className="w-5 h-5 text-green-500 mx-auto" />
                       ) : (
-                        <X className="w-5 h-5 text-gray-300 mx-auto" />
+                        <X className="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" />
                       )}
                     </td>
                     <td className="py-4 px-4 text-center">
                       {idx < 7 ? (
                         <Check className="w-5 h-5 text-green-500 mx-auto" />
                       ) : (
-                        <X className="w-5 h-5 text-gray-300 mx-auto" />
+                        <X className="w-5 h-5 text-gray-300 dark:text-gray-600 mx-auto" />
                       )}
                     </td>
                     <td className="py-4 px-4 text-center">
@@ -177,24 +175,24 @@ export default function Pricing() {
         <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl shadow-lg p-12 text-white text-center mb-16">
           <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
           <p className="text-lg mb-8">Still have questions? We're here to help!</p>
-          <button className="inline-flex items-center space-x-2 bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+          <button className="inline-flex items-center space-x-2 bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 dark:hover:bg-gray-100 transition-colors">
             <span>View All FAQs</span>
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Money-back Guarantee</h3>
-            <p className="text-gray-600">Not satisfied? Get a full refund within 30 days, no questions asked.</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-800">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Money-back Guarantee</h3>
+            <p className="text-gray-600 dark:text-gray-400">Not satisfied? Get a full refund within 30 days, no questions asked.</p>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Cancel Anytime</h3>
-            <p className="text-gray-600">No long-term contracts. Cancel your subscription at any time.</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-800">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Cancel Anytime</h3>
+            <p className="text-gray-600 dark:text-gray-400">No long-term contracts. Cancel your subscription at any time.</p>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Secure Checkout</h3>
-            <p className="text-gray-600">All payments are encrypted and processed securely.</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-800">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Secure Checkout</h3>
+            <p className="text-gray-600 dark:text-gray-400">All payments are encrypted and processed securely.</p>
           </div>
         </div>
       </div>
