@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Video, Sparkles, CheckCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTranslation } from "../hooks/useTranslation";
 import { getDefaultRoute, ROUTES } from "../router";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
@@ -12,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,10 +29,10 @@ export default function Login() {
   };
 
   const features = [
-    "AI-powered interview analysis",
-    "Real-time feedback and scoring",
-    "Comprehensive performance reports",
-    "Practice with unlimited mock interviews",
+    t("auth.aiPoweredAnalysis"),
+    t("auth.realtimeFeedback"),
+    t("auth.comprehensiveReports"),
+    t("auth.unlimitedMockInterviews"),
   ];
 
   return (
@@ -47,11 +49,10 @@ export default function Login() {
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">
-            Welcome back to your interview journey
+            {t("auth.welcomeBack")}
           </h1>
           <p className="text-blue-50 text-lg mb-8">
-            Continue practicing and improving your interview skills with
-            AI-powered insights.
+            {t("auth.continueImproving")}
           </p>
 
           <div className="space-y-4">
@@ -68,12 +69,11 @@ export default function Login() {
           <div className="mt-12 p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
             <div className="flex items-center space-x-3 mb-2">
               <Sparkles className="w-5 h-5 text-yellow-300" />
-              <span className="text-white font-semibold">Pro Tip</span>
+              <span className="text-white font-semibold">
+                {t("auth.proTip")}
+              </span>
             </div>
-            <p className="text-blue-50 text-sm">
-              Regular practice sessions improve your confidence by up to 45%.
-              Try a mock interview today!
-            </p>
+            <p className="text-blue-50 text-sm">{t("auth.regularPractice")}</p>
           </div>
         </div>
       </div>
@@ -91,10 +91,10 @@ export default function Login() {
 
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Sign in
+              {t("auth.signIn")}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Welcome back! Please enter your details.
+              {t("auth.welcomeSignIn")}
             </p>
           </div>
 
@@ -111,7 +111,7 @@ export default function Login() {
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />
-                  <span>Candidate</span>
+                  <span>{t("auth.candidate")}</span>
                 </div>
               </button>
               <button
@@ -125,7 +125,7 @@ export default function Login() {
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />
-                  <span>HR Team</span>
+                  <span>{t("auth.hrTeam")}</span>
                 </div>
               </button>
             </div>
@@ -133,9 +133,9 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <Input
                 type="email"
-                label="Email Address"
+                label={t("auth.email")}
                 icon={Mail}
-                placeholder="you@company.com"
+                placeholder={t("auth.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -143,9 +143,9 @@ export default function Login() {
 
               <Input
                 type="password"
-                label="Password"
+                label={t("auth.password")}
                 icon={Lock}
-                placeholder="••••••••"
+                placeholder={t("auth.passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -158,7 +158,7 @@ export default function Login() {
                     className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
                   />
                   <span className="text-gray-600 dark:text-gray-400">
-                    Remember me
+                    {t("auth.rememberMe")}
                   </span>
                 </label>
                 <button
@@ -166,7 +166,7 @@ export default function Login() {
                   onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
                   className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                 >
-                  Forgot password?
+                  {t("auth.forgotPassword")}
                 </button>
               </div>
 
@@ -176,17 +176,17 @@ export default function Login() {
                 className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                 loading={loading}
               >
-                Sign In
+                {t("auth.signIn")}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-              Don't have an account?{" "}
+              {t("auth.noAccount")}{" "}
               <button
                 onClick={() => navigate(ROUTES.REGISTER)}
                 className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors"
               >
-                Create Account
+                {t("auth.createAccount")}
               </button>
             </div>
           </div>

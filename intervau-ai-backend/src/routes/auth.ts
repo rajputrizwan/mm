@@ -54,6 +54,13 @@ router.post('/change-password', authMiddleware, AuthController.changePassword);
 router.delete('/account', authMiddleware, AuthController.deleteAccount);
 
 /**
+ * PUT /api/auth/language
+ * Update user language preference
+ * Body: { language: 'en' | 'es' | 'fr' | 'de' | 'pt' }
+ */
+router.put('/language', authMiddleware, AuthController.updateLanguage);
+
+/**
  * POST /api/auth/logout
  * Logout user and invalidate refresh token
  * Body: { refreshToken? } or cookie

@@ -8,6 +8,7 @@ export interface IUser extends Document {
   avatar?: string;
   phone?: string;
   bio?: string;
+  language?: 'en' | 'es' | 'fr' | 'de' | 'pt';
   isEmailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
@@ -46,6 +47,11 @@ const userSchema = new Schema<IUser>(
     avatar: String,
     phone: String,
     bio: String,
+    language: {
+      type: String,
+      enum: ['en', 'es', 'fr', 'de', 'pt'],
+      default: 'en',
+    },
     isEmailVerified: {
       type: Boolean,
       default: false,

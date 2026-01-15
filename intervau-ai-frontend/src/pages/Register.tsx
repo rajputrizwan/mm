@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTranslation } from "../hooks/useTranslation";
 import { getDefaultRoute, ROUTES } from "../router";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
@@ -24,6 +25,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const { addNotification } = useApp();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,9 +48,9 @@ export default function Register() {
   };
 
   const stats = [
-    { icon: Users, value: "10K+", label: "Active Users" },
-    { icon: Target, value: "95%", label: "Success Rate" },
-    { icon: TrendingUp, value: "45%", label: "Improvement" },
+    { icon: Users, value: "10K+", label: t("auth.activeUsers") },
+    { icon: Target, value: "95%", label: t("auth.successRate") },
+    { icon: TrendingUp, value: "45%", label: t("auth.improvement") },
   ];
 
   return (
@@ -65,12 +67,9 @@ export default function Register() {
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">
-            Start your journey to interview success
+            {t("auth.startJourney")}
           </h1>
-          <p className="text-blue-50 text-lg mb-8">
-            Join thousands of professionals who have improved their interview
-            skills with our AI-powered platform.
-          </p>
+          <p className="text-blue-50 text-lg mb-8">{t("auth.joinThousands")}</p>
 
           <div className="grid grid-cols-3 gap-4 mb-8">
             {stats.map((stat, index) => (
@@ -94,22 +93,10 @@ export default function Register() {
               </div>
               <div>
                 <div className="font-semibold mb-1">
-                  Personalized AI Feedback
+                  {t("auth.personalizedFeedback")}
                 </div>
                 <div className="text-blue-50 text-sm">
-                  Get detailed insights on your performance in real-time
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white text-xs font-bold">✓</span>
-              </div>
-              <div>
-                <div className="font-semibold mb-1">Unlimited Practice</div>
-                <div className="text-blue-50 text-sm">
-                  Practice as many times as you need to build confidence
+                  {t("auth.performanceInsights")}
                 </div>
               </div>
             </div>
@@ -120,10 +107,24 @@ export default function Register() {
               </div>
               <div>
                 <div className="font-semibold mb-1">
-                  Comprehensive Analytics
+                  {t("auth.unlimitedPractice")}
                 </div>
                 <div className="text-blue-50 text-sm">
-                  Track your progress and identify areas for improvement
+                  {t("auth.buildConfidence")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-xs font-bold">✓</span>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">
+                  {t("auth.comprehensiveAnalytics")}
+                </div>
+                <div className="text-blue-50 text-sm">
+                  {t("auth.trackProgress")}
                 </div>
               </div>
             </div>
@@ -144,10 +145,10 @@ export default function Register() {
 
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Create an account
+              {t("auth.createAccountHeading")}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Start your journey to interview excellence.
+              {t("auth.startExcellence")}
             </p>
           </div>
 
@@ -164,7 +165,7 @@ export default function Register() {
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
-                  <span>Candidate</span>
+                  <span>{t("auth.candidate")}</span>
                 </div>
               </button>
               <button
@@ -178,7 +179,7 @@ export default function Register() {
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
-                  <span>HR Team</span>
+                  <span>{t("auth.hrTeam")}</span>
                 </div>
               </button>
             </div>
@@ -186,9 +187,9 @@ export default function Register() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 type="text"
-                label="Full Name"
+                label={t("auth.fullName")}
                 icon={UserIcon}
-                placeholder="John Doe"
+                placeholder={t("auth.fullNamePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -196,9 +197,9 @@ export default function Register() {
 
               <Input
                 type="email"
-                label="Email Address"
+                label={t("auth.email")}
                 icon={Mail}
-                placeholder="you@company.com"
+                placeholder={t("auth.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -206,26 +207,26 @@ export default function Register() {
 
               <Input
                 type="password"
-                label="Password"
+                label={t("auth.password")}
                 icon={Lock}
-                placeholder="••••••••"
+                placeholder={t("auth.passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                helperText="Minimum 8 characters"
+                helperText={t("auth.minimum8Chars")}
                 required
                 minLength={8}
               />
 
               <Input
                 type="password"
-                label="Confirm Password"
+                label={t("auth.confirmPassword")}
                 icon={Lock}
-                placeholder="••••••••"
+                placeholder={t("auth.passwordPlaceholder")}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 error={
                   password && confirmPassword && password !== confirmPassword
-                    ? "Passwords do not match"
+                    ? t("auth.passwordsDoNotMatch")
                     : undefined
                 }
                 required
@@ -233,19 +234,19 @@ export default function Register() {
               />
 
               <div className="text-xs text-gray-600 dark:text-gray-400">
-                By creating an account, you agree to our{" "}
+                {t("auth.agreeTerms")}{" "}
                 <button
                   type="button"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Terms of Service
+                  {t("auth.termsOfService")}
                 </button>{" "}
-                and{" "}
+                {t("auth.and")}{" "}
                 <button
                   type="button"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Privacy Policy
+                  {t("auth.privacyPolicy")}
                 </button>
               </div>
 
@@ -255,17 +256,17 @@ export default function Register() {
                 className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                 loading={loading}
               >
-                Create Account
+                {t("auth.createAccount")}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-              Already have an account?{" "}
+              {t("auth.alreadyHaveAccount")}{" "}
               <button
                 onClick={() => navigate(ROUTES.LOGIN)}
                 className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors"
               >
-                Sign In
+                {t("auth.signInLink")}
               </button>
             </div>
           </div>

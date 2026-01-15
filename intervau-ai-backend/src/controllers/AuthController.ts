@@ -473,6 +473,49 @@ export class AuthController {
   }
 
   /**
+   * Update user language preference
+   */
+  static async updateLanguage(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user.id;
+      const { language } = req.body;
+
+      // Validate language
+      const validLanguages = ['en', 'es', 'fr', 'de', 'pt'];
+      if (!language || !validLanguages.includes(language)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid language. Supported languages: en, es, fr, de, pt',
+        });
+      }
+
+      // Update user language
+      const user = await User.findByIdAndUpdate(userId, { language }, { new: true });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Language preference updated successfully',
+        data: {
+          language: user.language,
+        },
+      });
+    } catch (error) {
+      console.error('Update language error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update language preference',
+      });
+    }
+  }
+
+  /**
    * Helper method to generate access token
    */
   private static generateAccessToken(user: any): string {

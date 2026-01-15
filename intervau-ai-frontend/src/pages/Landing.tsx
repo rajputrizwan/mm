@@ -36,6 +36,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import LandingNavbar from "../components/LandingNavbar";
+import { useTranslation } from "../hooks/useTranslation";
 import { ROUTES } from "../router";
 
 export default function Landing() {

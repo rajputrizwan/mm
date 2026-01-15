@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useApp } from "../../contexts/AppContext";
+import { useTranslation } from "../../hooks/useTranslation";
 import { ROUTES } from "../../router";
 
 export default function Sidebar() {
@@ -23,27 +24,56 @@ export default function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { sidebarOpen, setSidebarOpen } = useApp();
+  const { t } = useTranslation();
 
   if (!user) return null;
 
   const candidateLinks = [
-    { icon: Home, label: "Dashboard", path: ROUTES.CANDIDATE_DASHBOARD },
-    { icon: FileText, label: "Resume", path: ROUTES.RESUME },
-    { icon: Video, label: "Mock Interview", path: ROUTES.MOCK_INTERVIEW },
-    { icon: History, label: "History", path: ROUTES.INTERVIEW_HISTORY },
+    {
+      icon: Home,
+      label: t("navigation.dashboard"),
+      path: ROUTES.CANDIDATE_DASHBOARD,
+    },
+    { icon: FileText, label: t("navigation.resume"), path: ROUTES.RESUME },
+    {
+      icon: Video,
+      label: t("navigation.mockInterview"),
+      path: ROUTES.MOCK_INTERVIEW,
+    },
+    {
+      icon: History,
+      label: t("navigation.interviewHistory"),
+      path: ROUTES.INTERVIEW_HISTORY,
+    },
     {
       icon: Settings,
-      label: "Profile",
+      label: t("navigation.profile"),
       path: ROUTES.CANDIDATE_PROFILE_SETTINGS,
     },
   ];
 
   const hrLinks = [
-    { icon: Home, label: "Dashboard", path: ROUTES.HR_DASHBOARD },
-    { icon: Briefcase, label: "Job Positions", path: ROUTES.JOB_POSITIONS },
-    { icon: Users, label: "Candidates", path: ROUTES.HR_CANDIDATES },
-    { icon: History, label: "History", path: ROUTES.INTERVIEW_HISTORY },
-    { icon: Settings, label: "Profile", path: ROUTES.HR_PROFILE_SETTINGS },
+    { icon: Home, label: t("navigation.dashboard"), path: ROUTES.HR_DASHBOARD },
+    {
+      icon: Briefcase,
+      label: t("navigation.jobPositions"),
+      path: ROUTES.JOB_POSITIONS,
+    },
+    {
+      icon: Users,
+      label: t("navigation.candidates"),
+      path: ROUTES.HR_CANDIDATES,
+    },
+    {
+      icon: History,
+      label: t("navigation.interviewHistory"),
+      path: ROUTES.INTERVIEW_HISTORY,
+    },
+    {
+      icon: Settings,
+      label: t("navigation.profile"),
+      path: ROUTES.HR_PROFILE_SETTINGS,
+    },
   ];
 
   const links = user.role === "candidate" ? candidateLinks : hrLinks;
@@ -119,7 +149,7 @@ export default function Sidebar() {
               }`}
             >
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Main Menu
+                {t("navigation.mainMenu")}
               </p>
             </div>
             <nav className="space-y-1 px-2">
@@ -186,7 +216,7 @@ export default function Sidebar() {
             </div>
             <button
               onClick={handleLogout}
-              title={!sidebarOpen ? "Logout" : undefined}
+              title={!sidebarOpen ? t("navigation.logoutTitle") : undefined}
               className={`w-full flex items-center ${
                 sidebarOpen ? "space-x-3" : "lg:justify-center"
               } px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200`}
@@ -197,7 +227,7 @@ export default function Sidebar() {
                   !sidebarOpen && "lg:opacity-0 lg:w-0 lg:overflow-hidden"
                 }`}
               >
-                Logout
+                {t("navigation.logout")}
               </span>
             </button>
           </div>

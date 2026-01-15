@@ -12,33 +12,35 @@ import {
   Upload,
 } from "lucide-react";
 import { ROUTES } from "../router";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const stats = [
     {
-      label: "Total Interviews",
+      label: t("dashboard.totalInterviews"),
       value: "12",
       change: "+3 this week",
       icon: Video,
       color: "from-blue-500 to-cyan-500",
     },
     {
-      label: "Average Score",
+      label: t("dashboard.averageScore"),
       value: "78%",
       change: "+5% from last",
       icon: Award,
       color: "from-green-500 to-emerald-500",
     },
     {
-      label: "Hours Practiced",
+      label: t("dashboard.hoursPracticed"),
       value: "8.5h",
       change: "2.5h this week",
       icon: Clock,
       color: "from-orange-500 to-amber-500",
     },
     {
-      label: "Improvement Rate",
+      label: t("dashboard.improvementRate"),
       value: "+12%",
       change: "Last 30 days",
       icon: TrendingUp,
@@ -82,10 +84,10 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome Back!
+            {t("dashboard.welcomeBack")}
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
-            Here's your interview performance overview
+            {t("dashboard.performanceOverview")}
           </p>
         </div>
 
@@ -125,9 +127,11 @@ export default function Dashboard() {
                 <Play className="w-8 h-8" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-bold mb-1">Start Mock Interview</h3>
+                <h3 className="text-xl font-bold mb-1">
+                  {t("dashboard.startMockInterview")}
+                </h3>
                 <p className="text-blue-100 dark:text-blue-200 text-sm">
-                  Practice with AI interviewer
+                  {t("dashboard.practiceWithAI")}
                 </p>
               </div>
             </div>
@@ -143,10 +147,10 @@ export default function Dashboard() {
               </div>
               <div className="text-left">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                  Upload Resume
+                  {t("dashboard.uploadResume")}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  Extract skills & insights
+                  {t("dashboard.extractSkills")}
                 </p>
               </div>
             </div>
@@ -162,10 +166,10 @@ export default function Dashboard() {
               </div>
               <div className="text-left">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                  View Reports
+                  {t("dashboard.viewReports")}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  Detailed performance analytics
+                  {t("dashboard.detailedAnalytics")}
                 </p>
               </div>
             </div>
@@ -176,10 +180,10 @@ export default function Dashboard() {
           <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Recent Interviews
+                {t("dashboard.recentInterviews")}
               </h2>
               <button className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors">
-                View All
+                {t("dashboard.viewAll")}
               </button>
             </div>
             <div className="space-y-3">
@@ -215,7 +219,7 @@ export default function Dashboard() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Top Skills
+                {t("dashboard.topSkills")}
               </h2>
               <FileText className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             </div>
@@ -243,7 +247,7 @@ export default function Dashboard() {
               onClick={() => navigate(ROUTES.RESUME)}
               className="w-full mt-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 text-white rounded-lg font-semibold hover:shadow-lg transition-shadow"
             >
-              Update Skills
+              {t("dashboard.updateSkills")}
             </button>
           </div>
         </div>

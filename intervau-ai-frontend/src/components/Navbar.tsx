@@ -1,10 +1,12 @@
 import { Sparkles, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useTranslation } from "../hooks/useTranslation";
 import { ROUTES } from "../router";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -49,7 +51,7 @@ export default function Navbar() {
                         : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    Dashboard
+                    {t("navigation.dashboard")}
                   </button>
                   <button
                     onClick={() => navigate(ROUTES.RESUME)}
@@ -59,7 +61,7 @@ export default function Navbar() {
                         : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    Resume
+                    {t("navigation.resume")}
                   </button>
                   <button
                     onClick={() => navigate(ROUTES.MOCK_INTERVIEW)}
@@ -69,7 +71,7 @@ export default function Navbar() {
                         : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    Mock Interview
+                    {t("navigation.mockInterview")}
                   </button>
                 </>
               )}
@@ -84,7 +86,7 @@ export default function Navbar() {
                         : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    Dashboard
+                    {t("navigation.dashboard")}
                   </button>
                   <button
                     onClick={() => navigate(ROUTES.JOB_POSITIONS)}
@@ -94,7 +96,7 @@ export default function Navbar() {
                         : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    Positions
+                    {t("navigation.jobPositions")}
                   </button>
                   <button
                     onClick={() => navigate(ROUTES.HR_CANDIDATES)}
@@ -104,7 +106,7 @@ export default function Navbar() {
                         : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
-                    Candidates
+                    {t("navigation.candidates")}
                   </button>
                 </>
               )}
@@ -121,7 +123,7 @@ export default function Navbar() {
                 <button
                   onClick={handleLogout}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Logout"
+                  title={t("navigation.logout")}
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -135,13 +137,13 @@ export default function Navbar() {
                 onClick={() => navigate(ROUTES.LOGIN)}
                 className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Sign In
+                {t("navigation.signIn")}
               </button>
               <button
                 onClick={() => navigate(ROUTES.REGISTER)}
                 className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:shadow-lg transition-shadow"
               >
-                Get Started
+                {t("navigation.getStarted")}
               </button>
             </div>
           )}

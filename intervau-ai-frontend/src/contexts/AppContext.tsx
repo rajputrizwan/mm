@@ -1,9 +1,17 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 
-export type Theme = 'light' | 'dark';
+export type Theme = "light" | "dark";
+export type Language = "en" | "es" | "fr" | "de" | "pt";
 
 interface AppState {
   theme: Theme;
+  language: Language;
   sidebarOpen: boolean;
   notifications: Notification[];
 }
@@ -11,16 +19,17 @@ interface AppState {
 interface Notification {
   id: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   timestamp: Date;
 }
 
 interface AppContextType extends AppState {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  setLanguage: (language: Language) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
-  addNotification: (message: string, type: Notification['type']) => void;
+  addNotification: (message: string, type: Notification["type"]) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
 }
@@ -29,38 +38,52 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme');
-    return (saved as Theme) || 'light';
+    const saved = localStorage.getItem("theme");
+    return (saved as Theme) || "light";
+  });
+
+  const [language, setLanguageState] = useState<Language>(() => {
+    const saved = localStorage.getItem("language");
+    return (saved as Language) || "en";
   });
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem("theme", theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("language", language);
+    document.documentElement.lang = language;
+  }, [language]);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
   };
 
+  const setLanguage = (newLanguage: Language) => {
+    setLanguageState(newLanguage);
+  };
+
   const toggleTheme = () => {
-    setThemeState(prev => prev === 'light' ? 'dark' : 'light');
+    setThemeState((prev) => (prev === "light" ? "dark" : "light"));
   };
 
   const toggleSidebar = () => {
-    setSidebarOpen(prev => !prev);
+    setSidebarOpen((prev) => !prev);
   };
 
-  const addNotification = (message: string, type: Notification['type']) => {
+  const addNotification = (message: string, type: Notification["type"]) => {
     const notification: Notification = {
       id: Date.now().toString(),
       message,
       type,
       timestamp: new Date(),
     };
-    setNotifications(prev => [...prev, notification]);
+    setNotifications((prev) => [...prev, notification]);
 
     setTimeout(() => {
       removeNotification(notification.id);
@@ -68,7 +91,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
   const clearNotifications = () => {
@@ -81,6 +104,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         theme,
         setTheme,
         toggleTheme,
+        language,
+        setLanguage,
         sidebarOpen,
         setSidebarOpen,
         toggleSidebar,
@@ -98,7 +123,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
+    throw new Error("useApp must be used within an AppProvider");
   }
   return context;
 }
