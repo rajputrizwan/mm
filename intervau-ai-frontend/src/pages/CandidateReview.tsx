@@ -1,13 +1,397 @@
+// import {
+//   Mail,
+//   Phone,
+//   Briefcase,
+//   Award,
+//   TrendingUp,
+//   MessageSquare,
+//   Download,
+//   Eye,
+//   FileText,
+//   CheckCircle,
+//   AlertCircle,
+// } from "lucide-react";
+// import { useTranslation } from "../hooks/useTranslation";
+
+// export default function CandidateReview() {
+//   const { t } = useTranslation();
+//   const candidateData = {
+//     name: "Alex Martinez",
+//     position: "Senior Full Stack Developer",
+//     email: "alex.martinez@email.com",
+//     phone: "+1 (555) 123-4567",
+//     location: "San Francisco, CA",
+//     appliedDate: "March 10, 2024",
+//     avatar: "AM",
+//     status: "qualified",
+//     overallScore: 92,
+//     yearsExperience: 6,
+//     summary:
+//       "Highly skilled full stack engineer with extensive experience in building scalable web applications. Strong technical foundation combined with excellent communication skills and leadership potential.",
+//   };
+
+//   const scores = [
+//     { label: "Technical Knowledge", score: 88, category: "Technical" },
+//     { label: "Problem Solving", score: 92, category: "Technical" },
+//     { label: "Communication", score: 89, category: "Soft Skills" },
+//     { label: "Leadership", score: 85, category: "Soft Skills" },
+//     { label: "Cultural Fit", score: 94, category: "Cultural" },
+//     { label: "Confidence", score: 87, category: "Behavioral" },
+//   ];
+
+//   const interviews = [
+//     {
+//       id: 1,
+//       type: "mock",
+//       date: "March 15, 2024",
+//       duration: "45 min",
+//       score: 89,
+//       feedback:
+//         "Strong technical knowledge. Could improve on behavioral questions.",
+//       interviewer: "AI Interviewer",
+//     },
+//     {
+//       id: 2,
+//       type: "live",
+//       date: "March 18, 2024",
+//       duration: "60 min",
+//       score: 94,
+//       feedback:
+//         "Excellent communication and problem-solving skills. Great fit for the team.",
+//       interviewer: "Jennifer Smith (Hiring Manager)",
+//     },
+//   ];
+
+//   const strengths = [
+//     "Exceptional technical depth in React and Node.js",
+//     "Clear articulation of complex concepts",
+//     "Proactive problem-solver with systematic approach",
+//     "Great team collaboration abilities",
+//     "Leadership experience with proven mentoring track record",
+//   ];
+
+//   const improvements = [
+//     "Could provide more concrete examples in behavioral scenarios",
+//     "System design concepts could be explored deeper",
+//     "Limited experience with certain cloud platforms",
+//   ];
+
+//   const skillsMatch = [
+//     { skill: "React", required: true, proficiency: "Expert", match: 95 },
+//     { skill: "Node.js", required: true, proficiency: "Expert", match: 93 },
+//     { skill: "TypeScript", required: true, proficiency: "Advanced", match: 88 },
+//     { skill: "AWS", required: false, proficiency: "Intermediate", match: 72 },
+//     { skill: "Docker", required: false, proficiency: "Advanced", match: 85 },
+//     {
+//       skill: "MongoDB",
+//       required: false,
+//       proficiency: "Intermediate",
+//       match: 80,
+//     },
+//   ];
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
+//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//         <div className="mb-8">
+//           <button className="text-blue-600 hover:text-blue-700 font-medium mb-4">
+//             {t("candidateReview.backToCandidates")}
+//           </button>
+//           <div className="flex items-start justify-between">
+//             <div>
+//               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+//                 {candidateData.name}
+//               </h1>
+//               <p className="text-gray-600 dark:text-gray-400">{candidateData.position}</p>
+//             </div>
+//             <div className="text-right">
+//               <div className="inline-block px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-3">
+//                 {t("candidateReview.highlyQualified")}
+//               </div>
+//               <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ml-auto">
+//                 <Download className="w-4 h-4" />
+//                 <span>{t("candidateReview.exportReport")}</span>
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="grid lg:grid-cols-3 gap-6 mb-6">
+//           <div className="lg:col-span-2 space-y-6">
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+//                 {t("candidateReview.candidateInformation")}
+//               </h2>
+//               <div className="grid md:grid-cols-2 gap-6">
+//                 <div>
+//                   <div className="flex items-center space-x-2 mb-4">
+//                     <Mail className="w-5 h-5 text-blue-600" />
+//                     <span className="text-gray-600 dark:text-gray-400">{candidateData.email}</span>
+//                   </div>
+//                   <div className="flex items-center space-x-2 mb-4">
+//                     <Phone className="w-5 h-5 text-blue-600" />
+//                     <span className="text-gray-600 dark:text-gray-400">{candidateData.phone}</span>
+//                   </div>
+//                   <div className="flex items-center space-x-2">
+//                     <Briefcase className="w-5 h-5 text-blue-600" />
+//                     <span className="text-gray-600 dark:text-gray-400">
+//                       {candidateData.yearsExperience}{" "}
+//                       {t("candidateReview.yearsExperience")}
+//                     </span>
+//                   </div>
+//                 </div>
+//                 <div>
+//                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
+//                     {t("candidateReview.location")}
+//                   </p>
+//                   <p className="text-gray-900 dark:text-white mb-4">{candidateData.location}</p>
+//                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
+//                     {t("candidateReview.appliedDate")}
+//                   </p>
+//                   <p className="text-gray-900 dark:text-white">{candidateData.appliedDate}</p>
+//                 </div>
+//               </div>
+//             </div>
+
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+//                 {t("candidateReview.professionalSummary")}
+//               </h2>
+//               <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+//                 {candidateData.summary}
+//               </p>
+//             </div>
+
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+//                 {t("candidateReview.performanceScores")}
+//               </h2>
+//               <div className="space-y-4">
+//                 {scores.map((item) => (
+//                   <div key={item.label}>
+//                     <div className="flex items-center justify-between mb-2">
+//                       <div>
+//                         <span className="text-sm font-medium text-gray-900 dark:text-white">
+//                           {item.label}
+//                         </span>
+//                         <span className="text-xs text-gray-500 ml-2">
+//                           {item.category}
+//                         </span>
+//                       </div>
+//                       <span className="text-sm font-bold text-blue-600">
+//                         {item.score}%
+//                       </span>
+//                     </div>
+//                     <div className="w-full bg-gray-200 rounded-full h-2">
+//                       <div
+//                         className="bg-gradient-to-r from-blue-600 to-cyan-600 h-2 rounded-full"
+//                         style={{ width: `${item.score}%` }}
+//                       />
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+//                 {t("candidateReview.skillsMatch")}
+//               </h2>
+//               <div className="space-y-4">
+//                 {skillsMatch.map((skill) => (
+//                   <div
+//                     key={skill.skill}
+//                     className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+//                   >
+//                     <div className="flex items-center space-x-4 flex-1">
+//                       <div className="flex items-center space-x-3">
+//                         <span className="font-semibold text-gray-900 dark:text-white">
+//                           {skill.skill}
+//                         </span>
+//                         {skill.required && (
+//                           <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
+//                             {t("candidateReview.required")}
+//                           </span>
+//                         )}
+//                       </div>
+//                       <span className="text-sm text-gray-600">
+//                         {skill.proficiency}
+//                       </span>
+//                     </div>
+//                     <div className="text-right">
+//                       <span className="text-sm font-bold text-blue-600">
+//                         {skill.match}%
+//                       </span>
+//                       <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+//                         <div
+//                           className="bg-blue-600 h-2 rounded-full"
+//                           style={{ width: `${skill.match}%` }}
+//                         />
+//                       </div>
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+//                 {t("candidateReview.interviewTranscripts")}
+//               </h2>
+//               <div className="space-y-6">
+//                 {interviews.map((interview) => (
+//                   <div
+//                     key={interview.id}
+//                     className="border-l-4 border-blue-500 pl-6 pb-6"
+//                   >
+//                     <div className="flex items-start justify-between mb-3">
+//                       <div>
+//                         <div className="flex items-center space-x-3 mb-1">
+//                           <h3 className="font-semibold text-gray-900 dark:text-white">
+//                             {interview.type === "live"
+//                               ? t("candidateReview.liveInterview")
+//                               : t("candidateReview.mockInterview")}
+//                           </h3>
+//                           <span
+//                             className={`text-xs font-medium px-2 py-1 rounded ${interview.type === "live"
+//                               ? "bg-purple-100 text-purple-700"
+//                               : "bg-blue-100 text-blue-700"
+//                               }`}
+//                           >
+//                             {interview.type === "live"
+//                               ? t("candidateReview.interviews")
+//                               : t("candidateReview.mockInterview")}
+//                           </span>
+//                         </div>
+//                         <p className="text-sm text-gray-600 dark:text-gray-400">
+//                           {interview.interviewer}
+//                         </p>
+//                       </div>
+//                       <div className="text-right">
+//                         <p className="text-lg font-bold text-blue-600">
+//                           {interview.score}%
+//                         </p>
+//                         <p className="text-xs text-gray-500">
+//                           {t("candidateReview.score")}
+//                         </p>
+//                       </div>
+//                     </div>
+//                     <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+//                       <span>{interview.date}</span>
+//                       <span>•</span>
+//                       <span>{interview.duration}</span>
+//                     </div>
+//                     <p className="text-gray-700 dark:text-gray-300 mb-3">{interview.feedback}</p>
+//                     <button className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium text-sm">
+//                       <Eye className="w-4 h-4" />
+//                       <span>{t("candidateReview.viewFullTranscript")}</span>
+//                     </button>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="space-y-6">
+//             <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+//               <div className="text-center mb-6">
+//                 <div className="text-5xl font-bold mb-2">
+//                   {candidateData.overallScore}%
+//                 </div>
+//                 <p className="text-blue-100">
+//                   {t("candidateReview.overallAIScore")}
+//                 </p>
+//               </div>
+//               <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 mb-4">
+//                 <p className="text-sm text-blue-100 mb-2">
+//                   {t("candidateReview.interviewAverage")}: 91%
+//                 </p>
+//                 <p className="text-sm text-blue-100">
+//                   {t("candidateReview.technicalAverage")}: 90%
+//                 </p>
+//               </div>
+//               <button className="w-full py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+//                 {t("candidateReview.scheduleInterview")}
+//               </button>
+//             </div>
+
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+//                 <CheckCircle className="w-5 h-5 text-green-500" />
+//                 <span>{t("candidateReview.strengths")}</span>
+//               </h3>
+//               <ul className="space-y-3">
+//                 {strengths.map((strength, idx) => (
+//                   <li
+//                     key={idx}
+//                     className="flex space-x-3 text-sm text-gray-700 dark:text-gray-300"
+//                   >
+//                     <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+//                     <span>{strength}</span>
+//                   </li>
+//                 ))}
+//               </ul>
+//             </div>
+
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+//                 <AlertCircle className="w-5 h-5 text-amber-500" />
+//                 <span>{t("candidateReview.areasToImprove")}</span>
+//               </h3>
+//               <ul className="space-y-3">
+//                 {improvements.map((improvement, idx) => (
+//                   <li
+//                     key={idx}
+//                     className="flex space-x-3 text-sm text-gray-700"
+//                   >
+//                     <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+//                     <span>{improvement}</span>
+//                   </li>
+//                 ))}
+//               </ul>
+//             </div>
+
+//             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+//               <h3 className="font-bold text-gray-900 dark:text-white mb-4">
+//                 {t("candidateReview.recommendation")}
+//               </h3>
+//               <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+//                 {t("candidateReview.recommendedForPosition")}
+//               </p>
+//               <div className="space-y-2">
+//                 <button className="w-full py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors">
+//                   {t("candidateReview.approveAndProceed")}
+//                 </button>
+//                 <button className="w-full py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+//                   {t("candidateReview.addToPool")}
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
 import {
   Mail,
   Phone,
   Briefcase,
-  Award,
-  TrendingUp,
-  MessageSquare,
   Download,
   Eye,
-  FileText,
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
@@ -91,10 +475,10 @@ export default function CandidateReview() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <button className="text-blue-600 hover:text-blue-700 font-medium mb-4">
+          <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium mb-4">
             {t("candidateReview.backToCandidates")}
           </button>
           <div className="flex items-start justify-between">
@@ -102,15 +486,15 @@ export default function CandidateReview() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 {candidateData.name}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">{candidateData.position}</p>
+              <p className="text-gray-600 dark:text-gray-300">{candidateData.position}</p>
             </div>
             <div className="text-right">
-              <div className="inline-block px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-3">
+              <div className="inline-block px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-semibold mb-3">
                 {t("candidateReview.highlyQualified")}
               </div>
               <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ml-auto">
                 <Download className="w-4 h-4" />
-                <span>{t("candidateReview.exportReport")}</span>
+                <span className="text-gray-700 dark:text-gray-300">{t("candidateReview.exportReport")}</span>
               </button>
             </div>
           </div>
@@ -118,22 +502,22 @@ export default function CandidateReview() {
 
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.candidateInformation")}
               </h2>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Mail className="w-5 h-5 text-blue-600" />
+                    <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <span className="text-gray-600 dark:text-gray-400">{candidateData.email}</span>
                   </div>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Phone className="w-5 h-5 text-blue-600" />
+                    <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <span className="text-gray-600 dark:text-gray-400">{candidateData.phone}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Briefcase className="w-5 h-5 text-blue-600" />
+                    <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     <span className="text-gray-600 dark:text-gray-400">
                       {candidateData.yearsExperience}{" "}
                       {t("candidateReview.yearsExperience")}
@@ -141,11 +525,11 @@ export default function CandidateReview() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 font-medium">
                     {t("candidateReview.location")}
                   </p>
                   <p className="text-gray-900 dark:text-white mb-4">{candidateData.location}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 font-medium">
                     {t("candidateReview.appliedDate")}
                   </p>
                   <p className="text-gray-900 dark:text-white">{candidateData.appliedDate}</p>
@@ -153,7 +537,7 @@ export default function CandidateReview() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.professionalSummary")}
               </h2>
@@ -162,7 +546,7 @@ export default function CandidateReview() {
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.performanceScores")}
               </h2>
@@ -174,17 +558,17 @@ export default function CandidateReview() {
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {item.label}
                         </span>
-                        <span className="text-xs text-gray-500 ml-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                           {item.category}
                         </span>
                       </div>
-                      <span className="text-sm font-bold text-blue-600">
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                         {item.score}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-blue-600 to-cyan-600 h-2 rounded-full"
+                        className="bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 h-2 rounded-full"
                         style={{ width: `${item.score}%` }}
                       />
                     </div>
@@ -193,7 +577,7 @@ export default function CandidateReview() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.skillsMatch")}
               </h2>
@@ -201,7 +585,7 @@ export default function CandidateReview() {
                 {skillsMatch.map((skill) => (
                   <div
                     key={skill.skill}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
                     <div className="flex items-center space-x-4 flex-1">
                       <div className="flex items-center space-x-3">
@@ -209,22 +593,22 @@ export default function CandidateReview() {
                           {skill.skill}
                         </span>
                         {skill.required && (
-                          <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
+                          <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded font-medium">
                             {t("candidateReview.required")}
                           </span>
                         )}
                       </div>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
                         {skill.proficiency}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-bold text-blue-600">
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                         {skill.match}%
                       </span>
-                      <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                      <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1">
                         <div
-                          className="bg-blue-600 h-2 rounded-full"
+                          className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
                           style={{ width: `${skill.match}%` }}
                         />
                       </div>
@@ -234,7 +618,7 @@ export default function CandidateReview() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                 {t("candidateReview.interviewTranscripts")}
               </h2>
@@ -242,7 +626,7 @@ export default function CandidateReview() {
                 {interviews.map((interview) => (
                   <div
                     key={interview.id}
-                    className="border-l-4 border-blue-500 pl-6 pb-6"
+                    className="border-l-4 border-blue-500 dark:border-blue-400 pl-6 pb-6"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -254,8 +638,8 @@ export default function CandidateReview() {
                           </h3>
                           <span
                             className={`text-xs font-medium px-2 py-1 rounded ${interview.type === "live"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700"
+                              ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
+                              : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                               }`}
                           >
                             {interview.type === "live"
@@ -268,21 +652,21 @@ export default function CandidateReview() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-blue-600">
+                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                           {interview.score}%
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {t("candidateReview.score")}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-500 mb-3">
                       <span>{interview.date}</span>
-                      <span>•</span>
+                      <span className="text-gray-400 dark:text-gray-600">•</span>
                       <span>{interview.duration}</span>
                     </div>
                     <p className="text-gray-700 dark:text-gray-300 mb-3">{interview.feedback}</p>
-                    <button className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium text-sm">
+                    <button className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm">
                       <Eye className="w-4 h-4" />
                       <span>{t("candidateReview.viewFullTranscript")}</span>
                     </button>
@@ -293,7 +677,7 @@ export default function CandidateReview() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="bg-gradient-to-br from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 rounded-xl shadow-lg p-6 text-white">
               <div className="text-center mb-6">
                 <div className="text-5xl font-bold mb-2">
                   {candidateData.overallScore}%
@@ -315,7 +699,7 @@ export default function CandidateReview() {
               </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 <span>{t("candidateReview.strengths")}</span>
@@ -333,7 +717,7 @@ export default function CandidateReview() {
               </ul>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <AlertCircle className="w-5 h-5 text-amber-500" />
                 <span>{t("candidateReview.areasToImprove")}</span>
@@ -342,7 +726,7 @@ export default function CandidateReview() {
                 {improvements.map((improvement, idx) => (
                   <li
                     key={idx}
-                    className="flex space-x-3 text-sm text-gray-700"
+                    className="flex space-x-3 text-sm text-gray-700 dark:text-gray-300"
                   >
                     <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                     <span>{improvement}</span>
@@ -351,7 +735,7 @@ export default function CandidateReview() {
               </ul>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <h3 className="font-bold text-gray-900 dark:text-white mb-4">
                 {t("candidateReview.recommendation")}
               </h3>
