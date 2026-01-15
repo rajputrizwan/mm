@@ -6,8 +6,8 @@ This document describes the complete URL-based routing structure for the Interva
 
 ## Base URL
 
-**Development:** `http://localhost:5174/intervau-ai-frontend/`  
-**Production:** `https://Hassan-Raza0.github.io/intervau-ai-frontend/`
+**Development:** `http://localhost:5173/`  
+**Production:** `https://Hassan-Raza0.github.io/`
 
 ## Route Structure
 
@@ -46,9 +46,9 @@ These routes are protected and only accessible to users logged in with the candi
 
 **Example URLs:**
 
-- `http://localhost:5174/intervau-ai-frontend/candidate/dashboard`
-- `http://localhost:5174/intervau-ai-frontend/candidate/mock-interviews/session/abc123`
-- `http://localhost:5174/intervau-ai-frontend/candidate/interview-report/xyz789`
+- `http://localhost:5173/candidate/dashboard`
+- `http://localhost:5173/candidate/mock-interviews/session/abc123`
+- `http://localhost:5173/candidate/interview-report/xyz789`
 
 ---
 
@@ -68,9 +68,9 @@ These routes are protected and only accessible to users logged in with the HR ro
 
 **Example URLs:**
 
-- `http://localhost:5174/intervau-ai-frontend/hr/dashboard`
-- `http://localhost:5174/intervau-ai-frontend/hr/job-positions`
-- `http://localhost:5174/intervau-ai-frontend/hr/candidate-review/candidate-001`
+- `http://localhost:5173/hr/dashboard`
+- `http://localhost:5173/hr/job-positions`
+- `http://localhost:5173/hr/candidate-review/candidate-001`
 
 ---
 
@@ -85,8 +85,8 @@ These routes are protected and accessible to both candidates and HR users.
 
 **Example URLs:**
 
-- `http://localhost:5174/intervau-ai-frontend/live-interview/session-2024-001`
-- `http://localhost:5174/intervau-ai-frontend/interview-summary/summary-2024-001`
+- `http://localhost:5173/live-interview/session-2024-001`
+- `http://localhost:5173/interview-summary/summary-2024-001`
 
 ---
 
@@ -253,26 +253,26 @@ src/
 ### Candidate Journey
 
 ```
-1. Landing page:              http://localhost:5174/intervau-ai-frontend/
-2. Login page:                http://localhost:5174/intervau-ai-frontend/login
-3. After login:               http://localhost:5174/intervau-ai-frontend/candidate/dashboard
-4. View mock interviews:      http://localhost:5174/intervau-ai-frontend/candidate/mock-interviews
-5. Start interview:           http://localhost:5174/intervau-ai-frontend/candidate/mock-interviews/session/abc123
-6. View report:               http://localhost:5174/intervau-ai-frontend/candidate/interview-report/xyz789
-7. Upload resume:             http://localhost:5174/intervau-ai-frontend/candidate/resume
-8. Settings:                  http://localhost:5174/intervau-ai-frontend/candidate/profile-settings
+1. Landing page:              http://localhost:5173/
+2. Login page:                http://localhost:5173/login
+3. After login:               http://localhost:5173/candidate/dashboard
+4. View mock interviews:      http://localhost:5173/candidate/mock-interviews
+5. Start interview:           http://localhost:5173/candidate/mock-interviews/session/abc123
+6. View report:               http://localhost:5173/candidate/interview-report/xyz789
+7. Upload resume:             http://localhost:5173/candidate/resume
+8. Settings:                  http://localhost:5173/candidate/profile-settings
 ```
 
 ### HR Journey
 
 ```
-1. Landing page:              http://localhost:5174/intervau-ai-frontend/
-2. Login page:                http://localhost:5174/intervau-ai-frontend/login
-3. After login:               http://localhost:5174/intervau-ai-frontend/hr/dashboard
-4. View candidates:           http://localhost:5174/intervau-ai-frontend/hr/candidates
-5. Review candidate:          http://localhost:5174/intervau-ai-frontend/hr/candidate-review/candidate-001
-6. Manage positions:          http://localhost:5174/intervau-ai-frontend/hr/job-positions
-7. Settings:                  http://localhost:5174/intervau-ai-frontend/hr/profile-settings
+1. Landing page:              http://localhost:5173/
+2. Login page:                http://localhost:5173/login
+3. After login:               http://localhost:5173/hr/dashboard
+4. View candidates:           http://localhost:5173/hr/candidates
+5. Review candidate:          http://localhost:5173/hr/candidate-review/candidate-001
+6. Manage positions:          http://localhost:5173/hr/job-positions
+7. Settings:                  http://localhost:5173/hr/profile-settings
 ```
 
 ## Route Constants
@@ -328,8 +328,8 @@ To test the routing:
 
 2. **Visit the application:**
 
-   - Public pages: http://localhost:5174/intervau-ai-frontend/
-   - Login: http://localhost:5174/intervau-ai-frontend/login
+   - Public pages: http://localhost:5173/
+   - Login: http://localhost:5173/login
 
 3. **Test candidate flow:**
 
