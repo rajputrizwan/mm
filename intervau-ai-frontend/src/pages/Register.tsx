@@ -22,29 +22,63 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [companyName, setCompanyName] = useState("Intervau");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const { addNotification } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) {
+      return "Password must be at least 8 characters";
+    }
+    if (!/(?=.*[a-z])/.test(pwd)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/(?=.*[A-Z])/.test(pwd)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/(?=.*\d)/.test(pwd)) {
+      return "Password must contain at least one number";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate password strength
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      addNotification(passwordError, "error");
+      return;
+    }
 
     if (password !== confirmPassword) {
       addNotification("Passwords do not match", "error");
       return;
     }
 
+    // Validate HR requires company name
+    if (role === "hr" && !companyName.trim()) {
+      addNotification("Company name is required for HR registration", "error");
+      return;
+    }
+
     setLoading(true);
 
-    await register(name, email, password, role);
-
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await register(name, email, password, role, companyName);
       addNotification("Account created successfully!", "success");
-      navigate(getDefaultRoute(role));
-    }, 800);
+      setTimeout(() => {
+        setLoading(false);
+        navigate(getDefaultRoute(role));
+      }, 800);
+    } catch (error) {
+      setLoading(false);
+      addNotification("Registration failed. Please try again.", "error");
+    }
   };
 
   const stats = [
@@ -157,11 +191,10 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("candidate")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "candidate"
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
                     ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
@@ -171,11 +204,10 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("hr")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "hr"
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
                     ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
@@ -195,6 +227,19 @@ export default function Register() {
                 required
               />
 
+              {role === "hr" && (
+                <Input
+                  type="text"
+                  label="Company Name"
+                  icon={UserIcon}
+                  placeholder="Enter your company name"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                  helperText="Company name for HR registration"
+                />
+              )}
+
               <Input
                 type="email"
                 label={t("auth.email")}
@@ -212,7 +257,12 @@ export default function Register() {
                 placeholder={t("auth.passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                helperText={t("auth.minimum8Chars")}
+                helperText="Must be 8+ characters with uppercase, lowercase, and number"
+                error={
+                  password && validatePassword(password)
+                    ? validatePassword(password) || undefined
+                    : undefined
+                }
                 required
                 minLength={8}
               />

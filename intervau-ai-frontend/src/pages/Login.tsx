@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Video, Sparkles, CheckCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useApp } from "../contexts/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
 import { getDefaultRoute, ROUTES } from "../router";
 import Input from "../components/common/Input";
@@ -12,20 +13,38 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const { addNotification } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Navigate when user is authenticated
+  useEffect(() => {
+    if (user) {
+      const userRole = user.role as "candidate" | "hr";
+      navigate(getDefaultRoute(userRole));
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    await login(email, password, role);
+    try {
+      await login(email, password);
 
-    setTimeout(() => {
+      // Show success notification
+      addNotification("Login successful! Redirecting...", "success");
+    } catch (error: any) {
+      // Show error notification
+      console.error("Login failed:", error);
+      addNotification(
+        error?.message || "Login failed. Please check your credentials and try again.",
+        "error"
+      );
+    } finally {
       setLoading(false);
-      navigate(getDefaultRoute(role));
-    }, 800);
+    }
   };
 
   const features = [
@@ -103,11 +122,10 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setRole("candidate")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "candidate"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />
@@ -117,11 +135,10 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setRole("hr")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "hr"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />

@@ -70,8 +70,8 @@ export class AuthController {
       }
 
       // Generate tokens
-      const accessToken = this.generateAccessToken(user);
-      const refreshToken = this.generateRefreshToken(user);
+      const accessToken = AuthController.generateAccessToken(user);
+      const refreshToken = AuthController.generateRefreshToken(user);
 
       // Save refresh token to database
       user.refreshTokens.push(refreshToken);
@@ -154,8 +154,8 @@ export class AuthController {
       await user.save();
 
       // Generate tokens
-      const accessToken = this.generateAccessToken(user);
-      const refreshToken = this.generateRefreshToken(user);
+      const accessToken = AuthController.generateAccessToken(user);
+      const refreshToken = AuthController.generateRefreshToken(user);
 
       // Save refresh token to database
       user.refreshTokens.push(refreshToken);
@@ -230,7 +230,7 @@ export class AuthController {
       }
 
       // Generate new access token
-      const newAccessToken = this.generateAccessToken(user);
+      const newAccessToken = AuthController.generateAccessToken(user);
 
       res.status(200).json({
         success: true,

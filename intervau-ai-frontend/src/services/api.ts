@@ -112,21 +112,22 @@ async function request<T = any>(
 // API Methods
 export const api = {
   // Authentication
-  login: (email: string, password: string, role: "candidate" | "hr") =>
-    request<{ token: string; user: any }>("/auth/login", {
+  login: (email: string, password: string) =>
+    request<{ accessToken: string; user: any }>("/auth/login", {
       method: "POST",
-      body: { email, password, role },
+      body: { email, password },
     }),
 
   register: (
     name: string,
     email: string,
     password: string,
-    role: "candidate" | "hr"
+    role: "candidate" | "hr",
+    companyName?: string
   ) =>
-    request<{ token: string; user: any }>("/auth/register", {
+    request<{ accessToken: string; user: any }>("/auth/register", {
       method: "POST",
-      body: { name, email, password, role },
+      body: { name, email, password, role, companyName },
     }),
 
   logout: () => request("/auth/logout", { method: "POST" }),

@@ -16,12 +16,13 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (
     name: string,
     email: string,
     password: string,
-    role: string
+    role: "candidate" | "hr",
+    companyName?: string
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -70,42 +71,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string, role: string) => {
+  const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Try API first
-      const response = await api.login(email, password, role);
+      // Call the API login endpoint
+      const response = await api.login(email, password);
 
-      if (response.success && response.data?.token) {
-        setAuthToken(response.data.token);
-        // Fetch user info
+      if (response.success && response.data?.accessToken) {
+        // Store the access token
+        setAuthToken(response.data.accessToken);
+
+        // Fetch the current user details
         const userResponse = await api.getCurrentUser();
-        if (userResponse.success) {
+        if (userResponse.success && userResponse.data) {
           setUser(userResponse.data);
+        } else {
+          throw new Error("Failed to fetch user details after login");
         }
       } else {
-        // Fallback to mock user for demo
-        const mockUser: User = {
-          id: "1",
-          name: email.split("@")[0],
-          email,
-          role: role as "candidate" | "hr",
-        };
-        setUser(mockUser);
-        // Still set a mock token
-        setAuthToken("mock-token-" + Date.now());
+        throw new Error(response.error || "Login failed");
       }
     } catch (error) {
       console.error("Login error:", error);
-      // Fallback to mock login
-      const mockUser: User = {
-        id: "1",
-        name: email.split("@")[0],
-        email,
-        role: role as "candidate" | "hr",
-      };
-      setUser(mockUser);
-      setAuthToken("mock-token-" + Date.now());
+      // Clear any stored tokens
+      removeAuthToken();
+      // Re-throw error to be handled by the component
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -115,43 +106,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    role: string
+    role: "candidate" | "hr",
+    companyName?: string
   ) => {
     setLoading(true);
     try {
       // Try API first
-      const response = await api.register(name, email, password, role);
+      const response = await api.register(name, email, password, role, companyName);
 
-      if (response.success && response.data?.token) {
-        setAuthToken(response.data.token);
+      if (response.success && response.data?.accessToken) {
+        setAuthToken(response.data.accessToken);
         // Fetch user info
         const userResponse = await api.getCurrentUser();
         if (userResponse.success) {
           setUser(userResponse.data);
         }
       } else {
-        // Fallback to mock user
-        const mockUser: User = {
-          id: "1",
-          name,
-          email,
-          role: role as "candidate" | "hr",
-        };
-        setUser(mockUser);
-        // Still set a mock token
-        setAuthToken("mock-token-" + Date.now());
+        // Show error message
+        throw new Error(response.error || "Registration failed");
       }
     } catch (error) {
       console.error("Register error:", error);
-      // Fallback to mock registration
-      const mockUser: User = {
-        id: "1",
-        name,
-        email,
-        role: role as "candidate" | "hr",
-      };
-      setUser(mockUser);
-      setAuthToken("mock-token-" + Date.now());
+      throw error; // Re-throw to handle in component
     } finally {
       setLoading(false);
     }
