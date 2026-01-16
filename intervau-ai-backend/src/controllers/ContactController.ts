@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Contact from "../models/Contact";
+import { sendContactNotification, sendContactConfirmation } from "../services/emailService";
 
 export class ContactController {
     /**
@@ -38,6 +39,27 @@ export class ContactController {
             });
 
             await contact.save();
+
+            // Send email notifications asynchronously
+            // Don't wait for emails to complete - respond to user immediately
+            Promise.all([
+                sendContactNotification({
+                    fullName: contact.fullName,
+                    email: contact.email,
+                    subject: contact.subject,
+                    message: contact.message,
+                    submittedAt: contact.createdAt,
+                }),
+                sendContactConfirmation({
+                    fullName: contact.fullName,
+                    email: contact.email,
+                    subject: contact.subject,
+                    message: contact.message,
+                }),
+            ]).catch((error) => {
+                console.error("Email notification error:", error);
+                // Email errors are logged but don't affect the response
+            });
 
             res.status(201).json({
                 success: true,

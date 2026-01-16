@@ -31,6 +31,7 @@ export const config = {
     password: process.env.SMTP_PASSWORD || '',
     from: process.env.SMTP_FROM || 'noreply@intervau-ai.com',
   },
+  contactNotificationEmail: process.env.CONTACT_NOTIFICATION_EMAIL || 'mrizwan2702@gmail.com',
 
   // CORS
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
