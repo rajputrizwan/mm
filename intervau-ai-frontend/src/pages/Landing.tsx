@@ -44,6 +44,97 @@ export default function Landing() {
   const [activeSection, setActiveSection] = useState("home");
   const navigate = useNavigate();
 
+  // Contact form state
+  const [contactForm, setContactForm] = useState({
+    fullName: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: "success" | "error" | null;
+    message: string;
+  }>({ type: null, message: "" });
+
+  // Contact form handlers
+  const handleContactInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setContactForm((prev) => ({ ...prev, [name]: value }));
+    // Clear status when user starts typing again
+    if (submitStatus.type) {
+      setSubmitStatus({ type: null, message: "" });
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validation
+    if (!contactForm.fullName.trim()) {
+      setSubmitStatus({ type: "error", message: "Please enter your name" });
+      return;
+    }
+    if (!contactForm.email.trim() || !/\S+@\S+\.\S+/.test(contactForm.email)) {
+      setSubmitStatus({
+        type: "error",
+        message: "Please enter a valid email address",
+      });
+      return;
+    }
+    if (!contactForm.subject.trim()) {
+      setSubmitStatus({ type: "error", message: "Please enter a subject" });
+      return;
+    }
+    if (!contactForm.message.trim()) {
+      setSubmitStatus({ type: "error", message: "Please enter a message" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: "" });
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/contact`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contactForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitStatus({
+          type: "success",
+          message: "Thank you for your message! We'll get back to you soon.",
+        });
+        // Reset form
+        setContactForm({
+          fullName: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        setSubmitStatus({
+          type: "error",
+          message: data.message || "Failed to send message. Please try again.",
+        });
+      }
+    } catch (error) {
+      setSubmitStatus({
+        type: "error",
+        message: "Network error. Please check your connection and try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const jobRoles = [
     {
       icon: Code,
@@ -462,9 +553,8 @@ export default function Landing() {
                   {faq.question}
                 </span>
                 <ChevronDown
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 transition-transform ${
-                    openFaq === index ? "rotate-180" : ""
-                  }`}
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 transition-transform ${openFaq === index ? "rotate-180" : ""
+                    }`}
                 />
               </button>
               {openFaq === index && (
@@ -783,10 +873,7 @@ export default function Landing() {
           request a specific role or industry.
         </p>
         <button
-          onClick={() => {
-            const element = document.getElementById("contact");
-            element?.scrollIntoView({ behavior: "smooth" });
-          }}
+          onClick={() => setActiveSection("contact")}
           className="px-10 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
         >
           Contact Us
@@ -858,7 +945,20 @@ export default function Landing() {
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">
           Send Us a Message
         </h3>
-        <form className="space-y-6">
+
+        {/* Success/Error Messages */}
+        {submitStatus.type && (
+          <div
+            className={`mb-6 p-4 rounded-lg ${submitStatus.type === "success"
+              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
+              : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
+              }`}
+          >
+            <p className="text-center font-medium">{submitStatus.message}</p>
+          </div>
+        )}
+
+        <form className="space-y-6" onSubmit={handleContactSubmit}>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -866,8 +966,12 @@ export default function Landing() {
               </label>
               <input
                 type="text"
+                name="fullName"
+                value={contactForm.fullName}
+                onChange={handleContactInputChange}
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 placeholder="John Doe"
+                required
               />
             </div>
             <div>
@@ -876,8 +980,12 @@ export default function Landing() {
               </label>
               <input
                 type="email"
+                name="email"
+                value={contactForm.email}
+                onChange={handleContactInputChange}
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 placeholder="john@example.com"
+                required
               />
             </div>
           </div>
@@ -887,8 +995,12 @@ export default function Landing() {
             </label>
             <input
               type="text"
+              name="subject"
+              value={contactForm.subject}
+              onChange={handleContactInputChange}
               className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               placeholder="How can we help?"
+              required
             />
           </div>
           <div>
@@ -896,16 +1008,22 @@ export default function Landing() {
               Message
             </label>
             <textarea
+              name="message"
+              value={contactForm.message}
+              onChange={handleContactInputChange}
               rows={6}
               className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
               placeholder="Tell us more about your inquiry..."
+              required
             />
           </div>
           <button
             type="submit"
-            className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
+            disabled={isSubmitting}
+            className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
-            Send Message
+            {isSubmitting ? "Sending..." : "Send Message"}
           </button>
         </form>
       </div>
