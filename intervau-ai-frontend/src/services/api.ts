@@ -88,9 +88,11 @@ async function request<T = any>(
         window.dispatchEvent(new CustomEvent("unauthorized"));
       }
 
+      const errorMessage = data.error || data.message || "An error occurred";
       return {
         success: false,
-        error: data.error || data.message || "An error occurred",
+        error: errorMessage,
+        message: errorMessage, // Include both for compatibility
         statusCode: response.status,
       };
     }

@@ -42,8 +42,9 @@ export class AuthController {
       }
 
       // Check if user already exists
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
       if (existingUser) {
+        console.log('❌ USER ALREADY EXISTS:', email);
         return res.status(409).json({
           success: false,
           message: 'User with this email already exists',
@@ -55,7 +56,7 @@ export class AuthController {
 
       // Create user
       const user = new User({
-        email,
+        email: email.toLowerCase().trim(),
         password: hashedPassword,
         name,
         role,
@@ -157,8 +158,8 @@ export class AuthController {
         });
       }
 
-      // Find user
-      const user = await User.findOne({ email });
+      // Find user (normalize email to match registration)
+      const user = await User.findOne({ email: email.toLowerCase().trim() });
       if (!user) {
         return res.status(401).json({
           success: false,
@@ -413,10 +414,10 @@ export class AuthController {
         });
       }
 
-      if (newPassword.length < 6) {
+      if (newPassword.length < 8) {
         return res.status(400).json({
           success: false,
-          message: 'Password must be at least 6 characters',
+          message: 'Password must be at least 8 characters',
         });
       }
 
@@ -601,10 +602,10 @@ export class AuthController {
         });
       }
 
-      if (newPassword.length < 6) {
+      if (newPassword.length < 8) {
         return res.status(400).json({
           success: false,
-          message: 'Password must be at least 6 characters long',
+          message: 'Password must be at least 8 characters long',
         });
       }
 

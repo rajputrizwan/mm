@@ -19,8 +19,8 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
 export const registerValidation = [
   body('email').isEmail().withMessage('Invalid email format').normalizeEmail().toLowerCase(),
   body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain uppercase, lowercase, and number'),
   body('name')
@@ -35,10 +35,16 @@ export const registerValidation = [
     .isIn(['candidate', 'hr', 'admin'])
     .withMessage("Invalid role. Must be 'candidate', 'hr', or 'admin'"),
   body('companyName')
-    .if((value, { req }) => req.body.role === 'hr')
-    .trim()
-    .notEmpty()
-    .withMessage('Company name is required for HR registration'),
+    .optional({ values: 'null' })
+    .custom((value, { req }) => {
+      // Only validate if role is hr
+      if (req.body.role === 'hr') {
+        if (!value || !value.trim()) {
+          throw new Error('Company name is required for HR registration');
+        }
+      }
+      return true;
+    }),
 ];
 
 /**
@@ -55,8 +61,8 @@ export const loginValidation = [
 export const changePasswordValidation = [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
   body('newPassword')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain uppercase, lowercase, and number'),
   body('confirmPassword')

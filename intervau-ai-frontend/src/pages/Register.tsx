@@ -76,9 +76,10 @@ export default function Register() {
         setLoading(false);
         navigate(getDefaultRoute(role));
       }, 800);
-    } catch (error) {
+    } catch (error: any) {
       setLoading(false);
-      addNotification("Registration failed. Please try again.", "error");
+      const errorMessage = error?.message || error?.error || "Registration failed. Please try again.";
+      addNotification(errorMessage, "error");
     }
   };
 
