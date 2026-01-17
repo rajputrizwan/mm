@@ -137,6 +137,18 @@ export const api = {
   refreshToken: () =>
     request<{ token: string }>("/auth/refresh", { method: "POST" }),
 
+  forgotPassword: (email: string) =>
+    request("/auth/forgot-password", {
+      method: "POST",
+      body: { email },
+    }),
+
+  resetPassword: (token: string, newPassword: string, confirmPassword: string) =>
+    request("/auth/reset-password", {
+      method: "POST",
+      body: { token, newPassword, confirmPassword },
+    }),
+
   // Candidates
   getCandidates: (filters?: Record<string, any>) =>
     request<any[]>("/candidates", { params: filters }),

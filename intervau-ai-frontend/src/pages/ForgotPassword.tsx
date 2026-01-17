@@ -1,24 +1,37 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, ArrowLeft, CheckCircle, Video, Shield } from "lucide-react";
+import { Mail, ArrowLeft, CheckCircle, Video, Shield, AlertCircle } from "lucide-react";
 import { ROUTES } from "../router";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
+import { api } from "../services/api";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
-    setTimeout(() => {
+    try {
+      const response = await api.forgotPassword(email);
+
+      if (response.success) {
+        setSubmitted(true);
+      } else {
+        setError(response.error || "Failed to send reset email. Please try again.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error("Forgot password error:", err);
+    } finally {
       setLoading(false);
-      setSubmitted(true);
-    }, 1500);
+    }
   };
 
   if (submitted) {
@@ -120,6 +133,13 @@ export default function ForgotPassword() {
 
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start space-x-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+              )}
+
               <Input
                 type="email"
                 label="Email Address"

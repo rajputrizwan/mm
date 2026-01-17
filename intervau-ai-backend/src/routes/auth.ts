@@ -67,4 +67,18 @@ router.put('/language', authMiddleware, AuthController.updateLanguage);
  */
 router.post('/logout', authMiddleware, AuthController.logout);
 
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset email
+ * Body: { email }
+ */
+router.post('/forgot-password', AuthController.forgotPassword);
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using token
+ * Body: { token, newPassword, confirmPassword }
+ */
+router.post('/reset-password', AuthController.resetPassword);
+
 export default router;

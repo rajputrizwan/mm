@@ -17,6 +17,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import FAQ from "./pages/FAQ";
@@ -106,6 +107,14 @@ function AppRoutes() {
         element={
           <PublicLayout>
             <ForgotPassword />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.RESET_PASSWORD}
+        element={
+          <PublicLayout>
+            <ResetPassword />
           </PublicLayout>
         }
       />

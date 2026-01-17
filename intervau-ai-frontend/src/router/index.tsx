@@ -47,6 +47,7 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 
   // Candidate Routes
   CANDIDATE_DASHBOARD: "/candidate/dashboard",

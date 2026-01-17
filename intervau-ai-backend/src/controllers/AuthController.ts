@@ -473,6 +473,161 @@ export class AuthController {
   }
 
   /**
+   * Forgot password - Send reset email
+   */
+  static async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+
+      // Validation
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is required',
+        });
+      }
+
+      // Find user by email
+      const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+      // Don't reveal if user exists or not for security
+      if (!user) {
+        return res.status(200).json({
+          success: true,
+          message: 'If an account exists with this email, you will receive password reset instructions.',
+        });
+      }
+
+      // Generate reset token (32 bytes = 64 hex characters)
+      const resetToken = crypto.randomBytes(32).toString('hex');
+
+      // Hash token before storing in database
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+      // Set token and expiry (1 hour)
+      user.resetPasswordToken = hashedToken;
+      user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await user.save();
+
+      // Send reset email
+      try {
+        const { sendPasswordResetEmail } = require('../services/emailService');
+        await sendPasswordResetEmail(user.email, user.name, resetToken);
+
+        console.log(`✓ Password reset email sent to: ${user.email}`);
+
+        res.status(200).json({
+          success: true,
+          message: 'Password reset instructions have been sent to your email.',
+        });
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+
+        // Clear the reset token if email fails
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send reset email. Please try again later.',
+          error: emailError instanceof Error ? emailError.message : 'Email service error',
+        });
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to process password reset request',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * Reset password using token
+   */
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, newPassword, confirmPassword } = req.body;
+
+      // Validation
+      if (!token || !newPassword || !confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token, new password, and confirmation are required',
+        });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Passwords do not match',
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 6 characters long',
+        });
+      }
+
+      // Hash the token from URL to compare with database
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Find user with valid token
+      const user = await User.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: Date.now() },
+      });
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token. Please request a new password reset.',
+        });
+      }
+
+      // Hash new password
+      user.password = await bcrypt.hash(newPassword, config.bcryptSaltRounds);
+
+      // Clear reset token fields
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+
+      // Clear all refresh tokens (force logout from all devices for security)
+      user.refreshTokens = [];
+
+      await user.save();
+
+      // Send confirmation email
+      try {
+        const { sendPasswordResetConfirmation } = require('../services/emailService');
+        await sendPasswordResetConfirmation(user.email, user.name);
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+        // Don't fail the request if confirmation email fails
+      }
+
+      console.log(`✓ Password successfully reset for user: ${user.email}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password has been reset successfully. You can now log in with your new password.',
+      });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reset password',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
    * Update user language preference
    */
   static async updateLanguage(req: Request, res: Response) {
