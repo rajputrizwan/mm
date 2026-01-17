@@ -16,8 +16,17 @@ export class AuthController {
     try {
       const { email, password, name, role, companyName } = req.body;
 
+      console.log('========================================');
+      console.log('🟢 REGISTRATION REQUEST RECEIVED');
+      console.log('Email:', email);
+      console.log('Name:', name);
+      console.log('Role:', role);
+      console.log('Company Name:', companyName);
+      console.log('========================================');
+
       // Validation
       if (!email || !password || !name || !role) {
+        console.log('❌ VALIDATION FAILED: Missing required fields');
         return res.status(400).json({
           success: false,
           message: 'Email, password, name, and role are required',
@@ -55,18 +64,43 @@ export class AuthController {
 
       await user.save();
 
+      // Debug logging
+      console.log('=== REGISTRATION DEBUG ===');
+      console.log('Role received from request:', role);
+      console.log('User role saved in DB:', user.role);
+      console.log('Creating profile for role:', role);
+
       // Create role-specific profile
       if (role === 'candidate') {
-        await Candidate.create({
-          userId: user._id,
-          status: 'active',
-        });
+        console.log('Creating Candidate profile...');
+        try {
+          const candidateProfile = await Candidate.create({
+            userId: user._id,
+            status: 'active',
+          });
+
+          console.log('✅ Candidate profile created successfully:', candidateProfile._id);
+        } catch (candidateError) {
+          console.log('❌ CANDIDATE PROFILE CREATION FAILED:');
+          console.error(candidateError);
+          throw new Error(`Failed to create candidate profile: ${candidateError instanceof Error ? candidateError.message : 'Unknown error'}`);
+        }
       } else if (role === 'hr') {
-        await HRProfile.create({
-          userId: user._id,
-          companyName,
-          isVerified: false,
-        });
+        console.log('Creating HR profile with company:', companyName);
+        try {
+          const hrProfile = await HRProfile.create({
+            userId: user._id,
+            companyName,
+            isVerified: false,
+          });
+          console.log('✅ HR profile created successfully:', hrProfile._id);
+        } catch (hrError) {
+          console.log('❌ HR PROFILE CREATION FAILED:');
+          console.error(hrError);
+          throw new Error(`Failed to create HR profile: ${hrError instanceof Error ? hrError.message : 'Unknown error'}`);
+        }
+      } else {
+        console.log('WARNING: Unknown role, no profile created:', role);
       }
 
       // Generate tokens

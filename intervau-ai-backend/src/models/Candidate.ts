@@ -37,8 +37,14 @@ const candidateSchema = new Schema<ICandidate>(
       type: [String],
       default: [],
     },
-    experience: String,
-    education: String,
+    experience: {
+      type: String,
+      default: '',
+    },
+    education: {
+      type: String,
+      default: '',
+    },
     bio: String,
     portfolio: String,
     linkedinUrl: String,
@@ -57,12 +63,13 @@ const candidateSchema = new Schema<ICandidate>(
       enum: ['active', 'rejected', 'accepted', 'pending'],
       default: 'active',
     },
-    appliedPositions: [
-      {
+    appliedPositions: {
+      type: [{
         type: Schema.Types.ObjectId,
         ref: 'JobPosition',
-      },
-    ],
+      }],
+      default: [],
+    },
   },
   {
     timestamps: true,

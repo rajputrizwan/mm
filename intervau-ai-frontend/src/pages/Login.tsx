@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Video, Sparkles, CheckCircle } from "lucide-react";
+import { Mail, Lock, User, Video, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useApp } from "../contexts/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -47,6 +47,19 @@ export default function Login() {
     }
   };
 
+  // Demo credentials quick-fill function
+  const useDemoCredentials = (userType: "candidate" | "hr") => {
+    if (userType === "candidate") {
+      setEmail("candidate@test.com");
+      setPassword("Test1234");
+      setRole("candidate");
+    } else {
+      setEmail("hr@test.com");
+      setPassword("Test1234");
+      setRole("hr");
+    }
+  };
+
   const features = [
     t("auth.aiPoweredAnalysis"),
     t("auth.realtimeFeedback"),
@@ -85,7 +98,36 @@ export default function Login() {
             ))}
           </div>
 
-          <div className="mt-12 p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+          {/* Demo credentials buttons */}
+          <div className="mt-8 p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="flex items-center space-x-3 mb-3">
+              <AlertCircle className="w-5 h-5 text-yellow-300" />
+              <span className="text-white font-semibold">Quick Test Login</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => useDemoCredentials("candidate")}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                Candidate Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => useDemoCredentials("hr")}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                HR Team Demo
+              </button>
+            </div>
+            <p className="text-blue-50 text-xs mt-3">
+              Click to auto-fill test credentials for quick login testing.
+            </p>
+          </div>
+
+          <div className="mt-8 p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
             <div className="flex items-center space-x-3 mb-2">
               <Sparkles className="w-5 h-5 text-yellow-300" />
               <span className="text-white font-semibold">

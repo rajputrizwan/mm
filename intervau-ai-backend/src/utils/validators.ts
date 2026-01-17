@@ -35,7 +35,7 @@ export const registerValidation = [
     .isIn(['candidate', 'hr', 'admin'])
     .withMessage("Invalid role. Must be 'candidate', 'hr', or 'admin'"),
   body('companyName')
-    .if(() => body('role').equals('hr'))
+    .if((value, { req }) => req.body.role === 'hr')
     .trim()
     .notEmpty()
     .withMessage('Company name is required for HR registration'),

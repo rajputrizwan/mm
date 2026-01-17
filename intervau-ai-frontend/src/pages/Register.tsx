@@ -8,6 +8,7 @@ import {
   Target,
   Users,
   TrendingUp,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -78,6 +79,25 @@ export default function Register() {
     } catch (error) {
       setLoading(false);
       addNotification("Registration failed. Please try again.", "error");
+    }
+  };
+
+  // Demo credentials quick-fill function
+  const useDemoCredentials = (userType: "candidate" | "hr") => {
+    if (userType === "candidate") {
+      setName("Test Candidate");
+      setEmail("candidate@test.com");
+      setPassword("Test1234");
+      setConfirmPassword("Test1234");
+      setRole("candidate");
+      setCompanyName("");
+    } else {
+      setName("Test HR Manager");
+      setEmail("hr@test.com");
+      setPassword("Test1234");
+      setConfirmPassword("Test1234");
+      setRole("hr");
+      setCompanyName("Test Company Inc.");
     }
   };
 
@@ -163,6 +183,35 @@ export default function Register() {
               </div>
             </div>
           </div>
+
+          {/* Demo Data Button */}
+          <div className="mt-8 p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="flex items-center space-x-3 mb-3">
+              <AlertCircle className="w-5 h-5 text-yellow-300" />
+              <span className="text-white font-semibold">Quick Test Registration</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => useDemoCredentials("candidate")}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                Candidate Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => useDemoCredentials("hr")}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
+                HR Team Demo
+              </button>
+            </div>
+            <p className="text-blue-50 text-xs mt-3">
+              Click to auto-fill registration form with test data.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -192,8 +241,8 @@ export default function Register() {
                 type="button"
                 onClick={() => setRole("candidate")}
                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -205,8 +254,8 @@ export default function Register() {
                 type="button"
                 onClick={() => setRole("hr")}
                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center justify-center space-x-2">
