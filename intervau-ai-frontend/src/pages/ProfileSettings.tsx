@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApp } from "@/contexts/AppContext";
-import { useTranslation } from "@/hooks/useTranslation";
 import { useNavigate } from "react-router-dom";
 import api from "@/services/api";
 
@@ -51,7 +50,6 @@ interface SecuritySettings {
 export default function ProfileSettings() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, language, setLanguage } = useApp();
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<
@@ -285,7 +283,7 @@ export default function ProfileSettings() {
       });
 
       if (response.data?.success) {
-        setMessage({ type: "success", text: t("messages.languageChanged") });
+        setMessage({ type: "success", text: "Language preference updated successfully" });
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (error) {
@@ -398,10 +396,10 @@ export default function ProfileSettings() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            {t("profileSettings.pageTitle")}
+            Settings & Profile
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            {t("profileSettings.subtitle")}
+            Manage your account settings and preferences
           </p>
         </div>
 
@@ -409,8 +407,8 @@ export default function ProfileSettings() {
         {message && (
           <div
             className={`mb-6 p-4 rounded-lg border flex items-center space-x-3 ${message.type === "success"
-                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300"
-                : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
+              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300"
+              : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
               }`}
           >
             {message.type === "success" ? (
@@ -426,43 +424,43 @@ export default function ProfileSettings() {
           {/* Sidebar Menu */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 h-fit">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4">
-              {t("profileSettings.settingsMenu")}
+              Settings Menu
             </h3>
             <div className="space-y-2">
               <button
                 onClick={() => setActiveTab("profile")}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === "profile"
-                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   }`}
               >
                 <User className="w-5 h-5" />
                 <span className="font-medium">
-                  {t("profileSettings.profile")}
+                  Profile
                 </span>
               </button>
               <button
                 onClick={() => setActiveTab("preferences")}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === "preferences"
-                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   }`}
               >
                 <Bell className="w-5 h-5" />
                 <span className="font-medium">
-                  {t("profileSettings.preferences")}
+                  Preferences
                 </span>
               </button>
               <button
                 onClick={() => setActiveTab("security")}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${activeTab === "security"
-                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   }`}
               >
                 <Lock className="w-5 h-5" />
                 <span className="font-medium">
-                  {t("profileSettings.security")}
+                  Security
                 </span>
               </button>
             </div>
@@ -478,7 +476,7 @@ export default function ProfileSettings() {
                   <LogOut className="w-5 h-5" />
                 )}
                 <span className="font-medium">
-                  {t("profileSettings.signOut")}
+                  Sign Out
                 </span>
               </button>
             </div>
@@ -490,7 +488,7 @@ export default function ProfileSettings() {
             {activeTab === "profile" && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
-                  {t("profileSettings.profileInformation")}
+                  Profile Information
                 </h2>
 
                 <div className="space-y-8">
@@ -498,10 +496,10 @@ export default function ProfileSettings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                        {t("profileSettings.profilePicture")}
+                        Profile Picture
                       </h3>
                       <p className="text-gray-600 dark:text-gray-300">
-                        {t("profileSettings.uploadProfilePhoto")}
+                        Upload a profile photo for your account
                       </p>
                     </div>
                     <div className="relative">
@@ -544,7 +542,7 @@ export default function ProfileSettings() {
                       {/* Edit Mode */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                          {t("profileSettings.fullName")}
+                          Full Name
                         </label>
                         <input
                           type="text"
@@ -559,7 +557,7 @@ export default function ProfileSettings() {
 
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                          {t("profileSettings.email")}
+                          Email Address
                         </label>
                         <input
                           type="email"
@@ -574,7 +572,7 @@ export default function ProfileSettings() {
 
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                          {t("profileSettings.phoneNumber")}
+                          Phone Number
                         </label>
                         <input
                           type="tel"
@@ -583,13 +581,13 @@ export default function ProfileSettings() {
                             handleInputChange("phone", e.target.value)
                           }
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder={t("profileSettings.enterPhoneNumber")}
+                          placeholder="Enter your phone number"
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                          {t("profileSettings.bio")}
+                          Bio
                         </label>
                         <textarea
                           value={editedProfile.bio || ""}
@@ -598,7 +596,7 @@ export default function ProfileSettings() {
                           }
                           rows={4}
                           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                          placeholder={t("profileSettings.tellAboutYourself")}
+                          placeholder="Tell us about yourself"
                         />
                       </div>
 
@@ -613,7 +611,7 @@ export default function ProfileSettings() {
                           ) : (
                             <Save className="w-4 h-4" />
                           )}
-                          <span>{t("profileSettings.saveChanges")}</span>
+                          <span>Save Changes</span>
                         </button>
                         <button
                           onClick={() => {
@@ -623,7 +621,7 @@ export default function ProfileSettings() {
                           disabled={loading}
                           className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50"
                         >
-                          {t("profileSettings.cancel")}
+                          Cancel
                         </button>
                       </div>
                     </>
@@ -635,11 +633,11 @@ export default function ProfileSettings() {
                           <div className="flex items-center space-x-2">
                             <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {t("profileSettings.fullName")}
+                              Full Name
                             </span>
                           </div>
                           <span className="font-semibold text-gray-900 dark:text-white">
-                            {profile.name || t("profileSettings.notProvided")}
+                            {profile.name || "Not provided"}
                           </span>
                         </div>
                       </div>
@@ -649,7 +647,7 @@ export default function ProfileSettings() {
                           <div className="flex items-center space-x-2">
                             <Mail className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {t("profileSettings.email")}
+                              Email Address
                             </span>
                           </div>
                           <span className="font-semibold text-gray-900 dark:text-white">
@@ -662,7 +660,7 @@ export default function ProfileSettings() {
                         <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {t("profileSettings.phoneNumber")}
+                              Phone Number
                             </span>
                             <span className="font-semibold text-gray-900 dark:text-white">
                               {profile.phone}
@@ -676,7 +674,7 @@ export default function ProfileSettings() {
                           <div className="flex items-center space-x-2">
                             <Briefcase className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {t("profileSettings.role")}
+                              Role
                             </span>
                           </div>
                           <span className="font-semibold text-gray-900 dark:text-white capitalize">
@@ -688,7 +686,7 @@ export default function ProfileSettings() {
                       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {t("profileSettings.memberSince")}
+                            Member Since
                           </span>
                           <span className="font-semibold text-gray-900 dark:text-white">
                             {formatDate(profile.createdAt)}
@@ -700,7 +698,7 @@ export default function ProfileSettings() {
                         onClick={() => setIsEditing(true)}
                         className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors font-medium"
                       >
-                        {t("profileSettings.editProfile")}
+                        Edit Profile
                       </button>
                     </>
                   )}
@@ -712,27 +710,27 @@ export default function ProfileSettings() {
             {activeTab === "preferences" && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
-                  {t("profileSettings.preferences")}
+                  Preferences
                 </h2>
 
                 <div className="space-y-6">
                   {/* Theme */}
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                      {t("profileSettings.theme")}
+                      Theme
                     </h3>
                     <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center space-x-3">
                         <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         <span className="font-medium text-gray-900 dark:text-white">
-                          {t("profileSettings.darkMode")}
+                          Dark Mode
                         </span>
                       </div>
                       <button
                         onClick={toggleTheme}
                         className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${theme === "dark"
-                            ? "bg-blue-600"
-                            : "bg-gray-300 dark:bg-gray-600"
+                          ? "bg-blue-600"
+                          : "bg-gray-300 dark:bg-gray-600"
                           }`}
                       >
                         <span
@@ -746,16 +744,16 @@ export default function ProfileSettings() {
                   {/* Notifications */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                      {t("profileSettings.notifications")}
+                      Notifications
                     </h3>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {t("profileSettings.emailNotificationsLabel")}
+                            Email Notifications
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {t("profileSettings.receiveUpdatesViaEmail")}
+                            Receive updates via email
                           </p>
                         </div>
                         <button
@@ -763,14 +761,14 @@ export default function ProfileSettings() {
                             handleNotificationChange("emailNotifications")
                           }
                           className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${notifications.emailNotifications
-                              ? "bg-green-600"
-                              : "bg-gray-300 dark:bg-gray-600"
+                            ? "bg-green-600"
+                            : "bg-gray-300 dark:bg-gray-600"
                             }`}
                         >
                           <span
                             className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${notifications.emailNotifications
-                                ? "translate-x-7"
-                                : "translate-x-1"
+                              ? "translate-x-7"
+                              : "translate-x-1"
                               }`}
                           />
                         </button>
@@ -779,10 +777,10 @@ export default function ProfileSettings() {
                       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {t("profileSettings.interviewReminders")}
+                            Interview Reminders
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {t("profileSettings.getNotifiedBeforeInterviews")}
+                            Get notified before interviews
                           </p>
                         </div>
                         <button
@@ -790,14 +788,14 @@ export default function ProfileSettings() {
                             handleNotificationChange("interviewReminders")
                           }
                           className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${notifications.interviewReminders
-                              ? "bg-green-600"
-                              : "bg-gray-300 dark:bg-gray-600"
+                            ? "bg-green-600"
+                            : "bg-gray-300 dark:bg-gray-600"
                             }`}
                         >
                           <span
                             className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${notifications.interviewReminders
-                                ? "translate-x-7"
-                                : "translate-x-1"
+                              ? "translate-x-7"
+                              : "translate-x-1"
                               }`}
                           />
                         </button>
@@ -806,10 +804,10 @@ export default function ProfileSettings() {
                       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {t("profileSettings.weeklyReports")}
+                            Weekly Reports
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {t("profileSettings.summaryOfActivity")}
+                            Summary of your activity each week
                           </p>
                         </div>
                         <button
@@ -817,14 +815,14 @@ export default function ProfileSettings() {
                             handleNotificationChange("weeklyReports")
                           }
                           className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${notifications.weeklyReports
-                              ? "bg-green-600"
-                              : "bg-gray-300 dark:bg-gray-600"
+                            ? "bg-green-600"
+                            : "bg-gray-300 dark:bg-gray-600"
                             }`}
                         >
                           <span
                             className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${notifications.weeklyReports
-                                ? "translate-x-7"
-                                : "translate-x-1"
+                              ? "translate-x-7"
+                              : "translate-x-1"
                               }`}
                           />
                         </button>
@@ -833,10 +831,10 @@ export default function ProfileSettings() {
                       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {t("profileSettings.communityUpdates")}
+                            Community Updates
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {t("profileSettings.newsAndUpdates")}
+                            News and updates from our community
                           </p>
                         </div>
                         <button
@@ -844,14 +842,14 @@ export default function ProfileSettings() {
                             handleNotificationChange("communityUpdates")
                           }
                           className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${notifications.communityUpdates
-                              ? "bg-green-600"
-                              : "bg-gray-300 dark:bg-gray-600"
+                            ? "bg-green-600"
+                            : "bg-gray-300 dark:bg-gray-600"
                             }`}
                         >
                           <span
                             className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${notifications.communityUpdates
-                                ? "translate-x-7"
-                                : "translate-x-1"
+                              ? "translate-x-7"
+                              : "translate-x-1"
                               }`}
                           />
                         </button>
@@ -894,7 +892,7 @@ export default function ProfileSettings() {
                   {/* Language & Region */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                      {t("profileSettings.languageAndRegion")}
+                      Language & Region
                     </h3>
 
                     <div className="relative group">
@@ -904,17 +902,14 @@ export default function ProfileSettings() {
                           <Globe className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                           <div>
                             <span className="font-medium text-gray-900 dark:text-white block">
-                              {language === "en" &&
-                                t("profileSettings.english")}
-                              {language === "es" &&
-                                t("profileSettings.spanish")}
-                              {language === "fr" && t("profileSettings.french")}
-                              {language === "de" && t("profileSettings.german")}
-                              {language === "pt" &&
-                                t("profileSettings.portuguese")}
+                              {language === "en" && "English (US)"}
+                              {language === "es" && "Spanish (ES)"}
+                              {language === "fr" && "French (FR)"}
+                              {language === "de" && "German (DE)"}
+                              {language === "pt" && "Portuguese (PT)"}
                             </span>
                             <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {t("profileSettings.languageDescription")}
+                              Choose your preferred language
                             </span>
                           </div>
                         </div>
@@ -942,27 +937,27 @@ export default function ProfileSettings() {
                         {[
                           {
                             value: "en",
-                            label: t("profileSettings.english"),
+                            label: "English (US)",
                             flag: "🇺🇸",
                           },
                           {
                             value: "es",
-                            label: t("profileSettings.spanish"),
+                            label: "Spanish (ES)",
                             flag: "🇪🇸",
                           },
                           {
                             value: "fr",
-                            label: t("profileSettings.french"),
+                            label: "French (FR)",
                             flag: "🇫🇷",
                           },
                           {
                             value: "de",
-                            label: t("profileSettings.german"),
+                            label: "German (DE)",
                             flag: "🇩🇪",
                           },
                           {
                             value: "pt",
-                            label: t("profileSettings.portuguese"),
+                            label: "Portuguese (PT)",
                             flag: "🇵🇹",
                           },
                         ].map((option) => (
@@ -976,8 +971,8 @@ export default function ProfileSettings() {
                             }}
                             disabled={languageLoading}
                             className={`w-full flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left ${language === option.value
-                                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
-                                : "text-gray-700 dark:text-gray-300"
+                              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                              : "text-gray-700 dark:text-gray-300"
                               } ${languageLoading
                                 ? "opacity-50 cursor-not-allowed"
                                 : ""
@@ -1010,23 +1005,13 @@ export default function ProfileSettings() {
                         onChange={handleLanguageChange}
                         disabled={languageLoading}
                         className="sr-only"
-                        aria-label={t("profileSettings.language")}
+                        aria-label="Language"
                       >
-                        <option value="en">
-                          {t("profileSettings.english")}
-                        </option>
-                        <option value="es">
-                          {t("profileSettings.spanish")}
-                        </option>
-                        <option value="fr">
-                          {t("profileSettings.french")}
-                        </option>
-                        <option value="de">
-                          {t("profileSettings.german")}
-                        </option>
-                        <option value="pt">
-                          {t("profileSettings.portuguese")}
-                        </option>
+                        <option value="en">English (US)</option>
+                        <option value="es">Spanish (ES)</option>
+                        <option value="fr">French (FR)</option>
+                        <option value="de">German (DE)</option>
+                        <option value="pt">Portuguese (PT)</option>
                       </select>
                     </div>
                   </div>
@@ -1038,7 +1023,7 @@ export default function ProfileSettings() {
             {activeTab === "security" && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
-                  {t("profileSettings.securitySettings")}
+                  Security Settings
                 </h2>
 
                 <div className="space-y-6">
@@ -1048,10 +1033,10 @@ export default function ProfileSettings() {
                       <Lock className="w-6 h-6 text-orange-600 dark:text-orange-500 flex-shrink-0 mt-0.5" />
                       <div>
                         <h3 className="font-bold text-orange-900 dark:text-orange-200 mb-1">
-                          {t("profileSettings.passwordSecurity")}
+                          Password Security
                         </h3>
                         <p className="text-sm text-orange-800 dark:text-orange-300">
-                          {t("profileSettings.keepAccountSecure")}
+                          Keep your account secure by using a strong, unique password
                         </p>
                       </div>
                     </div>
@@ -1064,7 +1049,7 @@ export default function ProfileSettings() {
                       className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
                     >
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {t("profileSettings.changePasswordButton")}
+                        Change Password
                       </span>
                       <span className="text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-400">
                         →
@@ -1076,12 +1061,12 @@ export default function ProfileSettings() {
                       className="p-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700"
                     >
                       <h3 className="font-bold text-gray-900 dark:text-white mb-4">
-                        {t("profileSettings.changePasswordButton")}
+                        Change Password
                       </h3>
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            {t("profileSettings.currentPassword")}
+                            Current Password
                           </label>
                           <input
                             type="password"
@@ -1093,16 +1078,14 @@ export default function ProfileSettings() {
                               })
                             }
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder={t(
-                              "profileSettings.enterCurrentPassword"
-                            )}
+                            placeholder="Enter current password"
                             required
                           />
                         </div>
 
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            {t("profileSettings.newPassword")}
+                            New Password
                           </label>
                           <input
                             type="password"
@@ -1114,17 +1097,17 @@ export default function ProfileSettings() {
                               })
                             }
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder={t("profileSettings.enterNewPassword")}
+                            placeholder="Enter new password"
                             required
                           />
                           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            {t("profileSettings.passwordRequirements")}
+                            Password must be at least 8 characters with uppercase, lowercase, and numbers
                           </p>
                         </div>
 
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            {t("profileSettings.confirmPassword")}
+                            Confirm Password
                           </label>
                           <input
                             type="password"
@@ -1136,9 +1119,7 @@ export default function ProfileSettings() {
                               })
                             }
                             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder={t(
-                              "profileSettings.confirmNewPassword"
-                            )}
+                            placeholder="Confirm new password"
                             required
                           />
                         </div>
@@ -1149,9 +1130,7 @@ export default function ProfileSettings() {
                             disabled={loading}
                             className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors font-medium disabled:opacity-50"
                           >
-                            {loading
-                              ? t("profileSettings.updating")
-                              : t("profileSettings.updatePassword")}
+                            {loading ? "Updating..." : "Update Password"}
                           </button>
                           <button
                             type="button"
@@ -1165,7 +1144,7 @@ export default function ProfileSettings() {
                             }}
                             className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
                           >
-                            {t("profileSettings.cancel")}
+                            Cancel
                           </button>
                         </div>
                       </div>
@@ -1175,24 +1154,20 @@ export default function ProfileSettings() {
                   {/* Two-Factor Authentication */}
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                      {t("profileSettings.twoFactorAuth")}
+                      Two-Factor Authentication
                     </h3>
                     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {t("profileSettings.2FAStatus")}
+                            2FA Status
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {security.twoFactorEnabled
-                              ? t("profileSettings.enabled")
-                              : t("profileSettings.notEnabled")}
+                            {security.twoFactorEnabled ? "Enabled" : "Not enabled"}
                           </p>
                         </div>
                         <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors font-medium">
-                          {security.twoFactorEnabled
-                            ? t("profileSettings.disable2FA")
-                            : t("profileSettings.enable2FA")}
+                          {security.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
                         </button>
                       </div>
                     </div>
@@ -1201,7 +1176,7 @@ export default function ProfileSettings() {
                   {/* Active Sessions */}
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                      {t("profileSettings.activeSessions")}
+                      Active Sessions
                     </h3>
                     <div className="space-y-3">
                       {security.activeSessions.map((session) => (
@@ -1215,17 +1190,16 @@ export default function ProfileSettings() {
                             </p>
                             {session.current ? (
                               <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded-full">
-                                {t("profileSettings.current")}
+                                Current
                               </span>
                             ) : (
                               <button className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">
-                                {t("profileSettings.signOutSession")}
+                                Sign out
                               </button>
                             )}
                           </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {t("profileSettings.lastActive")}:{" "}
-                            {session.lastActive}
+                            Last active: {session.lastActive}
                           </p>
                         </div>
                       ))}
@@ -1235,17 +1209,17 @@ export default function ProfileSettings() {
                   {/* Danger Zone */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                     <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4">
-                      {t("profileSettings.dangerZone")}
+                      Danger Zone
                     </h3>
                     <button
                       onClick={handleDeleteAccount}
                       disabled={loading}
                       className="w-full px-6 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors font-medium border border-red-200 dark:border-red-800 disabled:opacity-50"
                     >
-                      {t("profileSettings.deleteAccountButton")}
+                      Delete Account
                     </button>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      {t("profileSettings.deleteAccountWarning")}
+                      This action cannot be undone. Please be certain.
                     </p>
                   </div>
                 </div>
