@@ -14,7 +14,7 @@ export async function extractTextFromFile(
 
         // Handle PDF files
         if (mimetype === 'application/pdf') {
-            // pdf-parse exports a default function, not an object
+            // pdf-parse v1.1.1 uses simple function API
             const pdfParse = require('pdf-parse');
             const data = await pdfParse(buffer);
             return data.text;
