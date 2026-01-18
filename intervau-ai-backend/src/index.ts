@@ -11,6 +11,7 @@ import interviewRoutes from './routes/interviews';
 import candidateRoutes from './routes/candidates';
 import positionRoutes from './routes/positions';
 import contactRoutes from './routes/contact';
+import dashboardRoutes from './routes/dashboard';
 
 const app: Express = express();
 
@@ -53,6 +54,7 @@ app.use('/api/interviews', interviewRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
   res.json({
@@ -65,6 +67,7 @@ app.get('/api', (req: Request, res: Response) => {
       candidates: '/api/candidates',
       positions: '/api/positions',
       contact: '/api/contact',
+      dashboard: '/api/dashboard',
       health: '/api/health',
     },
   });

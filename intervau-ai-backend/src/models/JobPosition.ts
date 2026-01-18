@@ -8,12 +8,16 @@ export interface IJobPosition extends Document {
   requiredSkills: string[];
   experience: string;
   salary?: string;
+  salary_range?: string;
   location: string;
   applicants: mongoose.Types.ObjectId[];
   interviews: mongoose.Types.ObjectId[];
-  status: "open" | "closed" | "filled";
+  status: "active" | "paused" | "open" | "closed" | "filled";
+  posted_at: Date;
   createdAt: Date;
   updatedAt: Date;
+  total_applicants?: number;
+  qualified_count?: number;
 }
 
 const jobPositionSchema = new Schema<IJobPosition>(
@@ -28,11 +32,19 @@ const jobPositionSchema = new Schema<IJobPosition>(
       required: true,
     },
     description: String,
-    department: String,
+    department: {
+      type: String,
+      required: true,
+    },
     requiredSkills: [String],
     experience: String,
     salary: String,
+    salary_range: String,
     location: String,
+    posted_at: {
+      type: Date,
+      default: Date.now,
+    },
     applicants: [
       {
         type: Schema.Types.ObjectId,
@@ -47,14 +59,22 @@ const jobPositionSchema = new Schema<IJobPosition>(
     ],
     status: {
       type: String,
-      enum: ["open", "closed", "filled"],
-      default: "open",
+      enum: ["active", "paused", "open", "closed", "filled"],
+      default: "active",
     },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+// Indexes for efficient queries
+jobPositionSchema.index({ title: 'text' });
+jobPositionSchema.index({ department: 1 });
+jobPositionSchema.index({ status: 1 });
+jobPositionSchema.index({ posted_at: -1 });
 
 export const JobPosition = mongoose.model<IJobPosition>(
   "JobPosition",

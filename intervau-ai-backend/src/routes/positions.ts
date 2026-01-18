@@ -50,4 +50,10 @@ router.delete('/:id', roleMiddleware('hr'), PositionController.delete);
  */
 router.post('/:id/applicant', PositionController.addApplicant);
 
+/**
+ * PATCH /api/positions/:id/status
+ * Toggle job position status (Active/Paused)
+ */
+router.patch('/:id/status', roleMiddleware('hr'), PositionController.toggleStatus);
+
 export default router;

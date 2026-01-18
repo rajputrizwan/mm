@@ -148,11 +148,11 @@ export interface Feedback {
   id: string;
   questionId: string;
   category:
-    | "communication"
-    | "technical"
-    | "problem_solving"
-    | "behavioral"
-    | "cultural_fit";
+  | "communication"
+  | "technical"
+  | "problem_solving"
+  | "behavioral"
+  | "cultural_fit";
   comment: string;
   rating: number;
   aiGenerated: boolean;
@@ -321,6 +321,48 @@ export interface VideoSession {
   startTime: number;
   mediaStream?: MediaStream;
   isRecording: boolean;
+}
+
+// HR Dashboard Types
+export interface Application {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  jobPositionId: string;
+  positionTitle: string;
+  ai_score: number; // 0-100
+  status: 'Qualified' | 'In Interview' | 'Under Review' | 'Rejected' | 'Accepted';
+  appliedAt: string;
+  appliedDate: string; // relative time like "2 hours ago"
+}
+
+export interface MetricValue {
+  count: number;
+  weekOverWeekChange: number; // percentage
+  changeLabel: string; // e.g., "+2 this week"
+}
+
+export interface HRDashboardMetrics {
+  openPositions: MetricValue;
+  activeCandidates: MetricValue;
+  interviewsScheduled: MetricValue;
+  offersExtended: MetricValue;
+}
+
+export interface DepartmentAnalytics {
+  department: string;
+  openPositions: number;
+  qualifiedCandidates: number;
+  totalApplicants: number;
+  fillPercentage: number; // 0-100
+}
+
+export interface InterviewScheduleItem {
+  id: string;
+  candidateName: string;
+  positionTitle: string;
+  scheduledDate: string;
+  type: 'live' | 'mock';
 }
 
 // Export all types as a namespace for convenient importing

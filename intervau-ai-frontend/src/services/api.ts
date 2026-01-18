@@ -176,7 +176,7 @@ export const api = {
     request(`/interviews/${id}/feedback`, { method: "POST", body: feedback }),
 
   // Job Positions
-  getPositions: (filters?: Record<string, any>) =>
+  getPositions: (filters?: { search?: string; department?: string }) =>
     request<any[]>("/positions", { params: filters }),
 
   getPosition: (id: string) => request<any>(`/positions/${id}`),
@@ -189,6 +189,9 @@ export const api = {
 
   deletePosition: (id: string) =>
     request(`/positions/${id}`, { method: "DELETE" }),
+
+  togglePositionStatus: (id: string) =>
+    request(`/positions/${id}/status`, { method: "PATCH" }),
 
   // Resume
   uploadResume: (file: File) => {
@@ -232,6 +235,19 @@ export const api = {
 
   deleteAccount: (password: string) =>
     request("/auth/account", { method: "DELETE", body: { password } }),
+
+  // HR Dashboard
+  getHRDashboardMetrics: () =>
+    request<any>("/dashboard/hr/metrics", { method: "GET" }),
+
+  getRecentApplications: () =>
+    request<any[]>("/dashboard/hr/recent-applications", { method: "GET" }),
+
+  getWeeklyInterviews: () =>
+    request<any[]>("/dashboard/hr/weekly-interviews", { method: "GET" }),
+
+  getDepartmentAnalytics: () =>
+    request<any[]>("/dashboard/hr/department-analytics", { method: "GET" }),
 
   apiLogout: () => request("/auth/logout", { method: "POST" }),
 };
