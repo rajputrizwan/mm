@@ -157,6 +157,10 @@ export const api = {
 
   getCandidate: (id: string) => request<any>(`/candidates/${id}`),
 
+  // Get candidate applications for HR with filtering
+  getCandidateApplications: (filters?: { search?: string; status?: string; sortBy?: string }) =>
+    request("/candidates/applications", { params: filters }),
+
   updateCandidate: (id: string, data: any) =>
     request(`/candidates/${id}`, { method: "PUT", body: data }),
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { CandidateController } from '../controllers/CandidateController';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, roleMiddleware } from '../middleware/auth';
 import { updateCandidateProfileValidation, validateRequest } from '../utils/validators';
 
 const router = Router();
@@ -19,6 +19,12 @@ router.post('/', CandidateController.create);
  * Get all candidates
  */
 router.get('/', CandidateController.getAll);
+
+/**
+ * GET /api/candidates/applications
+ * Get all applications for HR with filtering (HR only)
+ */
+router.get('/applications', roleMiddleware('hr'), CandidateController.getApplicationsForHR);
 
 /**
  * GET /api/candidates/:id

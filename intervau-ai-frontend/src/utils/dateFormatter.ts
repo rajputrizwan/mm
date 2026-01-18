@@ -45,3 +45,23 @@ export function formatTimeAgo(dateString: string): string {
     const years = Math.floor(days / 365);
     return `${years} ${years === 1 ? 'year' : 'years'} ago`;
 }
+
+/**
+ * Format a date string to "Month Day, Year" format
+ * Example: "2024-03-10T12:00:00.000Z" => "March 10, 2024"
+ */
+export function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) {
+        return 'Invalid date';
+    }
+
+    const options: Intl.DateTimeFormatOptions = {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+    };
+
+    return date.toLocaleDateString('en-US', options);
+}
