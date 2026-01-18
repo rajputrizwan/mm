@@ -358,6 +358,7 @@
 // }
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -369,15 +370,16 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
+import { routeHelpers } from "../router";
 
 interface InterviewSession {
   id: string;
-  candidateOrHR: string;
+  name: string; // Interviewer or AI Bot name
   role: string;
-  type: "mock" | "live";
-  date: string;
-  duration: string;
-  score: number;
+  type: "MOCK" | "LIVE";
+  date: string; // Format: 'MMM DD, YYYY'
+  duration: number; // Duration in minutes
+  score: number; // 0-100
   status: "completed" | "pending" | "scheduled";
 }
 
@@ -386,85 +388,90 @@ export default function InterviewHistory() {
   const [filterType, setFilterType] = useState<"all" | "mock" | "live">("all");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleViewDetails = (id: string) => {
+    navigate(routeHelpers.candidateReport(id));
+  };
 
   const sessions: InterviewSession[] = [
     {
       id: "1",
-      candidateOrHR: "Alex Martinez",
+      name: "Alex Martinez",
       role: "Senior Full Stack Developer",
-      type: "mock",
+      type: "MOCK",
       date: "Nov 15, 2024",
-      duration: "28 min",
+      duration: 28,
       score: 87,
       status: "completed",
     },
     {
       id: "2",
-      candidateOrHR: "Sarah Johnson",
+      name: "Sarah Johnson",
       role: "Product Manager",
-      type: "live",
+      type: "LIVE",
       date: "Nov 14, 2024",
-      duration: "45 min",
+      duration: 45,
       score: 92,
       status: "completed",
     },
     {
       id: "3",
-      candidateOrHR: "Mike Chen",
+      name: "Mike Chen",
       role: "UI/UX Designer",
-      type: "mock",
+      type: "MOCK",
       date: "Nov 12, 2024",
-      duration: "25 min",
+      duration: 25,
       score: 78,
       status: "completed",
     },
     {
       id: "4",
-      candidateOrHR: "Emily Rodriguez",
+      name: "Emily Rodriguez",
       role: "Data Scientist",
-      type: "live",
+      type: "LIVE",
       date: "Nov 10, 2024",
-      duration: "50 min",
+      duration: 50,
       score: 88,
       status: "completed",
     },
     {
       id: "5",
-      candidateOrHR: "James Wilson",
+      name: "James Wilson",
       role: "DevOps Engineer",
-      type: "mock",
+      type: "MOCK",
       date: "Nov 8, 2024",
-      duration: "32 min",
+      duration: 32,
       score: 81,
       status: "completed",
     },
     {
       id: "6",
-      candidateOrHR: "Lisa Park",
+      name: "Lisa Park",
       role: "Backend Engineer",
-      type: "live",
+      type: "LIVE",
       date: "Nov 5, 2024",
-      duration: "42 min",
+      duration: 42,
       score: 85,
       status: "completed",
     },
     {
       id: "7",
-      candidateOrHR: "David Thompson",
+      name: "David Thompson",
       role: "Frontend Developer",
-      type: "mock",
+      type: "MOCK",
       date: "Nov 1, 2024",
-      duration: "29 min",
+      duration: 29,
       score: 79,
       status: "completed",
     },
     {
       id: "8",
-      candidateOrHR: "Jennifer Lee",
+      name: "Jennifer Lee",
       role: "QA Engineer",
-      type: "live",
+      type: "LIVE",
       date: "Oct 28, 2024",
-      duration: "38 min",
+      duration: 38,
       score: 86,
       status: "completed",
     },
@@ -472,20 +479,18 @@ export default function InterviewHistory() {
 
   const filteredSessions = sessions.filter((session) => {
     const matchesSearch =
-      session.candidateOrHR.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      session.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       session.role.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || session.type === filterType;
+    const matchesType = filterType === "all" || session.type.toLowerCase() === filterType;
     return matchesSearch && matchesType;
   });
 
   const getScoreBadgeColor = (score: number) => {
-    if (score >= 85)
+    if (score >= 80)
       return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800";
-    if (score >= 75)
+    if (score >= 70)
       return "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800";
-    if (score >= 65)
-      return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800";
-    return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800";
+    return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800";
   };
 
   const getStatusBadge = (status: string) => {
@@ -530,31 +535,28 @@ export default function InterviewHistory() {
                 <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
                   <button
                     onClick={() => setFilterType("all")}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      filterType === "all"
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${filterType === "all"
                         ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-gray-600"
                         : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                    }`}
+                      }`}
                   >
                     {t("interviewHistory.all")}
                   </button>
                   <button
                     onClick={() => setFilterType("mock")}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      filterType === "mock"
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${filterType === "mock"
                         ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-gray-600"
                         : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                    }`}
+                      }`}
                   >
                     {t("interviewHistory.mock")}
                   </button>
                   <button
                     onClick={() => setFilterType("live")}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      filterType === "live"
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${filterType === "live"
                         ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-gray-600"
                         : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                    }`}
+                      }`}
                   >
                     {t("interviewHistory.live")}
                   </button>
@@ -600,7 +602,7 @@ export default function InterviewHistory() {
                         <td className="py-4 px-4">
                           <div>
                             <p className="font-semibold text-gray-900 dark:text-white">
-                              {session.candidateOrHR}
+                              {session.name}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               {session.role}
@@ -609,14 +611,13 @@ export default function InterviewHistory() {
                         </td>
                         <td className="py-4 px-4">
                           <span
-                            className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                              session.type === "mock"
+                            className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold ${session.type === "MOCK"
                                 ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                                 : "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400"
-                            }`}
+                              }`}
                           >
-                            {session.type === "mock" ? "🤖" : "👥"}{" "}
-                            {session.type.toUpperCase()}
+                            {session.type === "MOCK" ? "🤖" : "👥"}{" "}
+                            {session.type}
                           </span>
                         </td>
                         <td className="py-4 px-4">
@@ -628,7 +629,7 @@ export default function InterviewHistory() {
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
                             <Clock className="w-4 h-4" />
-                            <span>{session.duration}</span>
+                            <span>{session.duration} min</span>
                           </div>
                         </td>
                         <td className="py-4 px-4">
@@ -651,7 +652,10 @@ export default function InterviewHistory() {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-center">
-                          <button className="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                          <button
+                            onClick={() => handleViewDetails(session.id)}
+                            className="inline-flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                          >
                             <ChevronRight className="w-5 h-5" />
                           </button>
                         </td>
@@ -670,7 +674,7 @@ export default function InterviewHistory() {
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <h3 className="font-bold text-gray-900 dark:text-white">
-                          {session.candidateOrHR}
+                          {session.name}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {session.role}
@@ -687,13 +691,12 @@ export default function InterviewHistory() {
                           Type
                         </span>
                         <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                            session.type === "mock"
+                          className={`text-xs font-semibold px-2 py-1 rounded-full ${session.type === "MOCK"
                               ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                               : "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400"
-                          }`}
+                            }`}
                         >
-                          {session.type.toUpperCase()}
+                          {session.type}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -709,7 +712,7 @@ export default function InterviewHistory() {
                           Duration
                         </span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {session.duration}
+                          {session.duration} min
                         </span>
                       </div>
                     </div>
@@ -728,7 +731,10 @@ export default function InterviewHistory() {
                       </div>
                     </div>
 
-                    <button className="w-full flex items-center justify-center space-x-2 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium">
+                    <button
+                      onClick={() => handleViewDetails(session.id)}
+                      className="w-full flex items-center justify-center space-x-2 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
+                    >
                       <span>{t("interviewHistory.viewReport")}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -774,9 +780,9 @@ export default function InterviewHistory() {
             <p className="text-3xl font-bold text-gray-900 dark:text-white">
               {filteredSessions.length > 0
                 ? Math.round(
-                    filteredSessions.reduce((acc, s) => acc + s.score, 0) /
-                      filteredSessions.length
-                  )
+                  filteredSessions.reduce((acc, s) => acc + s.score, 0) /
+                  filteredSessions.length
+                )
                 : 0}
               %
             </p>
@@ -794,10 +800,7 @@ export default function InterviewHistory() {
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">
               {filteredSessions.length > 0
-                ? filteredSessions.reduce((acc, s) => {
-                    const minutes = parseInt(s.duration.split(" ")[0]) || 0;
-                    return acc + minutes;
-                  }, 0)
+                ? filteredSessions.reduce((acc, s) => acc + s.duration, 0)
                 : 0}{" "}
               min
             </p>
