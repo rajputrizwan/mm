@@ -185,6 +185,11 @@ export const api = {
   updateCandidate: (id: string, data: any) =>
     request(`/candidates/${id}`, { method: "PUT", body: data }),
 
+  // Dashboard APIs
+  getDashboardStats: () => request("/candidates/dashboard/stats"),
+  getRecentInterviews: () => request("/candidates/dashboard/recent-interviews"),
+  getTopSkills: () => request("/candidates/dashboard/skills"),
+
   // Interviews
   getInterviews: (filters?: Record<string, any>) =>
     request<any[]>("/interviews", { params: filters }),

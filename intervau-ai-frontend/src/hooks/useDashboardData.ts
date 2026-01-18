@@ -1,28 +1,21 @@
 import { useState, useEffect } from 'react';
-import { api } from '../services/api';
-import {
-    HRDashboardMetrics,
-    Application,
-    InterviewScheduleItem,
-    DepartmentAnalytics,
-} from '../types/models';
+import api from '../services/api';
+import { DashboardStats, RecentInterview, TopSkill } from '../types/dashboard';
 
-interface DashboardData {
-    metrics: HRDashboardMetrics | null;
-    recentApplications: Application[];
-    weeklyInterviews: InterviewScheduleItem[];
-    departmentAnalytics: DepartmentAnalytics[];
+interface UseDashboardDataReturn {
+    stats: DashboardStats | null;
+    recentInterviews: RecentInterview[];
+    topSkills: TopSkill[];
     loading: boolean;
     error: string | null;
     refetch: () => void;
 }
 
-export const useDashboardData = (): DashboardData => {
-    const [metrics, setMetrics] = useState<HRDashboardMetrics | null>(null);
-    const [recentApplications, setRecentApplications] = useState<Application[]>([]);
-    const [weeklyInterviews, setWeeklyInterviews] = useState<InterviewScheduleItem[]>([]);
-    const [departmentAnalytics, setDepartmentAnalytics] = useState<DepartmentAnalytics[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
+export function useDashboardData(): UseDashboardDataReturn {
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [recentInterviews, setRecentInterviews] = useState<RecentInterview[]>([]);
+    const [topSkills, setTopSkills] = useState<TopSkill[]>([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchDashboardData = async () => {
@@ -30,36 +23,26 @@ export const useDashboardData = (): DashboardData => {
             setLoading(true);
             setError(null);
 
-            // Fetch all dashboard data in parallel
-            const [metricsRes, applicationsRes, interviewsRes, analyticsRes] = await Promise.all([
-                api.getHRDashboardMetrics(),
-                api.getRecentApplications(),
-                api.getWeeklyInterviews(),
-                api.getDepartmentAnalytics(),
+            const [statsRes, interviewsRes, skillsRes] = await Promise.all([
+                api.getDashboardStats(),
+                api.getRecentInterviews(),
+                api.getTopSkills(),
             ]);
 
-            // Check for errors in responses
-            if (!metricsRes.success) {
-                throw new Error(metricsRes.error || 'Failed to fetch metrics');
-            }
-            if (!applicationsRes.success) {
-                throw new Error(applicationsRes.error || 'Failed to fetch applications');
-            }
-            if (!interviewsRes.success) {
-                throw new Error(interviewsRes.error || 'Failed to fetch interviews');
-            }
-            if (!analyticsRes.success) {
-                throw new Error(analyticsRes.error || 'Failed to fetch analytics');
+            if (statsRes.success && statsRes.data) {
+                setStats(statsRes.data);
             }
 
-            // Set data from successful responses
-            setMetrics(metricsRes.data || null);
-            setRecentApplications(applicationsRes.data || []);
-            setWeeklyInterviews(interviewsRes.data || []);
-            setDepartmentAnalytics(analyticsRes.data || []);
-        } catch (err) {
+            if (interviewsRes.success && interviewsRes.data) {
+                setRecentInterviews(interviewsRes.data.interviews || []);
+            }
+
+            if (skillsRes.success && skillsRes.data) {
+                setTopSkills(skillsRes.data.skills || []);
+            }
+        } catch (err: any) {
             console.error('Error fetching dashboard data:', err);
-            setError(err instanceof Error ? err.message : 'An error occurred while fetching dashboard data');
+            setError(err.message || 'Failed to fetch dashboard data');
         } finally {
             setLoading(false);
         }
@@ -70,12 +53,11 @@ export const useDashboardData = (): DashboardData => {
     }, []);
 
     return {
-        metrics,
-        recentApplications,
-        weeklyInterviews,
-        departmentAnalytics,
+        stats,
+        recentInterviews,
+        topSkills,
         loading,
         error,
         refetch: fetchDashboardData,
     };
-};
+}

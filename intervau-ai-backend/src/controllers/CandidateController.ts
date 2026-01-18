@@ -226,7 +226,7 @@ export class CandidateController {
 
   static async analyzeResume(req: Request, res: Response) {
     try {
-      const file = req.file;
+      const file = (req as any).file;
 
       if (!file) {
         return res.status(400).json({
@@ -302,10 +302,10 @@ export class CandidateController {
       console.error('Error analyzing resume:', error);
 
       // Clean up file if it exists
-      if (req.file) {
+      if ((req as any).file) {
         const fs = require('fs');
         try {
-          fs.unlinkSync(req.file.path);
+          fs.unlinkSync((req as any).file.path);
         } catch (e) {
           // File already deleted or doesn't exist
         }
@@ -314,6 +314,181 @@ export class CandidateController {
       res.status(500).json({
         success: false,
         message: 'Failed to analyze resume',
+      });
+    }
+  }
+
+  // Dashboard endpoints
+  static async getDashboardStats(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      const { Interview } = require('../models/Interview');
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+      }
+
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+      // Get all completed interviews
+      const allInterviews = await Interview.find({
+        candidateId: userId,
+        status: 'completed',
+      });
+
+      // Get this week's interviews
+      const weekInterviews = await Interview.find({
+        candidateId: userId,
+        status: 'completed',
+        createdAt: { $gte: sevenDaysAgo },
+      });
+
+      // Get last 30 days interviews for current period avg
+      const currentPeriodInterviews = await Interview.find({
+        candidateId: userId,
+        status: 'completed',
+        createdAt: { $gte: thirtyDaysAgo },
+      });
+
+      // Get previous 30 days (31-60 days ago) for comparison
+      const previousPeriodInterviews = await Interview.find({
+        candidateId: userId,
+        status: 'completed',
+        createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo },
+      });
+
+      // Calculate average scores
+      const calculateAvg = (interviews: any[]) => {
+        if (interviews.length === 0) return 0;
+        const sum = interviews.reduce((acc, i) => acc + (i.score || 0), 0);
+        return Math.round(sum / interviews.length);
+      };
+
+      const avgScore = calculateAvg(allInterviews);
+      const currentPeriodAvg = calculateAvg(currentPeriodInterviews);
+      const previousPeriodAvg = calculateAvg(previousPeriodInterviews);
+
+      // Calculate improvement rate
+      const improvementRate =
+        previousPeriodAvg > 0
+          ? Math.round(((currentPeriodAvg - previousPeriodAvg) / previousPeriodAvg) * 100)
+          : 0;
+
+      // Calculate hours practiced (sum of durations in hours)
+      const totalMinutes = allInterviews.reduce((acc, i) => acc + (i.duration || 0), 0);
+      const weekMinutes = weekInterviews.reduce((acc, i) => acc + (i.duration || 0), 0);
+      const hoursPracticed = totalMinutes / 60;
+      const weekHoursPracticed = weekMinutes / 60;
+
+      res.status(200).json({
+        success: true,
+        data: {
+          totalInterviews: allInterviews.length,
+          weekInterviews: weekInterviews.length,
+          avgScore,
+          lastPeriodAvgScore: previousPeriodAvg,
+          hoursPracticed: parseFloat(hoursPracticed.toFixed(1)),
+          weekHoursPracticed: parseFloat(weekHoursPracticed.toFixed(1)),
+          improvementRate,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch dashboard stats',
+      });
+    }
+  }
+
+  static async getRecentInterviews(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      const { Interview } = require('../models/Interview');
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+      }
+
+      const interviews = await Interview.find({
+        candidateId: userId,
+        status: 'completed',
+      })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .populate('jobPositionId', 'title');
+
+      res.status(200).json({
+        success: true,
+        data: {
+          interviews,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching recent interviews:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch recent interviews',
+      });
+    }
+  }
+
+  static async getTopSkills(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+      }
+
+      // Get candidate profile
+      const candidate = await Candidate.findOne({ userId }).select('skills');
+
+      if (!candidate || !candidate.skills || candidate.skills.length === 0) {
+        // Return default skills if none found
+        return res.status(200).json({
+          success: true,
+          data: {
+            skills: [
+              { name: 'Communication', level: 70, category: 'Soft Skills' },
+              { name: 'Problem Solving', level: 65, category: 'Soft Skills' },
+              { name: 'Leadership', level: 60, category: 'Soft Skills' },
+            ],
+          },
+        });
+      }
+
+      // Get resume analysis from localStorage or recent analysis
+      // For now, we'll create basic skill objects from the skills array
+      const skillsWithLevels = candidate.skills.slice(0, 5).map((skillName: string, index: number) => ({
+        name: skillName,
+        level: 85 - index * 5, // Decreasing levels for demo
+        category: 'Technical',
+      }));
+
+      res.status(200).json({
+        success: true,
+        data: {
+          skills: skillsWithLevels,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching top skills:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch top skills',
       });
     }
   }
