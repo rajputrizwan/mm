@@ -50,4 +50,11 @@ router.delete('/:id', CandidateController.delete);
  */
 router.put('/:id/resume', CandidateController.updateResume);
 
+/**
+ * POST /api/candidates/analyze-resume
+ * Analyze uploaded resume (Candidate only)
+ */
+const { upload } = require('../middleware/upload');
+router.post('/analyze-resume', upload.single('resume'), CandidateController.analyzeResume);
+
 export default router;

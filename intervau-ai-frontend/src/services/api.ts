@@ -161,6 +161,27 @@ export const api = {
   getCandidateApplications: (filters?: { search?: string; status?: string; sortBy?: string }) =>
     request("/candidates/applications", { params: filters }),
 
+  // Analyze resume with file upload
+  analyzeResume: async (file: File) => {
+    const formData = new FormData();
+    formData.append("resume", file);
+
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/candidates/analyze-resume`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to analyze resume");
+    }
+    return data;
+  },
+
   updateCandidate: (id: string, data: any) =>
     request(`/candidates/${id}`, { method: "PUT", body: data }),
 

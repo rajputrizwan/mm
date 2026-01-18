@@ -223,4 +223,98 @@ export class CandidateController {
       });
     }
   }
+
+  static async analyzeResume(req: Request, res: Response) {
+    try {
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded',
+        });
+      }
+
+      const fs = require('fs');
+      const { extractTextFromFile } = require('../utils/resumeParser');
+      const {
+        extractSkills,
+        identifySkillGaps,
+        generateInterviewQuestions,
+        calculateMatchScore,
+      } = require('../utils/skillExtractor');
+
+      // Extract text from uploaded file
+      const text = await extractTextFromFile(file.path, file.mimetype);
+
+      if (!text || text.trim().length < 100) {
+        // Clean up file
+        fs.unlinkSync(file.path);
+        return res.status(400).json({
+          success: false,
+          message: 'Could not extract sufficient text from resume',
+        });
+      }
+
+      // Extract skills using pattern matching
+      const extractedSkills = extractSkills(text);
+
+      // Identify skill gaps
+      const skillGaps = identifySkillGaps(extractedSkills);
+
+      // Generate personalized interview questions
+      const suggestedQuestions = generateInterviewQuestions(extractedSkills);
+
+      // Calculate match score
+      const matchScore = calculateMatchScore(extractedSkills);
+
+      // Update candidate profile with extracted skills
+      const userId = (req as any).user?.id;
+      if (userId) {
+        await Candidate.findOneAndUpdate(
+          { userId },
+          {
+            $set: {
+              skills: extractedSkills.map((s) => s.name),
+              'resume.uploadedAt': new Date(),
+            },
+          },
+          { upsert: true }
+        );
+      }
+
+      // Clean up uploaded file (temporary storage)
+      fs.unlinkSync(file.path);
+
+      // Return analysis results
+      res.status(200).json({
+        success: true,
+        data: {
+          extractedSkills,
+          skillGaps,
+          suggestedQuestions,
+          matchScore,
+          analyzedAt: new Date().toISOString(),
+          fileName: file.originalname,
+        },
+      });
+    } catch (error) {
+      console.error('Error analyzing resume:', error);
+
+      // Clean up file if it exists
+      if (req.file) {
+        const fs = require('fs');
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (e) {
+          // File already deleted or doesn't exist
+        }
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to analyze resume',
+      });
+    }
+  }
 }
