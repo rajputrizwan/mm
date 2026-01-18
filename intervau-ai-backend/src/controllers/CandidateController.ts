@@ -225,68 +225,154 @@ export class CandidateController {
   }
 
   static async analyzeResume(req: Request, res: Response) {
+    let filePath: string | null = null;
+
     try {
       const file = (req as any).file;
 
       if (!file) {
         return res.status(400).json({
           success: false,
-          message: 'No file uploaded',
+          message: 'No file uploaded. Please select a PDF, DOC, or DOCX file.',
         });
       }
+
+      filePath = file.path;
+      console.log('[Resume Analysis] Starting analysis for file:', file.originalname);
+      console.log('[Resume Analysis] File size:', file.size, 'bytes');
+      console.log('[Resume Analysis] MIME type:', file.mimetype);
 
       const fs = require('fs');
-      const { extractTextFromFile } = require('../utils/resumeParser');
-      const {
-        extractSkills,
-        identifySkillGaps,
-        generateInterviewQuestions,
-        calculateMatchScore,
-      } = require('../utils/skillExtractor');
 
-      // Extract text from uploaded file
-      const text = await extractTextFromFile(file.path, file.mimetype);
+      // Step 1: Extract text from file
+      let text: string;
+      try {
+        const { extractTextFromFile } = require('../utils/resumeParser');
+        console.log('[Resume Analysis] Extracting text from file...');
+        text = await extractTextFromFile(file.path, file.mimetype);
+        console.log('[Resume Analysis] Text extraction successful. Length:', text.length);
+      } catch (extractError: any) {
+        console.error('[Resume Analysis] Text extraction failed:', extractError);
+        console.error('[Resume Analysis] Error details:', extractError.message);
 
-      if (!text || text.trim().length < 100) {
         // Clean up file
-        fs.unlinkSync(file.path);
-        return res.status(400).json({
+        if (filePath && fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+
+        return res.status(500).json({
           success: false,
-          message: 'Could not extract sufficient text from resume',
+          message: 'Failed to extract text from resume. The file may be corrupted or in an unsupported format.',
+          error: process.env.NODE_ENV === 'development' ? extractError.message : undefined,
         });
       }
 
-      // Extract skills using pattern matching
-      const extractedSkills = extractSkills(text);
+      // Validate extracted text
+      if (!text || text.trim().length < 100) {
+        console.warn('[Resume Analysis] Insufficient text extracted. Length:', text?.length || 0);
 
-      // Identify skill gaps
-      const skillGaps = identifySkillGaps(extractedSkills);
+        // Clean up file
+        if (filePath && fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
 
-      // Generate personalized interview questions
-      const suggestedQuestions = generateInterviewQuestions(extractedSkills);
+        return res.status(400).json({
+          success: false,
+          message: 'Could not extract sufficient text from resume. Please ensure the file contains readable text and is not a scanned image.',
+        });
+      }
 
-      // Calculate match score
-      const matchScore = calculateMatchScore(extractedSkills);
+      // Step 2: Extract skills
+      let extractedSkills: any[];
+      try {
+        const { extractSkills } = require('../utils/skillExtractor');
+        console.log('[Resume Analysis] Extracting skills...');
+        extractedSkills = extractSkills(text);
+        console.log('[Resume Analysis] Skills extracted:', extractedSkills.length);
+      } catch (skillError: any) {
+        console.error('[Resume Analysis] Skill extraction failed:', skillError);
 
-      // Update candidate profile with extracted skills
-      const userId = (req as any).user?.id;
-      if (userId) {
-        await Candidate.findOneAndUpdate(
-          { userId },
-          {
-            $set: {
-              skills: extractedSkills.map((s) => s.name),
-              'resume.uploadedAt': new Date(),
+        // Clean up file
+        if (filePath && fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to analyze skills in resume.',
+          error: process.env.NODE_ENV === 'development' ? skillError.message : undefined,
+        });
+      }
+
+      // Step 3: Identify skill gaps
+      let skillGaps: any[];
+      try {
+        const { identifySkillGaps } = require('../utils/skillExtractor');
+        console.log('[Resume Analysis] Identifying skill gaps...');
+        skillGaps = identifySkillGaps(extractedSkills);
+        console.log('[Resume Analysis] Skill gaps identified:', skillGaps.length);
+      } catch (gapError: any) {
+        console.error('[Resume Analysis] Skill gap analysis failed:', gapError);
+        // Non-critical, use empty array
+        skillGaps = [];
+      }
+
+      // Step 4: Generate interview questions
+      let suggestedQuestions: any[];
+      try {
+        const { generateInterviewQuestions } = require('../utils/skillExtractor');
+        console.log('[Resume Analysis] Generating interview questions...');
+        suggestedQuestions = generateInterviewQuestions(extractedSkills);
+        console.log('[Resume Analysis] Questions generated:', suggestedQuestions.length);
+      } catch (questionError: any) {
+        console.error('[Resume Analysis] Question generation failed:', questionError);
+        // Non-critical, use empty array
+        suggestedQuestions = [];
+      }
+
+      // Step 5: Calculate match score
+      let matchScore: number;
+      try {
+        const { calculateMatchScore } = require('../utils/skillExtractor');
+        console.log('[Resume Analysis] Calculating match score...');
+        matchScore = calculateMatchScore(extractedSkills);
+        console.log('[Resume Analysis] Match score:', matchScore);
+      } catch (scoreError: any) {
+        console.error('[Resume Analysis] Match score calculation failed:', scoreError);
+        // Non-critical, use default
+        matchScore = 0;
+      }
+
+      // Step 6: Update candidate profile
+      try {
+        const userId = (req as any).user?.id;
+        if (userId) {
+          console.log('[Resume Analysis] Updating candidate profile for user:', userId);
+          await Candidate.findOneAndUpdate(
+            { userId },
+            {
+              $set: {
+                skills: extractedSkills.map((s) => s.name),
+                'resume.uploadedAt': new Date(),
+              },
             },
-          },
-          { upsert: true }
-        );
+            { upsert: true }
+          );
+          console.log('[Resume Analysis] Candidate profile updated successfully');
+        }
+      } catch (updateError: any) {
+        // Non-critical, just log the error
+        console.error('[Resume Analysis] Failed to update candidate profile:', updateError);
       }
 
       // Clean up uploaded file (temporary storage)
-      fs.unlinkSync(file.path);
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log('[Resume Analysis] Temporary file cleaned up');
+      }
 
       // Return analysis results
+      console.log('[Resume Analysis] Analysis completed successfully');
       res.status(200).json({
         success: true,
         data: {
@@ -299,21 +385,27 @@ export class CandidateController {
         },
       });
     } catch (error) {
-      console.error('Error analyzing resume:', error);
+      console.error('[Resume Analysis] Unexpected error:', error);
+      console.error('[Resume Analysis] Error stack:', (error as Error).stack);
+      console.error('[Resume Analysis] Error message:', (error as Error).message);
 
       // Clean up file if it exists
-      if ((req as any).file) {
+      if (filePath) {
         const fs = require('fs');
         try {
-          fs.unlinkSync((req as any).file.path);
-        } catch (e) {
-          // File already deleted or doesn't exist
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log('[Resume Analysis] Cleaned up file after error');
+          }
+        } catch (cleanupError) {
+          console.error('[Resume Analysis] Failed to cleanup file:', cleanupError);
         }
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to analyze resume',
+        message: 'An unexpected error occurred while analyzing your resume. Please try again.',
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined,
       });
     }
   }

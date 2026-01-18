@@ -27,6 +27,35 @@ router.get('/', CandidateController.getAll);
 router.get('/applications', roleMiddleware('hr'), CandidateController.getApplicationsForHR);
 
 /**
+ * POST /api/candidates/analyze-resume
+ * Analyze uploaded resume (Candidate only)
+ * MUST come before /:id route to avoid conflicts
+ */
+const { upload } = require('../middleware/upload');
+router.post('/analyze-resume', upload.single('resume'), CandidateController.analyzeResume);
+
+/**
+ * GET /api/candidates/dashboard/stats
+ * Get dashboard statistics (Candidate only)
+ * MUST come before /:id route to avoid conflicts
+ */
+router.get('/dashboard/stats', CandidateController.getDashboardStats);
+
+/**
+ * GET /api/candidates/dashboard/recent-interviews
+ * Get recent interviews (Candidate only)
+ * MUST come before /:id route to avoid conflicts
+ */
+router.get('/dashboard/recent-interviews', CandidateController.getRecentInterviews);
+
+/**
+ * GET /api/candidates/dashboard/skills
+ * Get top skills (Candidate only)
+ * MUST come before /:id route to avoid conflicts
+ */
+router.get('/dashboard/skills', CandidateController.getTopSkills);
+
+/**
  * GET /api/candidates/:id
  * Get candidate by ID
  */
@@ -49,30 +78,5 @@ router.delete('/:id', CandidateController.delete);
  * Update candidate resume
  */
 router.put('/:id/resume', CandidateController.updateResume);
-
-/**
- * POST /api/candidates/analyze-resume
- * Analyze uploaded resume (Candidate only)
- */
-const { upload } = require('../middleware/upload');
-router.post('/analyze-resume', upload.single('resume'), CandidateController.analyzeResume);
-
-/**
- * GET /api/candidates/dashboard/stats
- * Get dashboard statistics (Candidate only)
- */
-router.get('/dashboard/stats', CandidateController.getDashboardStats);
-
-/**
- * GET /api/candidates/dashboard/recent-interviews
- * Get recent interviews (Candidate only)
- */
-router.get('/dashboard/recent-interviews', CandidateController.getRecentInterviews);
-
-/**
- * GET /api/candidates/dashboard/skills
- * Get top skills (Candidate only)
- */
-router.get('/dashboard/skills', CandidateController.getTopSkills);
 
 export default router;

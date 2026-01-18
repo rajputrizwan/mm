@@ -5,7 +5,7 @@
  */
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 interface RequestConfig {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -163,23 +163,66 @@ export const api = {
 
   // Analyze resume with file upload
   analyzeResume: async (file: File) => {
-    const formData = new FormData();
-    formData.append("resume", file);
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
 
-    const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/candidates/analyze-resume`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
+      const token = getAuthToken();
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to analyze resume");
+      if (!token) {
+        throw new Error("401: Authentication required. Please log in.");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/candidates/analyze-resume`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      // Handle specific HTTP status codes
+      if (!response.ok) {
+        // 401 Unauthorized - Session expired
+        if (response.status === 401) {
+          removeAuthToken();
+          window.dispatchEvent(new CustomEvent("unauthorized"));
+          throw new Error("401: Your session has expired. Please log in again.");
+        }
+
+        // 500 Server Error - Resume parsing failed
+        if (response.status === 500) {
+          const errorMessage = data.message || data.error || "Server error";
+          throw new Error(`500: Server error: Unable to parse resume. ${errorMessage}`);
+        }
+
+        // 413 Payload Too Large
+        if (response.status === 413) {
+          throw new Error("File size is too large. Please upload a file smaller than 10MB.");
+        }
+
+        // 415 Unsupported Media Type
+        if (response.status === 415) {
+          throw new Error("Unsupported file format. Please upload a PDF, DOC, or DOCX file.");
+        }
+
+        // Generic error
+        const errorMessage = data.message || data.error || "Failed to analyze resume";
+        throw new Error(`${response.status}: ${errorMessage}`);
+      }
+
+      return data;
+    } catch (error: any) {
+      // Network errors or other exceptions
+      if (!error.message?.includes(":")) {
+        // If error doesn't already have a status code, wrap it
+        throw new Error(`Network error: ${error.message || "Unable to connect to server"}`);
+      }
+      // Re-throw errors that already have formatting
+      throw error;
     }
-    return data;
   },
 
   updateCandidate: (id: string, data: any) =>

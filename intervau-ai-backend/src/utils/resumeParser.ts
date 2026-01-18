@@ -14,6 +14,7 @@ export async function extractTextFromFile(
 
         // Handle PDF files
         if (mimetype === 'application/pdf') {
+            // pdf-parse exports a default function, not an object
             const pdfParse = require('pdf-parse');
             const data = await pdfParse(buffer);
             return data.text;
@@ -32,6 +33,7 @@ export async function extractTextFromFile(
         throw new Error('Unsupported file type');
     } catch (error) {
         console.error('Error extracting text from file:', error);
-        throw new Error('Failed to extract text from resume');
+        const errorMessage = (error as Error).message || 'Unknown error';
+        throw new Error(`Failed to extract text from resume: ${errorMessage}`);
     }
 }
