@@ -12,6 +12,7 @@ import candidateRoutes from './routes/candidates';
 import positionRoutes from './routes/positions';
 import contactRoutes from './routes/contact';
 import dashboardRoutes from './routes/dashboard';
+import searchRoutes from './routes/searchRoutes';
 
 const app: Express = express();
 
@@ -55,6 +56,7 @@ app.use('/api/candidates', candidateRoutes);
 app.use('/api/positions', positionRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/search', searchRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
   res.json({
@@ -68,6 +70,7 @@ app.get('/api', (req: Request, res: Response) => {
       positions: '/api/positions',
       contact: '/api/contact',
       dashboard: '/api/dashboard',
+      search: '/api/search',
       health: '/api/health',
     },
   });

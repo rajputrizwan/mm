@@ -322,6 +322,12 @@ export const api = {
   getDepartmentAnalytics: () =>
     request<any[]>("/dashboard/hr/department-analytics", { method: "GET" }),
 
+  // Search
+  globalSearch: (query: string) =>
+    request<{ results: any[]; total: number; query: string }>("/search", {
+      params: { q: query },
+    }),
+
   apiLogout: () => request("/auth/logout", { method: "POST" }),
 };
 
