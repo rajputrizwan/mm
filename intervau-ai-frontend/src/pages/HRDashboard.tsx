@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "../hooks/useTranslation";
-import { useDashboardData } from "../hooks/useDashboardData";
+import { useHRDashboardData as useDashboardData } from "../hooks/useHRDashboardData";
 import {
   Briefcase,
   Users,
@@ -283,8 +283,8 @@ export default function HRDashboard() {
                       </h4>
                       <span
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${interview.type === "live"
-                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
-                            : "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800"
+                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                          : "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800"
                           }`}
                       >
                         {interview.type === "live"

@@ -9,7 +9,7 @@ export default function HRCandidates() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortBy, setSortBy] = useState("score");
+  const [sortBy, setSortBy] = useState<'score' | 'recent'>("score");
 
   // Fetch data using custom hook
   const { applications, stats, loading, error } = useCandidateApplications({
@@ -113,7 +113,7 @@ export default function HRCandidates() {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => setSortBy(e.target.value as 'score' | 'recent')}
                 className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="score">Sort by Score</option>
