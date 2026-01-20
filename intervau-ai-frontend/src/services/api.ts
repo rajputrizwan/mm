@@ -328,6 +328,111 @@ export const api = {
       params: { q: query },
     }),
 
+  // Interview Templates (HR-created interviews)
+  createInterviewTemplate: (data: {
+    jobPosition: string;
+    jobDescription: string;
+    interviewType: 'mock' | 'live';
+    interviewModes: string[];
+    duration: number;
+    availability: { type: 'anytime' | 'scheduled'; scheduledDate?: string };
+    visibility: 'public' | 'private';
+    aiSettings: {
+      difficultyLevel: 'junior' | 'mid' | 'senior';
+      autoScore: boolean;
+      enableAiFeedback: boolean;
+    };
+    questions?: Array<{ text: string; type: string; expectedAnswer?: string }>;
+  }) =>
+    request("/interview-templates", { method: "POST", body: data }),
+
+  getInterviewTemplates: (filters?: { status?: string; interviewType?: string }) =>
+    request<any[]>("/interview-templates", { params: filters }),
+
+  getInterviewTemplate: (id: string) =>
+    request<any>(`/interview-templates/${id}`),
+
+  updateInterviewTemplate: (id: string, data: any) =>
+    request(`/interview-templates/${id}`, { method: "PUT", body: data }),
+
+  deleteInterviewTemplate: (id: string) =>
+    request(`/interview-templates/${id}`, { method: "DELETE" }),
+
+  generateInterviewQuestions: (data: {
+    jobPosition: string;
+    jobDescription: string;
+    interviewModes: string[];
+    difficultyLevel: 'junior' | 'mid' | 'senior';
+    questionCount?: number;
+    duration?: string;
+  }) =>
+    request<Array<{ text: string; type: string; expectedAnswer?: string }>>(
+      "/interview-templates/generate-questions",
+      { method: "POST", body: data }
+    ),
+
+  getPublicInterviewTemplates: (interviewType?: 'mock' | 'live') =>
+    request<any[]>("/interview-templates/public", { params: { interviewType } }),
+
+  // Interview Session (Candidate side)
+  getPublicInterview: (shareableLink: string) =>
+    request<{
+      id: string;
+      jobPosition: string;
+      jobDescription: string;
+      interviewType: 'mock' | 'live';
+      duration: number;
+      questionCount: number;
+      aiSettings: {
+        difficultyLevel: string;
+        autoScore: boolean;
+        enableAiFeedback: boolean;
+      };
+    }>(`/interview-session/public/${shareableLink}`),
+
+  startInterviewSession: (data: {
+    shareableLink: string;
+    candidateName: string;
+    candidateEmail: string;
+  }) =>
+    request<{
+      sessionId: string;
+      jobPosition: string;
+      duration: number;
+      totalQuestions: number;
+      currentQuestion: { index: number; text: string; type: string };
+      aiSettings: any;
+    }>("/interview-session/start", { method: "POST", body: data }),
+
+  submitInterviewResponse: (data: { sessionId: string; response: string }) =>
+    request<{
+      aiResponse: string;
+      isFollowUp: boolean;
+      currentQuestionIndex: number;
+      totalQuestions: number;
+      nextQuestion: { index: number; text: string; type: string } | null;
+      isComplete: boolean;
+    }>("/interview-session/respond", { method: "POST", body: data }),
+
+  endInterviewSession: (sessionId: string) =>
+    request<{
+      candidateName: string;
+      jobTitle: string;
+      questionsAnswered: number;
+      totalQuestions: number;
+      duration: string;
+      transcript: Array<{ speaker: string; text: string; timestamp: string }>;
+      summary: string;
+    }>("/interview-session/end", { method: "POST", body: { sessionId } }),
+
+  getInterviewSessionStatus: (sessionId: string) =>
+    request<{
+      status: 'active' | 'completed' | 'abandoned';
+      currentQuestionIndex: number;
+      totalQuestions: number;
+      startedAt: string;
+    }>(`/interview-session/${sessionId}/status`),
+
   apiLogout: () => request("/auth/logout", { method: "POST" }),
 };
 

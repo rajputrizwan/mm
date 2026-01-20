@@ -13,6 +13,8 @@ import positionRoutes from './routes/positions';
 import contactRoutes from './routes/contact';
 import dashboardRoutes from './routes/dashboard';
 import searchRoutes from './routes/searchRoutes';
+import interviewTemplateRoutes from './routes/interviewTemplates';
+import interviewSessionRoutes from './routes/interviewSession';
 
 const app: Express = express();
 
@@ -57,6 +59,8 @@ app.use('/api/positions', positionRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/interview-templates', interviewTemplateRoutes);
+app.use('/api/interview-session', interviewSessionRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
   res.json({
@@ -71,6 +75,7 @@ app.get('/api', (req: Request, res: Response) => {
       contact: '/api/contact',
       dashboard: '/api/dashboard',
       search: '/api/search',
+      interviewTemplates: '/api/interview-templates',
       health: '/api/health',
     },
   });

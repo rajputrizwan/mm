@@ -64,10 +64,16 @@ export const ROUTES = {
   HR_CANDIDATES: "/hr/candidates",
   CANDIDATE_REVIEW: "/hr/candidate-review/:candidateId",
   HR_PROFILE_SETTINGS: "/hr/profile-settings",
+  HR_CREATE_INTERVIEW: "/hr/create-interview",
 
   // Shared Routes
   LIVE_INTERVIEW: "/live-interview/:sessionId",
   INTERVIEW_SUMMARY: "/interview-summary/:summaryId",
+
+  // Public Interview Routes (Candidate access via shareable link)
+  PUBLIC_INTERVIEW: "/interview/:uuid",
+  PUBLIC_INTERVIEW_SESSION: "/interview/:uuid/session",
+  PUBLIC_INTERVIEW_SUMMARY: "/interview/:uuid/summary",
 
   // Marketing Routes
   PRICING: "/pricing",

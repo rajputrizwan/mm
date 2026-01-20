@@ -37,10 +37,15 @@ import HRDashboard from "./pages/HRDashboard";
 import JobPositions from "./pages/JobPositions";
 import HRCandidates from "./pages/HRCandidates";
 import CandidateReview from "./pages/CandidateReview";
+import HRCreateInterview from "./pages/HRCreateInterview";
 
 // Shared Pages
 import LiveInterview from "./pages/LiveInterview";
 import InterviewSummary from "./pages/InterviewSummary";
+
+// Public Interview Pages (Shareable Link Access)
+import CandidateInterviewLanding from "./pages/CandidateInterviewLanding";
+import AIInterviewSession from "./pages/AIInterviewSession";
 
 // Error Pages
 import NotFound from "./pages/NotFound";
@@ -149,6 +154,16 @@ function AppRoutes() {
             <Contact />
           </PublicLayout>
         }
+      />
+
+      {/* Public Interview Routes (Shareable Link Access) */}
+      <Route
+        path={ROUTES.PUBLIC_INTERVIEW}
+        element={<CandidateInterviewLanding />}
+      />
+      <Route
+        path={ROUTES.PUBLIC_INTERVIEW_SESSION}
+        element={<AIInterviewSession />}
       />
 
       {/* Candidate Routes */}
@@ -270,6 +285,16 @@ function AppRoutes() {
           <ProtectedRoute roles={["hr"]}>
             <AuthenticatedLayout>
               <ProfileSettings />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HR_CREATE_INTERVIEW}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <HRCreateInterview />
             </AuthenticatedLayout>
           </ProtectedRoute>
         }
