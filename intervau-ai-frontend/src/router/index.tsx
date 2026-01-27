@@ -63,6 +63,7 @@ export const ROUTES = {
   JOB_POSITIONS: "/hr/job-positions",
   HR_CANDIDATES: "/hr/candidates",
   CANDIDATE_REVIEW: "/hr/candidate-review/:candidateId",
+  HR_INTERVIEW_HISTORY: "/hr/interview-history",
   HR_PROFILE_SETTINGS: "/hr/profile-settings",
   HR_CREATE_INTERVIEW: "/hr/create-interview",
 

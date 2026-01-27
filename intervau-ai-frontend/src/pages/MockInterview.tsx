@@ -197,7 +197,7 @@ export default function MockInterview() {
       const sessionId = await initializeAISession();
 
       // Navigate to interview session
-      navigate(`${ROUTES.MOCK_INTERVIEW_SESSION}/${sessionId}`, {
+      navigate(ROUTES.MOCK_INTERVIEW_SESSION.replace(':sessionId', sessionId), {
         state: {
           sessionConfig,
         },
@@ -388,8 +388,8 @@ export default function MockInterview() {
             onClick={handleStartInterview}
             disabled={isButtonDisabled}
             className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${isButtonDisabled
-                ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-gray-200"
-                : "bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 hover:shadow-xl text-white"
+              ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-gray-200"
+              : "bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 hover:shadow-xl text-white"
               }`}
           >
             {initializing ? (

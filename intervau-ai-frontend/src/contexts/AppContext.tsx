@@ -18,9 +18,11 @@ interface AppState {
 
 interface Notification {
   id: string;
+  title?: string;
   message: string;
   type: "info" | "success" | "warning" | "error";
   timestamp: Date;
+  read: boolean;
 }
 
 interface AppContextType extends AppState {
@@ -29,9 +31,12 @@ interface AppContextType extends AppState {
   setLanguage: (language: Language) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
-  addNotification: (message: string, type: Notification["type"]) => void;
+  addNotification: (message: string, type: Notification["type"], title?: string) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  unreadCount: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -76,18 +81,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSidebarOpen((prev) => !prev);
   };
 
-  const addNotification = (message: string, type: Notification["type"]) => {
+  const addNotification = (message: string, type: Notification["type"], title?: string) => {
     const notification: Notification = {
       id: Date.now().toString(),
+      title,
       message,
       type,
       timestamp: new Date(),
+      read: false,
     };
-    setNotifications((prev) => [...prev, notification]);
-
-    setTimeout(() => {
-      removeNotification(notification.id);
-    }, 5000);
+    setNotifications((prev) => [notification, ...prev]);
   };
 
   const removeNotification = (id: string) => {
@@ -97,6 +100,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const clearNotifications = () => {
     setNotifications([]);
   };
+
+  const markAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const markAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <AppContext.Provider
@@ -113,6 +128,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addNotification,
         removeNotification,
         clearNotifications,
+        markAsRead,
+        markAllAsRead,
+        unreadCount,
       }}
     >
       {children}

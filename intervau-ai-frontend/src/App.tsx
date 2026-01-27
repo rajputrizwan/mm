@@ -299,6 +299,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path={ROUTES.HR_INTERVIEW_HISTORY}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <InterviewHistory />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Shared Routes */}
       <Route

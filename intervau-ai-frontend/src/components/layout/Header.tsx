@@ -1,15 +1,18 @@
+import { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import GlobalSearch from '../common/GlobalSearch';
+import NotificationDropdown from '../common/NotificationDropdown';
 
 interface HeaderProps {
   title?: string;
 }
 
 export default function Header({ title }: HeaderProps) {
-  const { notifications } = useApp();
+  const { unreadCount } = useApp();
   const { user } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
 
   if (!user) return null;
 
@@ -27,14 +30,28 @@ export default function Header({ title }: HeaderProps) {
             <GlobalSearch />
           </div>
 
-          <button className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-            <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            {notifications.length > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            )}
-          </button>
+          {/* Notification Bell */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            >
+              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-bold text-white bg-red-500 rounded-full">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            <NotificationDropdown
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+            />
+          </div>
         </div>
       </div>
     </header>
   );
 }
+

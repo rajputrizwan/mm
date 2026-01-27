@@ -660,14 +660,14 @@ export default function HRCreateInterview() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleAiSettingToggle("autoScore")}
-                                                className={`relative w-12 h-6 rounded-full transition-colors ${formData.aiSettings.autoScore
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${formData.aiSettings.autoScore
                                                     ? "bg-green-500"
                                                     : "bg-gray-300 dark:bg-gray-600"
                                                     }`}
                                             >
                                                 <span
-                                                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.aiSettings.autoScore
-                                                        ? "translate-x-7"
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${formData.aiSettings.autoScore
+                                                        ? "translate-x-6"
                                                         : "translate-x-1"
                                                         }`}
                                                 />
@@ -687,14 +687,14 @@ export default function HRCreateInterview() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleAiSettingToggle("enableAiFeedback")}
-                                                className={`relative w-12 h-6 rounded-full transition-colors ${formData.aiSettings.enableAiFeedback
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${formData.aiSettings.enableAiFeedback
                                                     ? "bg-green-500"
                                                     : "bg-gray-300 dark:bg-gray-600"
                                                     }`}
                                             >
                                                 <span
-                                                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.aiSettings.enableAiFeedback
-                                                        ? "translate-x-7"
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${formData.aiSettings.enableAiFeedback
+                                                        ? "translate-x-6"
                                                         : "translate-x-1"
                                                         }`}
                                                 />

@@ -6,7 +6,7 @@ import MetricIndicator from '../components/interview/MetricIndicator';
 import ControlBar from '../components/interview/ControlBar';
 
 interface LiveInterviewProps {
-  userRole?: 'hr' | 'candidate';
+  userRole?: 'hr' | 'candidate' | 'admin';
 }
 
 export default function LiveInterview({ userRole = 'hr' }: LiveInterviewProps) {
