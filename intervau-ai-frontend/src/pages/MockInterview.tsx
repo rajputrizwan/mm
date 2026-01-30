@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Video, Mic, CheckCircle, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  Video,
+  Mic,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 import { ROUTES } from "../router";
 import toast from "react-hot-toast";
 
@@ -103,7 +110,7 @@ export default function MockInterview() {
       // Success - permissions granted
       setCameraReady(true);
       setMicrophoneReady(true);
-      toast.success("Camera and microphone access granted!");
+      toast.success("Camera and microphone access granted.");
 
       // Stop the stream (we don't need it running continuously)
       stream.getTracks().forEach((track) => track.stop());
@@ -112,24 +119,24 @@ export default function MockInterview() {
 
       if (error.name === "NotAllowedError") {
         setPermissionError(
-          "Camera and microphone access denied. Please allow access to continue."
+          "Camera and microphone access was denied. Please allow access to continue.",
         );
-        toast.error("Please allow camera and microphone access");
+        toast.error("Please allow camera and microphone access.");
       } else if (error.name === "NotFoundError") {
         setPermissionError(
-          "No camera or microphone detected. Please connect your devices."
+          "No camera or microphone detected. Please connect your devices.",
         );
-        toast.error("No camera or microphone found");
+        toast.error("No camera or microphone found.");
       } else if (error.name === "NotReadableError") {
         setPermissionError(
-          "Camera or microphone is already in use by another application."
+          "Camera or microphone is in use by another application.",
         );
-        toast.error("Device already in use");
+        toast.error("Device is already in use.");
       } else {
         setPermissionError(
-          "Failed to access camera/microphone. Please check your browser settings."
+          "Unable to access the camera or microphone. Please check your browser settings.",
         );
-        toast.error("Failed to access devices");
+        toast.error("Unable to access the camera or microphone.");
       }
 
       setCameraReady(false);
@@ -186,7 +193,7 @@ export default function MockInterview() {
   // Handle start interview button click
   const handleStartInterview = async () => {
     if (!cameraReady || !microphoneReady) {
-      toast.error("Please allow camera and microphone access first");
+      toast.error("Please allow camera and microphone access first.");
       return;
     }
 
@@ -197,14 +204,14 @@ export default function MockInterview() {
       const sessionId = await initializeAISession();
 
       // Navigate to interview session
-      navigate(ROUTES.MOCK_INTERVIEW_SESSION.replace(':sessionId', sessionId), {
+      navigate(ROUTES.MOCK_INTERVIEW_SESSION.replace(":sessionId", sessionId), {
         state: {
           sessionConfig,
         },
       });
     } catch (error) {
       console.error("Failed to start interview:", error);
-      toast.error("Failed to initialize interview. Please try again.");
+      toast.error("Unable to start the interview. Please try again.");
     } finally {
       setInitializing(false);
     }
@@ -215,7 +222,7 @@ export default function MockInterview() {
     // Check if browser supports getUserMedia
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setPermissionError(
-        "Your browser does not support camera/microphone access. Please use a modern browser like Chrome, Firefox, or Edge."
+        "Your browser does not support camera or microphone access. Please use a modern browser like Chrome, Firefox, or Edge.",
       );
       return;
     }
@@ -333,8 +340,9 @@ export default function MockInterview() {
                     <Loader2 className="w-4 h-4 text-yellow-600 dark:text-yellow-400 animate-spin" />
                   ) : null}
                   <span
-                    className={`font-medium ${getPermissionStatus(cameraReady, checking).color
-                      }`}
+                    className={`font-medium ${
+                      getPermissionStatus(cameraReady, checking).color
+                    }`}
                   >
                     {getPermissionStatus(cameraReady, checking).text}
                   </span>
@@ -353,8 +361,9 @@ export default function MockInterview() {
                     <Loader2 className="w-4 h-4 text-yellow-600 dark:text-yellow-400 animate-spin" />
                   ) : null}
                   <span
-                    className={`font-medium ${getPermissionStatus(microphoneReady, checking).color
-                      }`}
+                    className={`font-medium ${
+                      getPermissionStatus(microphoneReady, checking).color
+                    }`}
                   >
                     {getPermissionStatus(microphoneReady, checking).text}
                   </span>
@@ -387,10 +396,11 @@ export default function MockInterview() {
           <button
             onClick={handleStartInterview}
             disabled={isButtonDisabled}
-            className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${isButtonDisabled
-              ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-gray-200"
-              : "bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 hover:shadow-xl text-white"
-              }`}
+            className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
+              isButtonDisabled
+                ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-gray-200"
+                : "bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 hover:shadow-xl text-white"
+            }`}
           >
             {initializing ? (
               <div className="flex items-center justify-center space-x-2">

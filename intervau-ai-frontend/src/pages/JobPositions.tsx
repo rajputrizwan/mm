@@ -71,9 +71,9 @@ export default function JobPositions() {
   const handleToggleStatus = async (id: string) => {
     const result = await toggleStatus(id);
     if (result.success) {
-      toast.success("Position status updated successfully");
+      toast.success("Position status updated successfully.");
     } else {
-      toast.error(result.error || "Failed to update status");
+      toast.error(result.error || "Unable to update the status.");
     }
   };
 
@@ -81,19 +81,19 @@ export default function JobPositions() {
     const errors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      errors.title = "Job title is required";
+      errors.title = "Job title is required.";
     }
     if (!formData.department) {
-      errors.department = "Department is required";
+      errors.department = "Department is required.";
     }
     if (!formData.location.trim()) {
-      errors.location = "Location is required";
+      errors.location = "Location is required.";
     }
     if (!formData.salary_range.trim()) {
-      errors.salary_range = "Salary range is required";
+      errors.salary_range = "Salary range is required.";
     }
     if (!formData.description.trim()) {
-      errors.description = "Description is required";
+      errors.description = "Description is required.";
     }
 
     setFormErrors(errors);
@@ -299,7 +299,9 @@ export default function JobPositions() {
                             •
                           </span>
                           <span className="font-medium text-gray-700 dark:text-gray-300">
-                            {job.salary_range || job.salary || "Salary not specified"}
+                            {job.salary_range ||
+                              job.salary ||
+                              "Salary not specified"}
                           </span>
                         </div>
                       </div>
@@ -308,7 +310,7 @@ export default function JobPositions() {
                       <button
                         onClick={() => handleToggleStatus(job._id)}
                         className={`inline-block px-4 py-2 rounded-full text-sm font-semibold mb-3 transition-colors hover:opacity-80 ${getStatusColor(
-                          job.status
+                          job.status,
                         )}`}
                       >
                         {job.status === "active" ? "Active" : "Paused"}
@@ -384,13 +386,16 @@ export default function JobPositions() {
                     onChange={(e) =>
                       setFormData({ ...formData, title: e.target.value })
                     }
-                    className={`w-full px-4 py-2 border ${formErrors.title
+                    className={`w-full px-4 py-2 border ${
+                      formErrors.title
                         ? "border-red-500"
                         : "border-gray-300 dark:border-gray-600"
-                      } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                   {formErrors.title && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {formErrors.title}
+                    </p>
                   )}
                 </div>
 
@@ -403,10 +408,11 @@ export default function JobPositions() {
                     onChange={(e) =>
                       setFormData({ ...formData, department: e.target.value })
                     }
-                    className={`w-full px-4 py-2 border ${formErrors.department
+                    className={`w-full px-4 py-2 border ${
+                      formErrors.department
                         ? "border-red-500"
                         : "border-gray-300 dark:border-gray-600"
-                      } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   >
                     <option value="">Select Department</option>
                     <option value="Engineering">Engineering</option>
@@ -434,10 +440,11 @@ export default function JobPositions() {
                     onChange={(e) =>
                       setFormData({ ...formData, location: e.target.value })
                     }
-                    className={`w-full px-4 py-2 border ${formErrors.location
+                    className={`w-full px-4 py-2 border ${
+                      formErrors.location
                         ? "border-red-500"
                         : "border-gray-300 dark:border-gray-600"
-                      } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                   {formErrors.location && (
                     <p className="text-red-500 text-sm mt-1">
@@ -457,10 +464,11 @@ export default function JobPositions() {
                     onChange={(e) =>
                       setFormData({ ...formData, salary_range: e.target.value })
                     }
-                    className={`w-full px-4 py-2 border ${formErrors.salary_range
+                    className={`w-full px-4 py-2 border ${
+                      formErrors.salary_range
                         ? "border-red-500"
                         : "border-gray-300 dark:border-gray-600"
-                      } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                   {formErrors.salary_range && (
                     <p className="text-red-500 text-sm mt-1">
@@ -480,10 +488,11 @@ export default function JobPositions() {
                       setFormData({ ...formData, description: e.target.value })
                     }
                     rows={4}
-                    className={`w-full px-4 py-2 border ${formErrors.description
+                    className={`w-full px-4 py-2 border ${
+                      formErrors.description
                         ? "border-red-500"
                         : "border-gray-300 dark:border-gray-600"
-                      } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                   {formErrors.description && (
                     <p className="text-red-500 text-sm mt-1">

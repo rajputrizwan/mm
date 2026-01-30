@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Clock,
   ChevronRight,
@@ -15,11 +15,11 @@ import {
   MessageSquare,
   Send,
   Loader2,
-  CheckCircle
-} from 'lucide-react';
-import { ROUTES } from '../router';
-import toast from 'react-hot-toast';
-import { useMediaStream } from '../components/interview/MediaStreamHandler';
+  CheckCircle,
+} from "lucide-react";
+import { ROUTES } from "../router";
+import toast from "react-hot-toast";
+import { useMediaStream } from "../components/interview/MediaStreamHandler";
 
 interface Question {
   id: number;
@@ -53,7 +53,9 @@ export default function MockInterviewSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Session state
-  const [sessionConfig, setSessionConfig] = useState<SessionConfig | null>(null);
+  const [sessionConfig, setSessionConfig] = useState<SessionConfig | null>(
+    null,
+  );
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -65,7 +67,7 @@ export default function MockInterviewSession() {
 
   // AI state
   const [isAIProcessing, setIsAIProcessing] = useState(false);
-  const [userResponse, setUserResponse] = useState('');
+  const [userResponse, setUserResponse] = useState("");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
 
   // Metrics state (simulated live updates)
@@ -75,18 +77,23 @@ export default function MockInterviewSession() {
     pace: 70,
     eyeContact: 68,
     technicalAccuracy: 80,
-    articulation: 76
+    articulation: 76,
   });
 
   const [speakingPatterns, setSpeakingPatterns] = useState({
     fillerWords: 0,
-    avgResponseTime: '0.0s',
+    avgResponseTime: "0.0s",
     totalWords: 0,
-    avgWordsPerMinute: 0
+    avgWordsPerMinute: 0,
   });
 
   // Initialize media stream
-  const { stream, isLoading: streamLoading, error: streamError, startStream } = useMediaStream({
+  const {
+    stream,
+    isLoading: streamLoading,
+    error: streamError,
+    startStream,
+  } = useMediaStream({
     audioEnabled: micEnabled,
     videoEnabled: videoEnabled,
     autoStart: true,
@@ -96,16 +103,16 @@ export default function MockInterviewSession() {
       }
     },
     onError: (error) => {
-      console.error('Media stream error:', error);
-      toast.error('Failed to access camera/microphone');
-    }
+      console.error("Media stream error:", error);
+      toast.error("Unable to access the camera or microphone.");
+    },
   });
 
   // Load session from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('currentInterviewSession');
+    const stored = localStorage.getItem("currentInterviewSession");
     if (!stored) {
-      toast.error('No active interview session found');
+      toast.error("No active interview session found.");
       navigate(ROUTES.MOCK_INTERVIEW);
       return;
     }
@@ -113,7 +120,7 @@ export default function MockInterviewSession() {
     try {
       const session = JSON.parse(stored) as SessionConfig;
       if (session.id !== sessionId) {
-        toast.error('Session ID mismatch');
+        toast.error("Session ID does not match.");
         navigate(ROUTES.MOCK_INTERVIEW);
         return;
       }
@@ -121,17 +128,21 @@ export default function MockInterviewSession() {
       setIsSessionActive(true);
 
       // Add initial AI greeting to transcript
-      addToTranscript('AI Interviewer', `Welcome to your mock interview for the ${session.position} position. I'll be asking you ${session.questions.length} questions. Let's begin with the first question.`, false);
+      addToTranscript(
+        "AI Interviewer",
+        `Welcome to your mock interview for the ${session.position} role. I will ask you ${session.questions.length} questions. Let's begin.`,
+        false,
+      );
 
       // Add first question after a delay
       setTimeout(() => {
         if (session.questions.length > 0) {
-          addToTranscript('AI Interviewer', session.questions[0].text, false);
+          addToTranscript("AI Interviewer", session.questions[0].text, false);
         }
       }, 2000);
     } catch (error) {
-      console.error('Failed to parse session:', error);
-      toast.error('Invalid session data');
+      console.error("Failed to parse session:", error);
+      toast.error("Invalid session data. Please start a new session.");
       navigate(ROUTES.MOCK_INTERVIEW);
     }
   }, [sessionId, navigate]);
@@ -141,7 +152,7 @@ export default function MockInterviewSession() {
     if (!isSessionActive) return;
 
     const timer = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
+      setElapsedTime((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(timer);
@@ -163,13 +174,28 @@ export default function MockInterviewSession() {
     if (!isSessionActive) return;
 
     const metricsInterval = setInterval(() => {
-      setLiveMetrics(prev => ({
-        confidence: Math.min(100, Math.max(50, prev.confidence + (Math.random() * 4 - 2))),
-        clarity: Math.min(100, Math.max(50, prev.clarity + (Math.random() * 4 - 2))),
+      setLiveMetrics((prev) => ({
+        confidence: Math.min(
+          100,
+          Math.max(50, prev.confidence + (Math.random() * 4 - 2)),
+        ),
+        clarity: Math.min(
+          100,
+          Math.max(50, prev.clarity + (Math.random() * 4 - 2)),
+        ),
         pace: Math.min(100, Math.max(50, prev.pace + (Math.random() * 4 - 2))),
-        eyeContact: Math.min(100, Math.max(50, prev.eyeContact + (Math.random() * 4 - 2))),
-        technicalAccuracy: Math.min(100, Math.max(50, prev.technicalAccuracy + (Math.random() * 4 - 2))),
-        articulation: Math.min(100, Math.max(50, prev.articulation + (Math.random() * 4 - 2)))
+        eyeContact: Math.min(
+          100,
+          Math.max(50, prev.eyeContact + (Math.random() * 4 - 2)),
+        ),
+        technicalAccuracy: Math.min(
+          100,
+          Math.max(50, prev.technicalAccuracy + (Math.random() * 4 - 2)),
+        ),
+        articulation: Math.min(
+          100,
+          Math.max(50, prev.articulation + (Math.random() * 4 - 2)),
+        ),
       }));
     }, 3000);
 
@@ -187,41 +213,46 @@ export default function MockInterviewSession() {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   // Add transcript entry
-  const addToTranscript = useCallback((speaker: string, text: string, isCandidate: boolean) => {
-    const entry: TranscriptEntry = {
-      id: Date.now().toString(),
-      speaker,
-      text,
-      time: formatTime(elapsedTime),
-      isCandidate
-    };
-    setTranscript(prev => [...prev, entry]);
-  }, [elapsedTime]);
+  const addToTranscript = useCallback(
+    (speaker: string, text: string, isCandidate: boolean) => {
+      const entry: TranscriptEntry = {
+        id: Date.now().toString(),
+        speaker,
+        text,
+        time: formatTime(elapsedTime),
+        isCandidate,
+      };
+      setTranscript((prev) => [...prev, entry]);
+    },
+    [elapsedTime],
+  );
 
   // Handle user response submission
   const handleSubmitResponse = async () => {
     if (!userResponse.trim() || !sessionConfig) return;
 
     // Add user response to transcript
-    addToTranscript('You', userResponse, true);
+    addToTranscript("You", userResponse, true);
 
     // Update speaking patterns
-    const words = userResponse.split(' ').length;
-    setSpeakingPatterns(prev => ({
+    const words = userResponse.split(" ").length;
+    setSpeakingPatterns((prev) => ({
       ...prev,
       totalWords: prev.totalWords + words,
-      avgWordsPerMinute: Math.round((prev.totalWords + words) / (elapsedTime / 60) || 0)
+      avgWordsPerMinute: Math.round(
+        (prev.totalWords + words) / (elapsedTime / 60) || 0,
+      ),
     }));
 
-    setUserResponse('');
+    setUserResponse("");
     setIsAIProcessing(true);
 
     // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // AI feedback
     const feedbackResponses = [
@@ -229,10 +260,11 @@ export default function MockInterviewSession() {
       "Excellent explanation! Moving on to the next question.",
       "Thank you for that response. Let's continue.",
       "Good point. Could you elaborate a bit more?",
-      "Nice! Your technical knowledge shows through clearly."
+      "Nice! Your technical knowledge shows through clearly.",
     ];
-    const feedback = feedbackResponses[Math.floor(Math.random() * feedbackResponses.length)];
-    addToTranscript('AI Interviewer', feedback, false);
+    const feedback =
+      feedbackResponses[Math.floor(Math.random() * feedbackResponses.length)];
+    addToTranscript("AI Interviewer", feedback, false);
 
     setIsAIProcessing(false);
   };
@@ -247,16 +279,20 @@ export default function MockInterviewSession() {
 
       // Add next question to transcript
       setTimeout(() => {
-        addToTranscript('AI Interviewer', sessionConfig.questions[nextIndex].text, false);
+        addToTranscript(
+          "AI Interviewer",
+          sessionConfig.questions[nextIndex].text,
+          false,
+        );
       }, 1000);
     }
   };
 
   // Handle end session
   const handleEndSession = () => {
-    if (confirm('Are you sure you want to end this interview session?')) {
+    if (confirm("Are you sure you want to end this interview session?")) {
       setIsSessionActive(false);
-      localStorage.removeItem('currentInterviewSession');
+      localStorage.removeItem("currentInterviewSession");
 
       // Save session results
       const results = {
@@ -268,11 +304,11 @@ export default function MockInterviewSession() {
         transcript,
         metrics: liveMetrics,
         speakingPatterns,
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
       };
-      localStorage.setItem('lastInterviewResults', JSON.stringify(results));
+      localStorage.setItem("lastInterviewResults", JSON.stringify(results));
 
-      toast.success('Interview session completed!');
+      toast.success("Interview session completed.");
       navigate(ROUTES.CANDIDATE_DASHBOARD);
     }
   };
@@ -281,7 +317,7 @@ export default function MockInterviewSession() {
   const toggleMic = () => {
     setMicEnabled(!micEnabled);
     if (stream) {
-      stream.getAudioTracks().forEach(track => {
+      stream.getAudioTracks().forEach((track) => {
         track.enabled = !micEnabled;
       });
     }
@@ -290,7 +326,7 @@ export default function MockInterviewSession() {
   const toggleVideo = () => {
     setVideoEnabled(!videoEnabled);
     if (stream) {
-      stream.getVideoTracks().forEach(track => {
+      stream.getVideoTracks().forEach((track) => {
         track.enabled = !videoEnabled;
       });
     }
@@ -326,7 +362,9 @@ export default function MockInterviewSession() {
               </div>
               <div className="flex items-center space-x-2 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
                 <Clock className="w-5 h-5 text-gray-400" />
-                <span className="font-medium text-white">{formatTime(elapsedTime)}</span>
+                <span className="font-medium text-white">
+                  {formatTime(elapsedTime)}
+                </span>
                 <span className="text-gray-500">/</span>
                 <span className="text-gray-400">{formatTime(maxDuration)}</span>
               </div>
@@ -334,8 +372,14 @@ export default function MockInterviewSession() {
                 <div className="flex items-center space-x-2 bg-green-900/30 text-green-400 px-4 py-2 rounded-lg font-medium">
                   <div className="flex space-x-1">
                     <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" />
-                    <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
+                    <div
+                      className="w-1 h-4 bg-green-500 rounded-full animate-pulse"
+                      style={{ animationDelay: "0.1s" }}
+                    />
+                    <div
+                      className="w-1 h-4 bg-green-500 rounded-full animate-pulse"
+                      style={{ animationDelay: "0.2s" }}
+                    />
                   </div>
                   <span>Speaking</span>
                 </div>
@@ -375,7 +419,7 @@ export default function MockInterviewSession() {
                     autoPlay
                     muted
                     playsInline
-                    className={`w-full h-full object-cover ${!videoEnabled ? 'hidden' : ''}`}
+                    className={`w-full h-full object-cover ${!videoEnabled ? "hidden" : ""}`}
                   />
                 )}
                 {!videoEnabled && !streamLoading && (
@@ -396,21 +440,31 @@ export default function MockInterviewSession() {
               <div className="flex items-center justify-center space-x-4">
                 <button
                   onClick={toggleMic}
-                  className={`p-4 rounded-full transition-all ${micEnabled
-                      ? 'bg-gray-700 text-white hover:bg-gray-600'
-                      : 'bg-red-600 text-white hover:bg-red-700'
-                    }`}
+                  className={`p-4 rounded-full transition-all ${
+                    micEnabled
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-red-600 text-white hover:bg-red-700"
+                  }`}
                 >
-                  {micEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+                  {micEnabled ? (
+                    <Mic className="w-6 h-6" />
+                  ) : (
+                    <MicOff className="w-6 h-6" />
+                  )}
                 </button>
                 <button
                   onClick={toggleVideo}
-                  className={`p-4 rounded-full transition-all ${videoEnabled
-                      ? 'bg-gray-700 text-white hover:bg-gray-600'
-                      : 'bg-red-600 text-white hover:bg-red-700'
-                    }`}
+                  className={`p-4 rounded-full transition-all ${
+                    videoEnabled
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-red-600 text-white hover:bg-red-700"
+                  }`}
                 >
-                  {videoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                  {videoEnabled ? (
+                    <Video className="w-6 h-6" />
+                  ) : (
+                    <VideoOff className="w-6 h-6" />
+                  )}
                 </button>
                 <button
                   onClick={handleEndSession}
@@ -426,11 +480,17 @@ export default function MockInterviewSession() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <MessageSquare className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm font-medium text-blue-400">{currentQuestion.category}</span>
+                  <span className="text-sm font-medium text-blue-400">
+                    {currentQuestion.category}
+                  </span>
                 </div>
-                <span className="text-sm text-gray-400">~{currentQuestion.duration} min</span>
+                <span className="text-sm text-gray-400">
+                  ~{currentQuestion.duration} min
+                </span>
               </div>
-              <p className="text-lg text-white font-medium mb-6">{currentQuestion.text}</p>
+              <p className="text-lg text-white font-medium mb-6">
+                {currentQuestion.text}
+              </p>
 
               {/* Response Input */}
               <div className="flex space-x-3">
@@ -438,7 +498,9 @@ export default function MockInterviewSession() {
                   type="text"
                   value={userResponse}
                   onChange={(e) => setUserResponse(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSubmitResponse()}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && handleSubmitResponse()
+                  }
                   placeholder="Type your response or speak..."
                   className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={isAIProcessing}
@@ -486,19 +548,27 @@ export default function MockInterviewSession() {
               </div>
               <div className="grid md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-400">{speakingPatterns.fillerWords}</p>
+                  <p className="text-2xl font-bold text-blue-400">
+                    {speakingPatterns.fillerWords}
+                  </p>
                   <p className="text-xs text-gray-300 mt-1">Filler Words</p>
                 </div>
                 <div className="text-center p-4 bg-green-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-green-400">{speakingPatterns.avgResponseTime}</p>
+                  <p className="text-2xl font-bold text-green-400">
+                    {speakingPatterns.avgResponseTime}
+                  </p>
                   <p className="text-xs text-gray-300 mt-1">Avg Response</p>
                 </div>
                 <div className="text-center p-4 bg-orange-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-400">{speakingPatterns.totalWords}</p>
+                  <p className="text-2xl font-bold text-orange-400">
+                    {speakingPatterns.totalWords}
+                  </p>
                   <p className="text-xs text-gray-300 mt-1">Total Words</p>
                 </div>
                 <div className="text-center p-4 bg-cyan-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-cyan-400">{speakingPatterns.avgWordsPerMinute}</p>
+                  <p className="text-2xl font-bold text-cyan-400">
+                    {speakingPatterns.avgWordsPerMinute}
+                  </p>
                   <p className="text-xs text-gray-300 mt-1">Words/Minute</p>
                 </div>
               </div>
@@ -517,7 +587,9 @@ export default function MockInterviewSession() {
                 {Object.entries(liveMetrics).map(([key, value]) => (
                   <div key={key}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <span className="capitalize">
+                        {key.replace(/([A-Z])/g, " $1").trim()}
+                      </span>
                       <span>{Math.round(value)}%</span>
                     </div>
                     <div className="w-full bg-white/20 rounded-full h-2">
@@ -535,17 +607,25 @@ export default function MockInterviewSession() {
             <div className="bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-700">
               <div className="flex items-center space-x-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-orange-400" />
-                <h4 className="text-sm font-semibold text-white">Real-time Tips</h4>
+                <h4 className="text-sm font-semibold text-white">
+                  Real-time Tips
+                </h4>
               </div>
               <div className="space-y-2">
                 <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-800">
-                  <p className="text-xs text-gray-300">Maintain eye contact with the camera</p>
+                  <p className="text-xs text-gray-300">
+                    Maintain eye contact with the camera
+                  </p>
                 </div>
                 <div className="p-3 bg-green-900/20 rounded-lg border border-green-800">
-                  <p className="text-xs text-gray-300">Great use of technical examples!</p>
+                  <p className="text-xs text-gray-300">
+                    Great use of technical examples!
+                  </p>
                 </div>
                 <div className="p-3 bg-orange-900/20 rounded-lg border border-orange-800">
-                  <p className="text-xs text-gray-300">Try to reduce filler words</p>
+                  <p className="text-xs text-gray-300">
+                    Try to reduce filler words
+                  </p>
                 </div>
               </div>
             </div>
@@ -554,26 +634,33 @@ export default function MockInterviewSession() {
             <div className="bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-700">
               <div className="flex items-center space-x-2 mb-3">
                 <FileText className="w-4 h-4 text-gray-400" />
-                <h4 className="text-sm font-semibold text-white">Question List</h4>
+                <h4 className="text-sm font-semibold text-white">
+                  Question List
+                </h4>
               </div>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {questions.map((q, idx) => (
                   <div
                     key={q.id}
-                    className={`p-3 rounded-lg border transition-all ${idx === currentQuestionIndex
-                        ? 'bg-blue-900/30 border-blue-700 ring-2 ring-blue-800'
+                    className={`p-3 rounded-lg border transition-all ${
+                      idx === currentQuestionIndex
+                        ? "bg-blue-900/30 border-blue-700 ring-2 ring-blue-800"
                         : idx < currentQuestionIndex
-                          ? 'bg-green-900/20 border-green-800'
-                          : 'bg-gray-700 border-gray-600'
-                      }`}
+                          ? "bg-green-900/20 border-green-800"
+                          : "bg-gray-700 border-gray-600"
+                    }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-white">Q{idx + 1}</span>
+                      <span className="text-xs font-semibold text-white">
+                        Q{idx + 1}
+                      </span>
                       <span className="text-xs bg-gray-800 px-2 py-0.5 rounded text-gray-400">
                         {q.category}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-300 line-clamp-2">{q.text}</p>
+                    <p className="text-xs text-gray-300 line-clamp-2">
+                      {q.text}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -583,22 +670,29 @@ export default function MockInterviewSession() {
             <div className="bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-700">
               <div className="flex items-center space-x-2 mb-3">
                 <MessageSquare className="w-4 h-4 text-gray-400" />
-                <h4 className="text-sm font-semibold text-white">Live Transcript</h4>
+                <h4 className="text-sm font-semibold text-white">
+                  Live Transcript
+                </h4>
               </div>
               <div className="space-y-3 max-h-80 overflow-y-auto">
                 {transcript.length === 0 ? (
-                  <p className="text-xs text-gray-500 text-center py-4">Transcript will appear here...</p>
+                  <p className="text-xs text-gray-500 text-center py-4">
+                    Transcript will appear here...
+                  </p>
                 ) : (
                   transcript.map((entry) => (
                     <div
                       key={entry.id}
-                      className={`p-3 rounded-lg ${entry.isCandidate
-                          ? 'bg-blue-900/20 border border-blue-800'
-                          : 'bg-gray-700 border border-gray-600'
-                        }`}
+                      className={`p-3 rounded-lg ${
+                        entry.isCandidate
+                          ? "bg-blue-900/20 border border-blue-800"
+                          : "bg-gray-700 border border-gray-600"
+                      }`}
                     >
                       <div className="flex justify-between text-xs mb-1">
-                        <span className={`font-semibold ${entry.isCandidate ? 'text-blue-400' : 'text-gray-300'}`}>
+                        <span
+                          className={`font-semibold ${entry.isCandidate ? "text-blue-400" : "text-gray-300"}`}
+                        >
                           {entry.speaker}
                         </span>
                         <span className="text-gray-500">{entry.time}</span>

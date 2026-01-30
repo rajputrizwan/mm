@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Video, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  User,
+  Video,
+  Sparkles,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useApp } from "../contexts/AppContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -34,13 +42,14 @@ export default function Login() {
       await login(email, password);
 
       // Show success notification
-      addNotification("Login successful! Redirecting...", "success");
+      addNotification("Signed in successfully. Redirecting...", "success");
     } catch (error: any) {
       // Show error notification
       console.error("Login failed:", error);
       addNotification(
-        error?.message || "Login failed. Please check your credentials and try again.",
-        "error"
+        error?.message ||
+          "Sign-in failed. Check your email and password, then try again.",
+        "error",
       );
     } finally {
       setLoading(false);
@@ -102,7 +111,7 @@ export default function Login() {
           <div className="mt-8 p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
             <div className="flex items-center space-x-3 mb-3">
               <AlertCircle className="w-5 h-5 text-yellow-300" />
-              <span className="text-white font-semibold">Quick Test Login</span>
+              <span className="text-white font-semibold">Quick test login</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -111,7 +120,7 @@ export default function Login() {
                 className="p-3 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
-                Candidate Demo
+                Candidate demo
               </button>
               <button
                 type="button"
@@ -119,11 +128,11 @@ export default function Login() {
                 className="p-3 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
-                HR Team Demo
+                HR team demo
               </button>
             </div>
             <p className="text-blue-50 text-xs mt-3">
-              Click to auto-fill test credentials for quick login testing.
+              Click to auto-fill test credentials for quick sign-in.
             </p>
           </div>
 
@@ -164,10 +173,11 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setRole("candidate")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                  role === "candidate"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />
@@ -177,10 +187,11 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setRole("hr")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                  role === "hr"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />

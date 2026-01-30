@@ -48,8 +48,8 @@ export default function Resume() {
     // Validate file size (10MB max)
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError("File size must be less than 10MB");
-      toast.error("File size must be less than 10MB");
+      setError("File size must be less than 10 MB.");
+      toast.error("File size must be less than 10 MB.");
       return;
     }
 
@@ -78,9 +78,9 @@ export default function Resume() {
         setAnalysisResult(response.data);
         // Save to localStorage
         localStorage.setItem("resumeAnalysis", JSON.stringify(response.data));
-        toast.success("Resume analyzed successfully!");
+        toast.success("Resume analyzed successfully.");
       } else {
-        throw new Error(response.message || "Analysis failed");
+        throw new Error(response.message || "Analysis failed.");
       }
     } catch (err: any) {
       clearInterval(progressInterval);
@@ -94,8 +94,8 @@ export default function Resume() {
         err.message?.toLowerCase().includes("session")
       ) {
         setShowSessionExpiredModal(true);
-        setError("Your session has expired. Please log in again.");
-        toast.error("Session expired. Please log in again.");
+        setError("Your session has expired. Please sign in again.");
+        toast.error("Session expired. Please sign in again.");
         return;
       }
 
@@ -114,7 +114,7 @@ export default function Resume() {
 
       // Handle other errors
       const errorMessage =
-        err.message || "Failed to analyze resume. Please try again.";
+        err.message || "Unable to analyze the resume. Please try again.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -153,11 +153,11 @@ export default function Resume() {
     if (fileRejections.length > 0) {
       const rejection = fileRejections[0];
       if (rejection.errors[0].code === "file-too-large") {
-        setError("File size must be less than 10MB");
-        toast.error("File size must be less than 10MB");
+        setError("File size must be less than 10 MB.");
+        toast.error("File size must be less than 10 MB.");
       } else if (rejection.errors[0].code === "file-invalid-type") {
-        setError("Only PDF, DOC, and DOCX files are allowed");
-        toast.error("Only PDF, DOC, and DOCX files are allowed");
+        setError("Only PDF, DOC, and DOCX files are supported.");
+        toast.error("Only PDF, DOC, and DOCX files are supported.");
       }
     }
   }, [fileRejections]);
@@ -168,7 +168,7 @@ export default function Resume() {
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 max-w-md mx-4 border border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Session Expired
+            Session expired
           </h2>
           <button
             onClick={handleSessionExpiredClose}
@@ -180,14 +180,14 @@ export default function Resume() {
         <div className="mb-6">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-300 text-center">
-            Your session has expired. Please log in again to continue.
+            Your session has expired. Please sign in again to continue.
           </p>
         </div>
         <button
           onClick={handleSessionExpiredClose}
           className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-shadow"
         >
-          Go to Login
+          Go to sign in
         </button>
       </div>
     </div>
@@ -203,13 +203,13 @@ export default function Resume() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center space-x-2 bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-blue-200 dark:border-blue-500/30">
               <Sparkles className="w-4 h-4" />
-              <span>AI-Powered Resume Analysis</span>
+              <span>AI-powered resume analysis</span>
             </div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Upload Your Resume
+              Upload your resume
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Our AI will extract your skills, experience, and provide
+              Our AI will extract your skills and experience and provide
               personalized interview preparation insights
             </p>
           </div>
@@ -234,13 +234,13 @@ export default function Resume() {
 
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 {analyzing
-                  ? "Analyzing Resume..."
+                  ? "Analyzing resume..."
                   : isDragActive
                     ? "Drop your resume here"
-                    : "Drag & Drop"}
+                    : "Drag and drop"}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                or click to browse (PDF, DOC, DOCX up to 10MB)
+                or click to browse (PDF, DOC, DOCX up to 10 MB)
               </p>
 
               {/* Progress Bar */}
@@ -253,7 +253,7 @@ export default function Resume() {
                     />
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    {uploadProgress}% Complete
+                    {uploadProgress}% complete
                   </p>
                 </div>
               )}
@@ -268,7 +268,7 @@ export default function Resume() {
               {!analyzing && (
                 <div className="inline-block">
                   <span className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all">
-                    Select File
+                    Select file
                   </span>
                 </div>
               )}
@@ -280,7 +280,7 @@ export default function Resume() {
               <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-800 hover:border-blue-500/50 transition-all">
                 <Code className="w-8 h-8 text-blue-400 mx-auto mb-3" />
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Skill Extraction
+                  Skill extraction
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Identify technical and soft skills automatically
@@ -291,7 +291,7 @@ export default function Resume() {
               <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-800 hover:border-green-500/50 transition-all">
                 <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-3" />
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Gap Analysis
+                  Gap analysis
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Discover areas for improvement
@@ -302,7 +302,7 @@ export default function Resume() {
               <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-800 hover:border-purple-500/50 transition-all">
                 <Award className="w-8 h-8 text-purple-400 mx-auto mb-3" />
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Interview Prep
+                  Interview prep
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Personalized question recommendations
@@ -325,17 +325,17 @@ export default function Resume() {
           <div>
             <div className="inline-flex items-center space-x-2 bg-green-50 text-green-600 dark:bg-green-500/20 dark:text-green-400 px-3 py-1 rounded-full text-sm font-medium mb-3 border border-green-200 dark:border-green-500/30">
               <CheckCircle className="w-4 h-4" />
-              <span>Analysis Complete</span>
+              <span>Analysis complete</span>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Resume Analysis
+              Resume analysis
             </h1>
           </div>
           <button
             onClick={handleNewUpload}
             className="px-6 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:shadow-lg hover:border-blue-500/50 transition-all"
           >
-            Upload New Resume
+            Upload new resume
           </button>
         </div>
 
@@ -343,7 +343,7 @@ export default function Resume() {
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
             <FileText className="w-8 h-8 text-blue-400 mb-3" />
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-              Resume File
+              Resume file
             </h3>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {analysisResult.fileName}
@@ -356,7 +356,7 @@ export default function Resume() {
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
             <Award className="w-8 h-8 text-green-400 mb-3" />
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-              Skills Extracted
+              Skills extracted
             </h3>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {analysisResult.extractedSkills.length} Skills
@@ -374,7 +374,7 @@ export default function Resume() {
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
             <TrendingUp className="w-8 h-8 text-purple-400 mb-3" />
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-              Match Score
+              Match score
             </h3>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {analysisResult.matchScore}%
@@ -390,7 +390,7 @@ export default function Resume() {
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <Code className="w-6 h-6 text-blue-400" />
-                <span>Skills Analysis</span>
+                <span>Skills analysis</span>
               </h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {analysisResult.extractedSkills.map((skill) => (
@@ -426,7 +426,7 @@ export default function Resume() {
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <TrendingUp className="w-6 h-6 text-green-400" />
-                <span>Skill Gaps & Recommendations</span>
+                <span>Skill gaps and recommendations</span>
               </h2>
               <div className="space-y-4">
                 {analysisResult.skillGaps.map((gap, idx) => (
@@ -454,7 +454,7 @@ export default function Resume() {
           <div className="space-y-6">
             <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
               <Sparkles className="w-8 h-8 mb-3" />
-              <h2 className="text-xl font-bold mb-4">Interview Questions</h2>
+              <h2 className="text-xl font-bold mb-4">Interview questions</h2>
               <div className="space-y-3">
                 {analysisResult.suggestedQuestions.map((q, idx) => (
                   <div

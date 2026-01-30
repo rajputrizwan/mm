@@ -38,10 +38,10 @@ export default function Register() {
       return "Password must contain at least one lowercase letter";
     }
     if (!/(?=.*[A-Z])/.test(pwd)) {
-      return "Password must contain at least one uppercase letter";
+      return "Password must include at least one uppercase letter.";
     }
     if (!/(?=.*\d)/.test(pwd)) {
-      return "Password must contain at least one number";
+      return "Password must include at least one number.";
     }
     return null;
   };
@@ -57,13 +57,13 @@ export default function Register() {
     }
 
     if (password !== confirmPassword) {
-      addNotification("Passwords do not match", "error");
+      addNotification("Passwords do not match.", "error");
       return;
     }
 
     // Validate HR requires company name
     if (role === "hr" && !companyName.trim()) {
-      addNotification("Company name is required for HR registration", "error");
+      addNotification("Company name is required for HR accounts.", "error");
       return;
     }
 
@@ -71,14 +71,17 @@ export default function Register() {
 
     try {
       await register(name, email, password, role, companyName);
-      addNotification("Account created successfully!", "success");
+      addNotification("Account created successfully.", "success");
       setTimeout(() => {
         setLoading(false);
         navigate(getDefaultRoute(role));
       }, 800);
     } catch (error: any) {
       setLoading(false);
-      const errorMessage = error?.message || error?.error || "Registration failed. Please try again.";
+      const errorMessage =
+        error?.message ||
+        error?.error ||
+        "Account creation failed. Please try again.";
       addNotification(errorMessage, "error");
     }
   };
@@ -189,7 +192,9 @@ export default function Register() {
           <div className="mt-8 p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
             <div className="flex items-center space-x-3 mb-3">
               <AlertCircle className="w-5 h-5 text-yellow-300" />
-              <span className="text-white font-semibold">Quick Test Registration</span>
+              <span className="text-white font-semibold">
+                Quick Test Registration
+              </span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -241,10 +246,11 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("candidate")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                  role === "candidate"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
@@ -254,10 +260,11 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("hr")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                  role === "hr"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
