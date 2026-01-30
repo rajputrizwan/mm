@@ -21,7 +21,8 @@ export default function Resume() {
   const navigate = useNavigate();
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [analysisResult, setAnalysisResult] = useState<ResumeAnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] =
+    useState<ResumeAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
 
@@ -87,7 +88,11 @@ export default function Resume() {
       console.error("Resume analysis error:", err);
 
       // Handle 401 Unauthorized - Session Expired
-      if (err.message?.includes("401") || err.message?.toLowerCase().includes("unauthorized") || err.message?.toLowerCase().includes("session")) {
+      if (
+        err.message?.includes("401") ||
+        err.message?.toLowerCase().includes("unauthorized") ||
+        err.message?.toLowerCase().includes("session")
+      ) {
         setShowSessionExpiredModal(true);
         setError("Your session has expired. Please log in again.");
         toast.error("Session expired. Please log in again.");
@@ -95,15 +100,21 @@ export default function Resume() {
       }
 
       // Handle 500 Server Error - Parsing issues
-      if (err.message?.includes("500") || err.message?.toLowerCase().includes("parse") || err.message?.toLowerCase().includes("server error")) {
-        const userFriendlyMessage = "Server error: Unable to parse resume. Please try a different file format.";
+      if (
+        err.message?.includes("500") ||
+        err.message?.toLowerCase().includes("parse") ||
+        err.message?.toLowerCase().includes("server error")
+      ) {
+        const userFriendlyMessage =
+          "Server error: Unable to parse resume. Please try a different file format.";
         setError(userFriendlyMessage);
         toast.error(userFriendlyMessage);
         return;
       }
 
       // Handle other errors
-      const errorMessage = err.message || "Failed to analyze resume. Please try again.";
+      const errorMessage =
+        err.message || "Failed to analyze resume. Please try again.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -112,16 +123,18 @@ export default function Resume() {
     }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
-    onDrop,
-    accept: {
-      "application/pdf": [".pdf"],
-      "application/msword": [".doc"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-    },
-    maxFiles: 1,
-    maxSize: 10 * 1024 * 1024, // 10MB
-  });
+  const { getRootProps, getInputProps, isDragActive, fileRejections } =
+    useDropzone({
+      onDrop,
+      accept: {
+        "application/pdf": [".pdf"],
+        "application/msword": [".doc"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+          [".docx"],
+      },
+      maxFiles: 1,
+      maxSize: 10 * 1024 * 1024, // 10MB
+    });
 
   const handleNewUpload = () => {
     setAnalysisResult(null);
@@ -152,9 +165,11 @@ export default function Resume() {
   // Session Expired Modal
   const SessionExpiredModal = () => (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 max-w-md mx-4 border border-gray-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 max-w-md mx-4 border border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Session Expired</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Session Expired
+          </h2>
           <button
             onClick={handleSessionExpiredClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -181,29 +196,31 @@ export default function Resume() {
   // Upload view
   if (!analysisResult) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         {showSessionExpiredModal && <SessionExpiredModal />}
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center space-x-2 bg-blue-500/20 text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-blue-500/30">
+            <div className="inline-flex items-center space-x-2 bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-blue-200 dark:border-blue-500/30">
               <Sparkles className="w-4 h-4" />
               <span>AI-Powered Resume Analysis</span>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-4">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Upload Your Resume
             </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Our AI will extract your skills, experience, and provide personalized interview preparation insights
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Our AI will extract your skills, experience, and provide
+              personalized interview preparation insights
             </p>
           </div>
 
           <div
             {...getRootProps()}
-            className={`bg-slate-800 rounded-2xl shadow-xl p-12 border-2 border-dashed transition-all cursor-pointer ${isDragActive
-              ? "border-blue-500 bg-blue-500/10 scale-105"
-              : "border-slate-600 hover:border-blue-400"
-              } ${error ? "border-red-500" : ""}`}
+            className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-12 border-2 border-dashed transition-all cursor-pointer ${
+              isDragActive
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-105"
+                : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
+            } ${error ? "border-red-500" : ""}`}
           >
             <input {...getInputProps()} />
             <div className="text-center">
@@ -215,32 +232,34 @@ export default function Resume() {
                 )}
               </div>
 
-              <h3 className="text-2xl font-bold text-white mb-2">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 {analyzing
                   ? "Analyzing Resume..."
                   : isDragActive
                     ? "Drop your resume here"
                     : "Drag & Drop"}
               </h3>
-              <p className="text-gray-400 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 or click to browse (PDF, DOC, DOCX up to 10MB)
               </p>
 
               {/* Progress Bar */}
               {analyzing && uploadProgress > 0 && (
                 <div className="mb-4">
-                  <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-blue-600 to-cyan-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">{uploadProgress}% Complete</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    {uploadProgress}% Complete
+                  </p>
                 </div>
               )}
 
               {error && (
-                <div className="mb-4 flex items-center justify-center space-x-2 text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                <div className="mb-4 flex items-center justify-center space-x-2 text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                   <AlertCircle className="w-5 h-5" />
                   <span className="text-sm">{error}</span>
                 </div>
@@ -258,34 +277,34 @@ export default function Resume() {
 
           <div className="mt-12 grid md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:border-blue-500/50 transition-all">
+              <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-800 hover:border-blue-500/50 transition-all">
                 <Code className="w-8 h-8 text-blue-400 mx-auto mb-3" />
-                <h4 className="font-semibold text-white mb-2">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                   Skill Extraction
                 </h4>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Identify technical and soft skills automatically
                 </p>
               </div>
             </div>
             <div className="text-center">
-              <div className="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:border-green-500/50 transition-all">
+              <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-800 hover:border-green-500/50 transition-all">
                 <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-3" />
-                <h4 className="font-semibold text-white mb-2">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                   Gap Analysis
                 </h4>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Discover areas for improvement
                 </p>
               </div>
             </div>
             <div className="text-center">
-              <div className="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 hover:border-purple-500/50 transition-all">
+              <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-800 hover:border-purple-500/50 transition-all">
                 <Award className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-                <h4 className="font-semibold text-white mb-2">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                   Interview Prep
                 </h4>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Personalized question recommendations
                 </p>
               </div>
@@ -298,64 +317,69 @@ export default function Resume() {
 
   // Results view
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {showSessionExpiredModal && <SessionExpiredModal />}
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <div className="inline-flex items-center space-x-2 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium mb-3 border border-green-500/30">
+            <div className="inline-flex items-center space-x-2 bg-green-50 text-green-600 dark:bg-green-500/20 dark:text-green-400 px-3 py-1 rounded-full text-sm font-medium mb-3 border border-green-200 dark:border-green-500/30">
               <CheckCircle className="w-4 h-4" />
               <span>Analysis Complete</span>
             </div>
-            <h1 className="text-3xl font-bold text-white">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Resume Analysis
             </h1>
           </div>
           <button
             onClick={handleNewUpload}
-            className="px-6 py-3 bg-slate-800 border border-slate-600 text-gray-300 rounded-xl font-medium hover:shadow-lg hover:border-blue-500/50 transition-all"
+            className="px-6 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:shadow-lg hover:border-blue-500/50 transition-all"
           >
             Upload New Resume
           </button>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
-          <div className="bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-700">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
             <FileText className="w-8 h-8 text-blue-400 mb-3" />
-            <h3 className="text-sm font-medium text-gray-400 mb-1">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
               Resume File
             </h3>
-            <p className="text-lg font-semibold text-white">
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {analysisResult.fileName}
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Analyzed {new Date(analysisResult.analyzedAt).toLocaleString()}
             </p>
           </div>
 
-          <div className="bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-700">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
             <Award className="w-8 h-8 text-green-400 mb-3" />
-            <h3 className="text-sm font-medium text-gray-400 mb-1">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
               Skills Extracted
             </h3>
-            <p className="text-lg font-semibold text-white">
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {analysisResult.extractedSkills.length} Skills
             </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Across {new Set(analysisResult.extractedSkills.map(s => s.category)).size} categories
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Across{" "}
+              {
+                new Set(analysisResult.extractedSkills.map((s) => s.category))
+                  .size
+              }{" "}
+              categories
             </p>
           </div>
 
-          <div className="bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-700">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
             <TrendingUp className="w-8 h-8 text-purple-400 mb-3" />
-            <h3 className="text-sm font-medium text-gray-400 mb-1">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
               Match Score
             </h3>
-            <p className="text-lg font-semibold text-white">
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {analysisResult.matchScore}%
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               For target positions
             </p>
           </div>
@@ -363,8 +387,8 @@ export default function Resume() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-700">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <Code className="w-6 h-6 text-blue-400" />
                 <span>Skills Analysis</span>
               </h2>
@@ -373,10 +397,10 @@ export default function Resume() {
                   <div key={skill.name}>
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <span className="text-sm font-semibold text-white">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
                           {skill.name}
                         </span>
-                        <span className="text-xs text-gray-500 ml-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                           {skill.category}
                         </span>
                       </div>
@@ -387,7 +411,7 @@ export default function Resume() {
                       )}
                     </div>
                     {skill.level && (
-                      <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
                         <div
                           className="bg-gradient-to-r from-blue-600 to-cyan-600 h-2 rounded-full"
                           style={{ width: `${skill.level}%` }}
@@ -399,8 +423,8 @@ export default function Resume() {
               </div>
             </div>
 
-            <div className="bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-700">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                 <TrendingUp className="w-6 h-6 text-green-400" />
                 <span>Skill Gaps & Recommendations</span>
               </h2>
@@ -411,14 +435,14 @@ export default function Resume() {
                     className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg"
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-white">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
                         {gap.skill}
                       </h3>
-                      <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">
+                      <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 rounded-full border border-yellow-500/30">
                         {gap.importance}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
                       {gap.recommendation}
                     </p>
                   </div>

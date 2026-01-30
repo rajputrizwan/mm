@@ -23,6 +23,7 @@ interface Notification {
   type: "info" | "success" | "warning" | "error";
   timestamp: Date;
   read: boolean;
+  dismissed: boolean;
 }
 
 interface AppContextType extends AppState {
@@ -31,8 +32,13 @@ interface AppContextType extends AppState {
   setLanguage: (language: Language) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
-  addNotification: (message: string, type: Notification["type"], title?: string) => void;
+  addNotification: (
+    message: string,
+    type: Notification["type"],
+    title?: string,
+  ) => void;
   removeNotification: (id: string) => void;
+  dismissNotification: (id: string) => void;
   clearNotifications: () => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
@@ -81,7 +87,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSidebarOpen((prev) => !prev);
   };
 
-  const addNotification = (message: string, type: Notification["type"], title?: string) => {
+  const addNotification = (
+    message: string,
+    type: Notification["type"],
+    title?: string,
+  ) => {
     const notification: Notification = {
       id: Date.now().toString(),
       title,
@@ -89,6 +99,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       type,
       timestamp: new Date(),
       read: false,
+      dismissed: false,
     };
     setNotifications((prev) => [notification, ...prev]);
   };
@@ -97,13 +108,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
+  const dismissNotification = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, dismissed: true } : n)),
+    );
+  };
+
   const clearNotifications = () => {
     setNotifications([]);
   };
 
   const markAsRead = (id: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
   };
 
@@ -127,6 +144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         notifications,
         addNotification,
         removeNotification,
+        dismissNotification,
         clearNotifications,
         markAsRead,
         markAllAsRead,
