@@ -148,7 +148,7 @@ export class AuthController {
    */
   static async login(req: Request, res: Response) {
     try {
-      const { email, password } = req.body;
+      const { email, password, rememberMe } = req.body;
 
       // Validation
       if (!email || !password) {
@@ -196,12 +196,52 @@ export class AuthController {
       user.refreshTokens.push(refreshToken);
       await user.save();
 
-      // Set refresh token in cookie
+      // Create RememberMe session if requested
+      let sessionId: string | undefined;
+      if (rememberMe) {
+        try {
+          const { parseUserAgent, generateDeviceId } = require('../utils/deviceParser');
+          const { RememberMeSession } = require('../models/RememberMeSession');
+
+          const deviceInfo = parseUserAgent(req);
+          const deviceId = generateDeviceId(
+            req.headers['user-agent'] || 'Unknown',
+            deviceInfo.ipAddress
+          );
+
+          // Create session with 30 days expiry for Remember Me
+          const session = await RememberMeSession.create({
+            userId: user._id,
+            deviceId,
+            deviceName: deviceInfo.deviceName,
+            deviceType: deviceInfo.deviceType,
+            browser: deviceInfo.browser,
+            operatingSystem: deviceInfo.operatingSystem,
+            ipAddress: deviceInfo.ipAddress,
+            refreshToken,
+            isActive: true,
+            lastActivityAt: new Date(),
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          });
+
+          sessionId = session._id.toString();
+          console.log(`✓ Remember Me session created for user: ${user.email} (${deviceInfo.deviceName})`);
+        } catch (sessionError) {
+          console.error('Failed to create Remember Me session:', sessionError);
+          // Don't fail login if session creation fails
+        }
+      }
+
+      // Set refresh token in cookie with appropriate maxAge
+      const cookieMaxAge = rememberMe
+        ? 30 * 24 * 60 * 60 * 1000  // 30 days for Remember Me
+        : 7 * 24 * 60 * 60 * 1000;  // 7 days for regular login
+
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: config.nodeEnv === 'production',
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: cookieMaxAge,
       });
 
       // Get role-specific profile info
@@ -226,6 +266,7 @@ export class AuthController {
         data: {
           user: profileData,
           accessToken,
+          sessionId, // Include session ID if Remember Me was enabled
         },
       });
     } catch (error) {

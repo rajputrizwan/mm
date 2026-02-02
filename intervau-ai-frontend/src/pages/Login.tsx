@@ -20,6 +20,7 @@ export default function Login() {
   const [role, setRole] = useState<"candidate" | "hr">("candidate");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
   const { addNotification } = useApp();
@@ -39,7 +40,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
 
       // Show success notification
       addNotification("Signed in successfully. Redirecting...", "success");
@@ -174,8 +175,8 @@ export default function Login() {
                 type="button"
                 onClick={() => setRole("candidate")}
                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -187,8 +188,8 @@ export default function Login() {
                 type="button"
                 onClick={() => setRole("hr")}
                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -223,6 +224,8 @@ export default function Login() {
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
                   />
                   <span className="text-gray-600 dark:text-gray-400">

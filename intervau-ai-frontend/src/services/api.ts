@@ -114,10 +114,10 @@ async function request<T = any>(
 // API Methods
 export const api = {
   // Authentication
-  login: (email: string, password: string) =>
+  login: (email: string, password: string, rememberMe: boolean = false) =>
     request<{ accessToken: string; user: any }>("/auth/login", {
       method: "POST",
-      body: { email, password },
+      body: { email, password, rememberMe },
     }),
 
   register: (

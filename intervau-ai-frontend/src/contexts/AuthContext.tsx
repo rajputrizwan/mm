@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (
     name: string,
     email: string,
@@ -71,11 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe: boolean = false) => {
     setLoading(true);
     try {
       // Call the API login endpoint
-      const response = await api.login(email, password);
+      const response = await api.login(email, password, rememberMe);
 
       if (response.success && response.data?.accessToken) {
         // Store the access token
