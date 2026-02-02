@@ -103,7 +103,7 @@ function AppRoutes() {
       <Route
         path={ROUTES.REGISTER}
         element={
-          <PublicLayout>
+          <PublicLayout showNavbar={false}>
             <Register />
           </PublicLayout>
         }
