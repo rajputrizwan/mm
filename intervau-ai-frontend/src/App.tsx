@@ -31,6 +31,7 @@ import MockInterviewSession from "./pages/MockInterviewSession";
 import InterviewHistory from "./pages/InterviewHistory";
 import InterviewReport from "./pages/InterviewReport";
 import ProfileSettings from "./pages/ProfileSettings";
+import DeviceManagement from "./pages/DeviceManagement";
 
 // HR Pages
 import HRDashboard from "./pages/HRDashboard";
@@ -237,6 +238,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path={ROUTES.CANDIDATE_DEVICES}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <DeviceManagement />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* HR Routes */}
       <Route
@@ -285,6 +296,16 @@ function AppRoutes() {
           <ProtectedRoute roles={["hr"]}>
             <AuthenticatedLayout>
               <ProfileSettings />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HR_DEVICES}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <DeviceManagement />
             </AuthenticatedLayout>
           </ProtectedRoute>
         }

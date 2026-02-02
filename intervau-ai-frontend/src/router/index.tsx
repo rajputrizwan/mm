@@ -67,6 +67,10 @@ export const ROUTES = {
   HR_PROFILE_SETTINGS: "/hr/profile-settings",
   HR_CREATE_INTERVIEW: "/hr/create-interview",
 
+  // Device Management Routes
+  CANDIDATE_DEVICES: "/candidate/devices",
+  HR_DEVICES: "/hr/devices",
+
   // Shared Routes
   LIVE_INTERVIEW: "/live-interview/:sessionId",
   INTERVIEW_SUMMARY: "/interview-summary/:summaryId",

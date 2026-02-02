@@ -55,7 +55,7 @@ function buildUrl(endpoint: string, params?: Record<string, any>): string {
 // Main API request function
 async function request<T = any>(
   endpoint: string,
-  config: RequestConfig = {}
+  config: RequestConfig = {},
 ): Promise<ApiResponse<T>> {
   const { method = "GET", headers = {}, body, params } = config;
 
@@ -125,7 +125,7 @@ export const api = {
     email: string,
     password: string,
     role: "candidate" | "hr",
-    companyName?: string
+    companyName?: string,
   ) =>
     request<{ accessToken: string; user: any }>("/auth/register", {
       method: "POST",
@@ -145,11 +145,33 @@ export const api = {
       body: { email },
     }),
 
-  resetPassword: (token: string, newPassword: string, confirmPassword: string) =>
+  resetPassword: (
+    token: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) =>
     request("/auth/reset-password", {
       method: "POST",
       body: { token, newPassword, confirmPassword },
     }),
+
+  // Device/Session Management (Remember Me)
+  getActiveSessions: () => request<any>("/auth/sessions", { method: "GET" }),
+
+  getSessionDetails: (sessionId: string) =>
+    request<any>(`/auth/sessions/${sessionId}`, { method: "GET" }),
+
+  revokeSession: (sessionId: string) =>
+    request(`/auth/sessions/${sessionId}/revoke`, { method: "POST" }),
+
+  signOutAllOthers: (currentSessionId?: string) =>
+    request("/auth/sessions/revoke-all-others", {
+      method: "POST",
+      body: { currentSessionId },
+    }),
+
+  updateSessionActivity: (sessionId: string) =>
+    request(`/auth/sessions/${sessionId}/activity`, { method: "PUT" }),
 
   // Candidates
   getCandidates: (filters?: Record<string, any>) =>
@@ -158,8 +180,11 @@ export const api = {
   getCandidate: (id: string) => request<any>(`/candidates/${id}`),
 
   // Get candidate applications for HR with filtering
-  getCandidateApplications: (filters?: { search?: string; status?: string; sortBy?: string }) =>
-    request("/candidates/applications", { params: filters }),
+  getCandidateApplications: (filters?: {
+    search?: string;
+    status?: string;
+    sortBy?: string;
+  }) => request("/candidates/applications", { params: filters }),
 
   // Analyze resume with file upload
   analyzeResume: async (file: File) => {
@@ -173,13 +198,16 @@ export const api = {
         throw new Error("401: Authentication required. Please log in.");
       }
 
-      const response = await fetch(`${API_BASE_URL}/candidates/analyze-resume`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${API_BASE_URL}/candidates/analyze-resume`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       const data = await response.json();
 
@@ -189,27 +217,36 @@ export const api = {
         if (response.status === 401) {
           removeAuthToken();
           window.dispatchEvent(new CustomEvent("unauthorized"));
-          throw new Error("401: Your session has expired. Please log in again.");
+          throw new Error(
+            "401: Your session has expired. Please log in again.",
+          );
         }
 
         // 500 Server Error - Resume parsing failed
         if (response.status === 500) {
           const errorMessage = data.message || data.error || "Server error";
-          throw new Error(`500: Server error: Unable to parse resume. ${errorMessage}`);
+          throw new Error(
+            `500: Server error: Unable to parse resume. ${errorMessage}`,
+          );
         }
 
         // 413 Payload Too Large
         if (response.status === 413) {
-          throw new Error("File size is too large. Please upload a file smaller than 10MB.");
+          throw new Error(
+            "File size is too large. Please upload a file smaller than 10MB.",
+          );
         }
 
         // 415 Unsupported Media Type
         if (response.status === 415) {
-          throw new Error("Unsupported file format. Please upload a PDF, DOC, or DOCX file.");
+          throw new Error(
+            "Unsupported file format. Please upload a PDF, DOC, or DOCX file.",
+          );
         }
 
         // Generic error
-        const errorMessage = data.message || data.error || "Failed to analyze resume";
+        const errorMessage =
+          data.message || data.error || "Failed to analyze resume";
         throw new Error(`${response.status}: ${errorMessage}`);
       }
 
@@ -218,7 +255,9 @@ export const api = {
       // Network errors or other exceptions
       if (!error.message?.includes(":")) {
         // If error doesn't already have a status code, wrap it
-        throw new Error(`Network error: ${error.message || "Unable to connect to server"}`);
+        throw new Error(
+          `Network error: ${error.message || "Unable to connect to server"}`,
+        );
       }
       // Re-throw errors that already have formatting
       throw error;
@@ -332,22 +371,23 @@ export const api = {
   createInterviewTemplate: (data: {
     jobPosition: string;
     jobDescription: string;
-    interviewType: 'mock' | 'live';
+    interviewType: "mock" | "live";
     interviewModes: string[];
     duration: number;
-    availability: { type: 'anytime' | 'scheduled'; scheduledDate?: string };
-    visibility: 'public' | 'private';
+    availability: { type: "anytime" | "scheduled"; scheduledDate?: string };
+    visibility: "public" | "private";
     aiSettings: {
-      difficultyLevel: 'junior' | 'mid' | 'senior';
+      difficultyLevel: "junior" | "mid" | "senior";
       autoScore: boolean;
       enableAiFeedback: boolean;
     };
     questions?: Array<{ text: string; type: string; expectedAnswer?: string }>;
-  }) =>
-    request("/interview-templates", { method: "POST", body: data }),
+  }) => request("/interview-templates", { method: "POST", body: data }),
 
-  getInterviewTemplates: (filters?: { status?: string; interviewType?: string }) =>
-    request<any[]>("/interview-templates", { params: filters }),
+  getInterviewTemplates: (filters?: {
+    status?: string;
+    interviewType?: string;
+  }) => request<any[]>("/interview-templates", { params: filters }),
 
   getInterviewTemplate: (id: string) =>
     request<any>(`/interview-templates/${id}`),
@@ -362,17 +402,19 @@ export const api = {
     jobPosition: string;
     jobDescription: string;
     interviewModes: string[];
-    difficultyLevel: 'junior' | 'mid' | 'senior';
+    difficultyLevel: "junior" | "mid" | "senior";
     questionCount?: number;
     duration?: string;
   }) =>
     request<Array<{ text: string; type: string; expectedAnswer?: string }>>(
       "/interview-templates/generate-questions",
-      { method: "POST", body: data }
+      { method: "POST", body: data },
     ),
 
-  getPublicInterviewTemplates: (interviewType?: 'mock' | 'live') =>
-    request<any[]>("/interview-templates/public", { params: { interviewType } }),
+  getPublicInterviewTemplates: (interviewType?: "mock" | "live") =>
+    request<any[]>("/interview-templates/public", {
+      params: { interviewType },
+    }),
 
   // Interview Session (Candidate side)
   getPublicInterview: (shareableLink: string) =>
@@ -380,7 +422,7 @@ export const api = {
       id: string;
       jobPosition: string;
       jobDescription: string;
-      interviewType: 'mock' | 'live';
+      interviewType: "mock" | "live";
       duration: number;
       questionCount: number;
       aiSettings: {
@@ -427,7 +469,7 @@ export const api = {
 
   getInterviewSessionStatus: (sessionId: string) =>
     request<{
-      status: 'active' | 'completed' | 'abandoned';
+      status: "active" | "completed" | "abandoned";
       currentQuestionIndex: number;
       totalQuestions: number;
       startedAt: string;

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/AuthController';
+import { DeviceSessionController } from '../controllers/DeviceSessionController';
 import { authMiddleware } from '../middleware/auth';
 import { registerValidation, loginValidation, validateRequest } from '../utils/validators';
 
@@ -80,5 +81,48 @@ router.post('/forgot-password', AuthController.forgotPassword);
  * Body: { token, newPassword, confirmPassword }
  */
 router.post('/reset-password', AuthController.resetPassword);
+
+/**
+ * Device/Session Management Routes
+ */
+
+/**
+ * GET /api/auth/sessions
+ * Get all active Remember Me sessions for current user
+ */
+router.get('/sessions', authMiddleware, DeviceSessionController.getActiveSessions);
+
+/**
+ * GET /api/auth/sessions/:sessionId
+ * Get details of a specific session
+ */
+router.get('/sessions/:sessionId', authMiddleware, DeviceSessionController.getSessionDetails);
+
+/**
+ * POST /api/auth/sessions/:sessionId/revoke
+ * Revoke a specific Remember Me session
+ */
+router.post('/sessions/:sessionId/revoke', authMiddleware, DeviceSessionController.revokeSession);
+
+/**
+ * POST /api/auth/sessions/revoke-all-others
+ * Revoke all other sessions except current one
+ * Body: { currentSessionId }
+ */
+router.post(
+  '/sessions/revoke-all-others',
+  authMiddleware,
+  DeviceSessionController.revokeAllOtherSessions
+);
+
+/**
+ * PUT /api/auth/sessions/:sessionId/activity
+ * Update last activity timestamp for a session
+ */
+router.put(
+  '/sessions/:sessionId/activity',
+  authMiddleware,
+  DeviceSessionController.updateSessionActivity
+);
 
 export default router;
