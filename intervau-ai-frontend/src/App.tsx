@@ -95,7 +95,7 @@ function AppRoutes() {
       <Route
         path={ROUTES.LOGIN}
         element={
-          <PublicLayout>
+          <PublicLayout showNavbar={false}>
             <Login />
           </PublicLayout>
         }
