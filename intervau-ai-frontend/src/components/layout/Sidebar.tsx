@@ -111,9 +111,9 @@ export default function Sidebar() {
                 !sidebarOpen && "lg:opacity-0 lg:w-0 lg:overflow-hidden"
               }`}
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              {/* <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Video className="w-5 h-5" />
-              </div>
+              </div> */}
               <span className="font-bold text-xl text-gray-900 dark:text-white whitespace-nowrap">
                 Intervau.AI
               </span>
