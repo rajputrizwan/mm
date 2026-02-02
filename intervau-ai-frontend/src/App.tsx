@@ -27,6 +27,7 @@ import Contact from "./pages/Contact";
 import Dashboard from "./pages/Dashboard";
 import Resume from "./pages/Resume";
 import MockInterview from "./pages/MockInterview";
+import MockInterviewSetup from "./pages/MockInterviewSetup";
 import MockInterviewSession from "./pages/MockInterviewSession";
 import InterviewHistory from "./pages/InterviewHistory";
 import InterviewReport from "./pages/InterviewReport";
@@ -194,6 +195,16 @@ function AppRoutes() {
           <ProtectedRoute roles={["candidate"]}>
             <AuthenticatedLayout>
               <MockInterview />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.MOCK_INTERVIEW_SETUP}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <MockInterviewSetup />
             </AuthenticatedLayout>
           </ProtectedRoute>
         }

@@ -9,7 +9,7 @@ export default function MockInterview() {
 
   const handleMockInterviewClick = () => {
     // Navigate to mock interview session setup
-    navigate(ROUTES.MOCK_INTERVIEW);
+    navigate(ROUTES.MOCK_INTERVIEW_SETUP);
   };
 
   const handleProfessionalInterviewClick = () => {

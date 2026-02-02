@@ -26,7 +26,7 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && user && !roles.includes(user.role)) {
+  if (roles && user && !roles.includes(user.role as UserRole)) {
     return (
       <Navigate
         to={
@@ -53,6 +53,7 @@ export const ROUTES = {
   CANDIDATE_DASHBOARD: "/candidate/dashboard",
   RESUME: "/candidate/resume",
   MOCK_INTERVIEW: "/candidate/mock-interviews",
+  MOCK_INTERVIEW_SETUP: "/candidate/mock-interviews/setup",
   MOCK_INTERVIEW_SESSION: "/candidate/mock-interviews/session/:sessionId",
   INTERVIEW_HISTORY: "/candidate/interview-history",
   INTERVIEW_REPORT: "/candidate/interview-report/:reportId",

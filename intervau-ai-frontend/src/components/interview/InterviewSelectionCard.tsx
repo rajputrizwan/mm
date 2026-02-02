@@ -64,7 +64,7 @@ export default function InterviewSelectionCard({
                 {/* Animated Background Gradient */}
                 {!locked && (
                     <div
-                        className="absolute inset-0"
+                        className="absolute inset-0 pointer-events-none"
                         style={{
                             background: variant === "practice"
                                 ? "linear-gradient(135deg, #0EA5E9 0%, #06B6D4 25%, #3B82F6 50%, #0284C7 75%, #0EA5E9 100%)"
@@ -77,7 +77,7 @@ export default function InterviewSelectionCard({
 
                 {/* Glassmorphism Overlay */}
                 <div
-                    className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent"
+                    className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent pointer-events-none"
                     style={{
                         backdropFilter: "blur(0px)",
                     }}
