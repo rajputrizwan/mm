@@ -340,9 +340,8 @@ export default function MockInterview() {
                     <Loader2 className="w-4 h-4 text-yellow-600 dark:text-yellow-400 animate-spin" />
                   ) : null}
                   <span
-                    className={`font-medium ${
-                      getPermissionStatus(cameraReady, checking).color
-                    }`}
+                    className={`font-medium ${getPermissionStatus(cameraReady, checking).color
+                      }`}
                   >
                     {getPermissionStatus(cameraReady, checking).text}
                   </span>
@@ -361,9 +360,8 @@ export default function MockInterview() {
                     <Loader2 className="w-4 h-4 text-yellow-600 dark:text-yellow-400 animate-spin" />
                   ) : null}
                   <span
-                    className={`font-medium ${
-                      getPermissionStatus(microphoneReady, checking).color
-                    }`}
+                    className={`font-medium ${getPermissionStatus(microphoneReady, checking).color
+                      }`}
                   >
                     {getPermissionStatus(microphoneReady, checking).text}
                   </span>
@@ -396,11 +394,10 @@ export default function MockInterview() {
           <button
             onClick={handleStartInterview}
             disabled={isButtonDisabled}
-            className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
-              isButtonDisabled
+            className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${isButtonDisabled
                 ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-gray-200"
                 : "bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 hover:shadow-xl text-white"
-            }`}
+              }`}
           >
             {initializing ? (
               <div className="flex items-center justify-center space-x-2">
