@@ -1,4 +1,4 @@
-import { Sparkles, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -26,14 +26,16 @@ export default function Navbar() {
                   ? user.role === "hr"
                     ? ROUTES.HR_DASHBOARD
                     : ROUTES.CANDIDATE_DASHBOARD
-                  : ROUTES.LANDING
+                  : ROUTES.LANDING,
               )
             }
             className="flex items-center space-x-2 group"
           >
-            <div className="bg-gradient-to-br from-blue-600 to-cyan-500 p-2 rounded-lg group-hover:shadow-lg transition-shadow">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            <img
+              src="/Logo.png"
+              alt="Intervau.AI"
+              className="w-8 h-8 rounded-lg group-hover:shadow-lg transition-shadow"
+            />
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Intervau.AI
             </span>

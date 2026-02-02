@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Video, Menu, X, Moon, Sun } from "lucide-react";
+import { Menu, X, Moon, Sun } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { ROUTES } from "../router";
 
@@ -43,9 +43,11 @@ export default function LandingNavbar({
             className="flex items-center space-x-3 cursor-pointer"
             onClick={() => handleNavClick("home")}
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-md">
-              <Video className="w-6 h-6 text-white" />
-            </div>
+            <img
+              src="/Logo.png"
+              alt="Intervau.AI"
+              className="w-10 h-10 rounded-xl shadow-md"
+            />
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Intervau.AI
             </span>

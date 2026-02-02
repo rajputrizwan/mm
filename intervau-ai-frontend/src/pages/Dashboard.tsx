@@ -17,7 +17,8 @@ import { formatTimeAgo } from "../utils/dateFormatter";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { stats, recentInterviews, topSkills, loading, error } = useDashboardData();
+  const { stats, recentInterviews, topSkills, loading, error } =
+    useDashboardData();
 
   // Helper function to get score badge color
   const getScoreBadgeColor = (score: number) => {
@@ -34,7 +35,9 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-300">Loading dashboard...</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            Loading dashboard...
+          </p>
         </div>
       </div>
     );
@@ -70,8 +73,9 @@ export default function Dashboard() {
     {
       label: "Average Score",
       value: `${stats?.avgScore || 0}%`,
-      change: `${stats && stats.avgScore > stats.lastPeriodAvgScore ? "+" : ""
-        }${Math.round((stats?.avgScore || 0) - (stats?.lastPeriodAvgScore || 0))}% from last`,
+      change: `${
+        stats && stats.avgScore > stats.lastPeriodAvgScore ? "+" : ""
+      }${Math.round((stats?.avgScore || 0) - (stats?.lastPeriodAvgScore || 0))}% from last`,
       icon: Award,
       color: "from-green-500 to-emerald-500",
     },
@@ -84,8 +88,9 @@ export default function Dashboard() {
     },
     {
       label: "Improvement Rate",
-      value: `${stats?.improvementRate && stats.improvementRate > 0 ? "+" : ""}${stats?.improvementRate || 0
-        }%`,
+      value: `${stats?.improvementRate && stats.improvementRate > 0 ? "+" : ""}${
+        stats?.improvementRate || 0
+      }%`,
       change: "Last 30 days",
       icon: TrendingUp,
       color: "from-purple-500 to-pink-500",
@@ -140,9 +145,7 @@ export default function Dashboard() {
                 <Play className="w-8 h-8" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-bold mb-1">
-                  Start Mock Interview
-                </h3>
+                <h3 className="text-xl font-bold mb-1">Start Mock Interview</h3>
                 <p className="text-blue-100 dark:text-blue-200 text-sm">
                   Practice with AI interviewer
                 </p>
@@ -215,7 +218,8 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900 dark:text-white">
-                          {interview.jobPositionId?.title || "Interview Session"}
+                          {interview.jobPositionId?.title ||
+                            "Interview Session"}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {formatTimeAgo(interview.createdAt)}
@@ -225,7 +229,7 @@ export default function Dashboard() {
                     <div className="text-right">
                       <div
                         className={`inline-flex items-center space-x-2 ${getScoreBadgeColor(
-                          interview.score
+                          interview.score,
                         )} border px-3 py-1.5 rounded-full text-sm font-semibold`}
                       >
                         <Award className="w-4 h-4" />

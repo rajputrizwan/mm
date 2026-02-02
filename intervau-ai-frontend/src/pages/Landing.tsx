@@ -7,7 +7,6 @@ import {
   Users,
   CheckCircle,
   Sparkles,
-  Video,
   BarChart3,
   Code,
   Briefcase,
@@ -34,6 +33,7 @@ import {
   CheckCircle2,
   ArrowRight,
   AlertCircle,
+  Video,
 } from "lucide-react";
 import LandingNavbar from "../components/LandingNavbar";
 import { useTranslation } from "../hooks/useTranslation";
@@ -59,7 +59,7 @@ export default function Landing() {
 
   // Contact form handlers
   const handleContactInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setContactForm((prev) => ({ ...prev, [name]: value }));
@@ -553,8 +553,9 @@ export default function Landing() {
                   {faq.question}
                 </span>
                 <ChevronDown
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 transition-transform ${openFaq === index ? "rotate-180" : ""
-                    }`}
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 transition-transform ${
+                    openFaq === index ? "rotate-180" : ""
+                  }`}
                 />
               </button>
               {openFaq === index && (
@@ -949,10 +950,11 @@ export default function Landing() {
         {/* Success/Error Messages */}
         {submitStatus.type && (
           <div
-            className={`mb-6 p-4 rounded-lg ${submitStatus.type === "success"
-              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
-              : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
-              }`}
+            className={`mb-6 p-4 rounded-lg ${
+              submitStatus.type === "success"
+                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
+                : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
+            }`}
           >
             <p className="text-center font-medium">{submitStatus.message}</p>
           </div>
@@ -1020,8 +1022,9 @@ export default function Landing() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+            className={`w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 ${
+              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             {isSubmitting ? "Sending..." : "Send Message"}
           </button>

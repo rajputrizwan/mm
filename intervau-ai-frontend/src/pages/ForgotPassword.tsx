@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, ArrowLeft, CheckCircle, Video, Shield, AlertCircle } from "lucide-react";
+import {
+  Mail,
+  ArrowLeft,
+  CheckCircle,
+  Shield,
+  AlertCircle,
+} from "lucide-react";
 import { ROUTES } from "../router";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
 import { api } from "../services/api";
+import LogoIcon from "../components/common/LogoIcon";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -24,7 +31,9 @@ export default function ForgotPassword() {
       if (response.success) {
         setSubmitted(true);
       } else {
-        setError(response.error || "Failed to send reset email. Please try again.");
+        setError(
+          response.error || "Failed to send reset email. Please try again.",
+        );
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -73,7 +82,7 @@ export default function ForgotPassword() {
         <div className="relative z-10 max-w-md">
           <div className="flex items-center space-x-3 mb-8">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <Video className="w-7 h-7 text-white" />
+              <LogoIcon className="w-7 h-7" />
             </div>
             <span className="text-3xl font-bold text-white">Intervau.AI</span>
           </div>
@@ -106,7 +115,7 @@ export default function ForgotPassword() {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center justify-center space-x-2 mb-8">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
-              <Video className="w-6 h-6 text-white" />
+              <LogoIcon className="w-6 h-6" />
             </div>
             <span className="text-2xl font-bold text-gray-900 dark:text-white">
               Intervau.AI
@@ -136,7 +145,9 @@ export default function ForgotPassword() {
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start space-x-3">
                   <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {error}
+                  </p>
                 </div>
               )}
 

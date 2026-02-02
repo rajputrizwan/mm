@@ -1,4 +1,13 @@
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Settings, MessageSquare, Users } from 'lucide-react';
+import {
+  Video,
+  VideoOff,
+  Mic,
+  MicOff,
+  PhoneOff,
+  Settings,
+  MessageSquare,
+  Users,
+} from "lucide-react";
 
 interface ControlBarProps {
   isMicEnabled: boolean;
@@ -10,7 +19,7 @@ interface ControlBarProps {
   showParticipantsToggle?: boolean;
   onToggleChat?: () => void;
   onToggleParticipants?: () => void;
-  variant?: 'default' | 'compact';
+  variant?: "default" | "compact";
 }
 
 export default function ControlBar({
@@ -23,10 +32,10 @@ export default function ControlBar({
   showParticipantsToggle = false,
   onToggleChat,
   onToggleParticipants,
-  variant = 'default'
+  variant = "default",
 }: ControlBarProps) {
-  const buttonSize = variant === 'compact' ? 'p-3' : 'p-4';
-  const iconSize = variant === 'compact' ? 'w-5 h-5' : 'w-6 h-6';
+  const buttonSize = variant === "compact" ? "p-3" : "p-4";
+  const iconSize = variant === "compact" ? "w-5 h-5" : "w-6 h-6";
 
   return (
     <div className="flex items-center justify-center space-x-3">
@@ -34,24 +43,32 @@ export default function ControlBar({
         onClick={onToggleMic}
         className={`${buttonSize} rounded-full transition-all ${
           isMicEnabled
-            ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            : 'bg-red-500 hover:bg-red-600 text-white'
+            ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            : "bg-red-500 hover:bg-red-600 text-white"
         }`}
-        title={isMicEnabled ? 'Mute microphone' : 'Unmute microphone'}
+        title={isMicEnabled ? "Mute microphone" : "Unmute microphone"}
       >
-        {isMicEnabled ? <Mic className={iconSize} /> : <MicOff className={iconSize} />}
+        {isMicEnabled ? (
+          <Mic className={iconSize} />
+        ) : (
+          <MicOff className={iconSize} />
+        )}
       </button>
 
       <button
         onClick={onToggleVideo}
         className={`${buttonSize} rounded-full transition-all ${
           isVideoEnabled
-            ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            : 'bg-red-500 hover:bg-red-600 text-white'
+            ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            : "bg-red-500 hover:bg-red-600 text-white"
         }`}
-        title={isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}
+        title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
       >
-        {isVideoEnabled ? <Video className={iconSize} /> : <VideoOff className={iconSize} />}
+        {isVideoEnabled ? (
+          <Video className={iconSize} />
+        ) : (
+          <VideoOff className={iconSize} />
+        )}
       </button>
 
       {showChatToggle && onToggleChat && (
@@ -60,7 +77,11 @@ export default function ControlBar({
           className={`${buttonSize} rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all`}
           title="Toggle chat"
         >
-          <MessageSquare className={iconSize} />
+          {isVideoEnabled ? (
+            <Video className={iconSize} />
+          ) : (
+            <VideoOff className={iconSize} />
+          )}
         </button>
       )}
 

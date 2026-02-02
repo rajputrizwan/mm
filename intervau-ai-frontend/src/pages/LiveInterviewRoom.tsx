@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Video,
   VideoOff,
@@ -11,29 +11,33 @@ import {
   Users,
   TrendingUp,
   AlertCircle,
-} from 'lucide-react';
-import Card from '../components/common/Card';
-import Button from '../components/common/Button';
+} from "lucide-react";
+import Card from "../components/common/Card";
+import Button from "../components/common/Button";
 
 interface LiveInterviewRoomProps {
-  userRole: 'candidate' | 'hr';
+  userRole: "candidate" | "hr";
 }
 
-export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) {
+export default function LiveInterviewRoom({
+  userRole,
+}: LiveInterviewRoomProps) {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [sessionTime, setSessionTime] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showNotes, setShowNotes] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [transcript, setTranscript] = useState<Array<{ speaker: string; text: string; time: string }>>([]);
+  const [notes, setNotes] = useState("");
+  const [transcript, setTranscript] = useState<
+    Array<{ speaker: string; text: string; time: string }>
+  >([]);
 
   const mockQuestions = [
-    'Tell me about yourself and your background.',
-    'What interests you about this position?',
-    'Describe a challenging project you worked on.',
-    'How do you handle tight deadlines and pressure?',
-    'Where do you see yourself in 5 years?',
+    "Tell me about yourself and your background.",
+    "What interests you about this position?",
+    "Describe a challenging project you worked on.",
+    "How do you handle tight deadlines and pressure?",
+    "Where do you see yourself in 5 years?",
   ];
 
   const mockMetrics = {
@@ -50,15 +54,15 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
     const transcriptTimer = setInterval(() => {
       if (Math.random() > 0.7) {
         const mockTexts = [
-          'I have over 5 years of experience in software development.',
-          'My background includes working with React and Node.js.',
-          'I led a team of developers on a major e-commerce project.',
-          'Can you tell me more about the team structure?',
+          "I have over 5 years of experience in software development.",
+          "My background includes working with React and Node.js.",
+          "I led a team of developers on a major e-commerce project.",
+          "Can you tell me more about the team structure?",
         ];
         setTranscript((prev) => [
           ...prev,
           {
-            speaker: Math.random() > 0.5 ? 'Candidate' : 'Interviewer',
+            speaker: Math.random() > 0.5 ? "Candidate" : "Interviewer",
             text: mockTexts[Math.floor(Math.random() * mockTexts.length)],
             time: formatTime(sessionTime),
           },
@@ -75,7 +79,7 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handleNextQuestion = () => {
@@ -85,7 +89,7 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
   };
 
   const handleEndSession = () => {
-    if (confirm('Are you sure you want to end this interview session?')) {
+    if (confirm("Are you sure you want to end this interview session?")) {
       window.location.reload();
     }
   };
@@ -95,15 +99,21 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
       <div className="bg-gray-900 border-b border-gray-800 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-white">Live Interview Session</h1>
+            <h1 className="text-xl font-bold text-white">
+              Live Interview Session
+            </h1>
             <p className="text-sm text-gray-400">
-              {userRole === 'hr' ? 'Interviewing: John Candidate' : 'Senior Frontend Developer Position'}
+              {userRole === "hr"
+                ? "Interviewing: John Candidate"
+                : "Senior Frontend Developer Position"}
             </p>
           </div>
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-2 text-gray-400">
               <Clock className="w-5 h-5" />
-              <span className="font-mono text-lg text-white">{formatTime(sessionTime)}</span>
+              <span className="font-mono text-lg text-white">
+                {formatTime(sessionTime)}
+              </span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
@@ -116,7 +126,10 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <Card padding="none" className="relative overflow-hidden bg-gray-900 border-gray-800 aspect-video">
+            <Card
+              padding="none"
+              className="relative overflow-hidden bg-gray-900 border-gray-800 aspect-video"
+            >
               <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-cyan-900/20">
                 <div className="absolute inset-0 flex items-center justify-center">
                   {videoEnabled ? (
@@ -125,7 +138,7 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                         <Users className="w-12 h-12 text-white" />
                       </div>
                       <p className="text-white font-medium">
-                        {userRole === 'hr' ? 'Your Video' : 'Interviewer Video'}
+                        {userRole === "hr" ? "Your Video" : "Interviewer Video"}
                       </p>
                     </div>
                   ) : (
@@ -138,20 +151,25 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
               </div>
               <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                 <p className="text-white text-sm font-medium">
-                  {userRole === 'hr' ? 'You' : 'HR Manager'}
+                  {userRole === "hr" ? "You" : "HR Manager"}
                 </p>
               </div>
               {videoEnabled && (
                 <div className="absolute top-4 right-4">
                   <div className="flex items-center space-x-2 bg-green-500/20 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-green-500/30">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-green-400 text-xs font-medium">Active</span>
+                    <span className="text-green-400 text-xs font-medium">
+                      Active
+                    </span>
                   </div>
                 </div>
               )}
             </Card>
 
-            <Card padding="none" className="relative overflow-hidden bg-gray-900 border-gray-800 aspect-video">
+            <Card
+              padding="none"
+              className="relative overflow-hidden bg-gray-900 border-gray-800 aspect-video"
+            >
               <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-pink-900/20">
                 <div className="absolute inset-0 flex items-center justify-center">
                   {videoEnabled ? (
@@ -160,7 +178,7 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                         <Users className="w-12 h-12 text-white" />
                       </div>
                       <p className="text-white font-medium">
-                        {userRole === 'hr' ? 'Candidate Video' : 'Your Video'}
+                        {userRole === "hr" ? "Candidate Video" : "Your Video"}
                       </p>
                     </div>
                   ) : (
@@ -173,7 +191,7 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
               </div>
               <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg">
                 <p className="text-white text-sm font-medium">
-                  {userRole === 'hr' ? 'John Candidate' : 'You'}
+                  {userRole === "hr" ? "John Candidate" : "You"}
                 </p>
               </div>
               {!audioEnabled && (
@@ -184,13 +202,15 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
             </Card>
           </div>
 
-          {userRole === 'hr' && (
+          {userRole === "hr" && (
             <div className="grid grid-cols-3 gap-4 mb-6">
               <Card className="bg-gray-900 border-gray-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-400">Confidence</p>
-                    <p className="text-2xl font-bold text-white mt-1">{mockMetrics.confidence}%</p>
+                    <p className="text-2xl font-bold text-white mt-1">
+                      {mockMetrics.confidence}%
+                    </p>
                   </div>
                   <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-blue-400" />
@@ -208,7 +228,9 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-400">Clarity</p>
-                    <p className="text-2xl font-bold text-white mt-1">{mockMetrics.clarity}%</p>
+                    <p className="text-2xl font-bold text-white mt-1">
+                      {mockMetrics.clarity}%
+                    </p>
                   </div>
                   <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-green-400" />
@@ -226,7 +248,9 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-400">Engagement</p>
-                    <p className="text-2xl font-bold text-white mt-1">{mockMetrics.engagement}%</p>
+                    <p className="text-2xl font-bold text-white mt-1">
+                      {mockMetrics.engagement}%
+                    </p>
                   </div>
                   <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-purple-400" />
@@ -249,13 +273,16 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                   <MessageSquare className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Current Question</h3>
+                  <h3 className="text-lg font-semibold text-white">
+                    Current Question
+                  </h3>
                   <p className="text-sm text-gray-400">
-                    Question {currentQuestionIndex + 1} of {mockQuestions.length}
+                    Question {currentQuestionIndex + 1} of{" "}
+                    {mockQuestions.length}
                   </p>
                 </div>
               </div>
-              {userRole === 'hr' && (
+              {userRole === "hr" && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -268,7 +295,9 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
               )}
             </div>
             <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-              <p className="text-white text-lg leading-relaxed">{mockQuestions[currentQuestionIndex]}</p>
+              <p className="text-white text-lg leading-relaxed">
+                {mockQuestions[currentQuestionIndex]}
+              </p>
             </div>
           </div>
         </div>
@@ -280,8 +309,8 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                 onClick={() => setShowNotes(false)}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   !showNotes
-                    ? 'text-white bg-gray-800 border-b-2 border-blue-500'
-                    : 'text-gray-400 hover:text-white'
+                    ? "text-white bg-gray-800 border-b-2 border-blue-500"
+                    : "text-gray-400 hover:text-white"
                 }`}
               >
                 Transcript
@@ -290,8 +319,8 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                 onClick={() => setShowNotes(true)}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   showNotes
-                    ? 'text-white bg-gray-800 border-b-2 border-blue-500'
-                    : 'text-gray-400 hover:text-white'
+                    ? "text-white bg-gray-800 border-b-2 border-blue-500"
+                    : "text-gray-400 hover:text-white"
                 }`}
               >
                 Notes
@@ -305,7 +334,9 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                 {transcript.length === 0 ? (
                   <div className="text-center py-8">
                     <AlertCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400 text-sm">Transcript will appear here during the interview</p>
+                    <p className="text-gray-400 text-sm">
+                      Transcript will appear here during the interview
+                    </p>
                   </div>
                 ) : (
                   transcript.map((entry, index) => (
@@ -313,12 +344,16 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
                       <div className="flex items-center justify-between mb-1">
                         <span
                           className={`text-xs font-medium ${
-                            entry.speaker === 'Candidate' ? 'text-purple-400' : 'text-blue-400'
+                            entry.speaker === "Candidate"
+                              ? "text-purple-400"
+                              : "text-blue-400"
                           }`}
                         >
                           {entry.speaker}
                         </span>
-                        <span className="text-xs text-gray-500">{entry.time}</span>
+                        <span className="text-xs text-gray-500">
+                          {entry.time}
+                        </span>
                       </div>
                       <p className="text-sm text-gray-300">{entry.text}</p>
                     </div>
@@ -345,22 +380,30 @@ export default function LiveInterviewRoom({ userRole }: LiveInterviewRoomProps) 
             onClick={() => setAudioEnabled(!audioEnabled)}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
               audioEnabled
-                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                : 'bg-red-500 hover:bg-red-600 text-white'
+                ? "bg-gray-700 hover:bg-gray-600 text-white"
+                : "bg-red-500 hover:bg-red-600 text-white"
             }`}
           >
-            {audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+            {audioEnabled ? (
+              <Mic className="w-5 h-5" />
+            ) : (
+              <MicOff className="w-5 h-5" />
+            )}
           </button>
 
           <button
             onClick={() => setVideoEnabled(!videoEnabled)}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
               videoEnabled
-                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                : 'bg-red-500 hover:bg-red-600 text-white'
+                ? "bg-gray-700 hover:bg-gray-600 text-white"
+                : "bg-red-500 hover:bg-red-600 text-white"
             }`}
           >
-            {videoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+            {videoEnabled ? (
+              <Video className="w-5 h-5" />
+            ) : (
+              <VideoOff className="w-5 h-5" />
+            )}
           </button>
 
           <button
