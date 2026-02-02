@@ -107,20 +107,28 @@ export default function Sidebar() {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <div
-              className={`flex items-center space-x-3 transition-opacity duration-200 ${
+              className={`flex items-center space-x-1 transition-opacity duration-200 ${
                 !sidebarOpen && "lg:opacity-0 lg:w-0 lg:overflow-hidden"
               }`}
             >
-              {/* <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Video className="w-5 h-5" />
-              </div> */}
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/Logo.png"
+                  alt="Intervau.AI"
+                  className="w-10 h-10 object-contain"
+                />
+              </div>
               <span className="font-bold text-xl text-gray-900 dark:text-white whitespace-nowrap">
                 Intervau.AI
               </span>
             </div>
             {!sidebarOpen && (
-              <div className="hidden lg:flex w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg items-center justify-center mx-auto">
-                <Video className="w-5 h-5" />
+              <div className="hidden lg:flex w-10 h-10 rounded-lg items-center justify-center mx-auto">
+                <img
+                  src="/Logo.png"
+                  alt="Intervau.AI"
+                  className="w-7 h-7 object-contain"
+                />
               </div>
             )}
             <button
