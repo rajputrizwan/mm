@@ -4,7 +4,6 @@ import {
   Lock,
   ArrowLeft,
   CheckCircle,
-  Video,
   AlertCircle,
   Eye,
   EyeOff,
@@ -13,6 +12,7 @@ import { ROUTES } from "../router";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
 import { api } from "../services/api";
+import LogoIcon from "../components/common/LogoIcon";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -159,7 +159,7 @@ export default function ResetPassword() {
         <div className="relative z-10 max-w-md">
           <div className="flex items-center space-x-3 mb-8">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <Video className="w-7 h-7 text-white" />
+              <LogoIcon className="w-7 h-7" />
             </div>
             <span className="text-3xl font-bold text-white">Intervau.AI</span>
           </div>
@@ -202,7 +202,7 @@ export default function ResetPassword() {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center justify-center space-x-2 mb-8">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
-              <Video className="w-6 h-6 text-white" />
+              <LogoIcon className="w-6 h-6" />
             </div>
             <span className="text-2xl font-bold text-gray-900 dark:text-white">
               Intervau.AI

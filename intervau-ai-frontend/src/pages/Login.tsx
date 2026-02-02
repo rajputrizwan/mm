@@ -48,7 +48,7 @@ export default function Login() {
       console.error("Login failed:", error);
       addNotification(
         error?.message ||
-          "Sign-in failed. Check your email and password, then try again.",
+        "Sign-in failed. Check your email and password, then try again.",
         "error",
       );
     } finally {
@@ -173,11 +173,10 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setRole("candidate")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "candidate"
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
                     ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />
@@ -187,11 +186,10 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setRole("hr")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "hr"
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
                     ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <User className="w-4 h-4" />

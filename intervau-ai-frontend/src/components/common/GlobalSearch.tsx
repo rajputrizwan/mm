@@ -5,7 +5,6 @@ import {
   Loader2,
   LayoutDashboard,
   FileText,
-  Video,
   History,
   Settings,
   PlayCircle,
@@ -15,12 +14,13 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
+import LogoIcon from "./LogoIcon";
 
 // Icon mapping
 const iconMap: Record<string, any> = {
   LayoutDashboard,
   FileText,
-  Video,
+  Video: LogoIcon,
   History,
   Settings,
   PlayCircle,

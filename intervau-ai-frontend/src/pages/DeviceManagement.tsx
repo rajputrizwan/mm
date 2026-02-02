@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import {
-  LogOut,
   Smartphone,
   Globe,
   Clock,
@@ -28,7 +26,6 @@ interface Session {
 }
 
 export const DeviceManagement: React.FC = () => {
-  const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

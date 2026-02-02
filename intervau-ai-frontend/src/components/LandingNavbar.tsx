@@ -43,11 +43,9 @@ export default function LandingNavbar({
             className="flex items-center space-x-3 cursor-pointer"
             onClick={() => handleNavClick("home")}
           >
-            <img
-              src="/Logo.png"
-              alt="Intervau.AI"
-              className="w-10 h-10 rounded-xl shadow-md"
-            />
+            <div className="w-10 h-10 flex items-center justify-center">
+              <img src="/Logo.png" alt="Intervau.AI Logo" className="w-10 h-10 object-contain" />
+            </div>
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Intervau.AI
             </span>
@@ -58,11 +56,10 @@ export default function LandingNavbar({
               <button
                 key={link.label}
                 onClick={() => handleNavClick(link.section)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  activeSection === link.section
-                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${activeSection === link.section
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
               >
                 {link.label}
               </button>
@@ -128,11 +125,10 @@ export default function LandingNavbar({
               <button
                 key={link.label}
                 onClick={() => handleNavClick(link.section)}
-                className={`block w-full text-left px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  activeSection === link.section
-                    ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
+                className={`block w-full text-left px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${activeSection === link.section
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
               >
                 {link.label}
               </button>
