@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Briefcase, Clock, Target, Zap } from "lucide-react";
+import { ArrowLeft, Briefcase, Clock, Target, Zap, Sparkles, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { api } from "../services/api";
+import { getQuestionTypeColor } from "../constants/interviewConstants";
+
+interface InterviewQuestion {
+    text: string;
+    type: string;
+    expectedAnswer?: string;
+}
 
 interface InterviewConfig {
     jobPosition: string;
@@ -13,6 +21,10 @@ interface InterviewConfig {
 
 export default function MockInterviewSetup() {
     const navigate = useNavigate();
+    const [step, setStep] = useState<1 | 2>(1); // Step 1: Form, Step 2: Questions
+    const [generating, setGenerating] = useState(false);
+    const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+
     const [config, setConfig] = useState<InterviewConfig>({
         jobPosition: "",
         jobDescription: "",
@@ -27,7 +39,7 @@ export default function MockInterviewSetup() {
         {
             value: "technical" as const,
             label: "Technical",
-            description: "Coding, system design, technical knowledge",
+            description: "Coding, system design,  technical knowledge",
             icon: "💻",
             color: "from-blue-500 to-cyan-500",
         },
@@ -65,21 +77,83 @@ export default function MockInterviewSetup() {
         },
     ];
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    // Map frontend types to backend expected types
+    const mapInterviewTypes = (type: string): string[] => {
+        switch (type) {
+            case "technical":
+                return ["technical", "problem_solving"];
+            case "behavioral":
+                return ["behavioral", "experience"];
+            case "mixed":
+                return ["technical", "behavioral", "experience"];
+            default:
+                return ["technical", "behavioral"];
+        }
+    };
 
-        // Validation
+    // Map difficulty to backend format
+    const mapDifficulty = (difficulty: string): "junior" | "mid" | "senior" => {
+        switch (difficulty) {
+            case "beginner":
+                return "junior";
+            case "advanced":
+                return "senior";
+            default:
+                return "mid";
+        }
+    };
+
+    // Generate questions using AI
+    const handleGenerateQuestions = async () => {
         if (!config.jobPosition.trim()) {
             toast.error("Please enter a job position");
             return;
         }
 
-        // TODO: Navigate to interview session with config
-        console.log("Mock Interview Config:", config);
+        setGenerating(true);
+        try {
+            const response = await api.generateInterviewQuestions({
+                jobPosition: config.jobPosition,
+                jobDescription: config.jobDescription || `Mock interview for ${config.jobPosition}`,
+                interviewModes: mapInterviewTypes(config.interviewType),
+                difficultyLevel: mapDifficulty(config.difficulty),
+                questionCount: Math.ceil(config.duration / 5), // ~1 question per 5 minutes
+                duration: `${config.duration} Min`,
+            });
+
+            if (response.success && response.data) {
+                setQuestions(response.data);
+                setStep(2); // Move to questions step
+                toast.success(`Generated ${response.data.length} interview questions!`);
+            } else {
+                toast.error(response.error || "Unable to generate questions.");
+            }
+        } catch (error: any) {
+            console.error("Error generating questions:", error);
+            toast.error("Unable to generate questions. Please try again.");
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    // Start interview with generated questions
+    const handleStartInterview = () => {
+        if (questions.length === 0) {
+            toast.error("Please generate questions first.");
+            return;
+        }
+
+        // TODO: Navigate to interview session with config and questions
+        console.log("Starting mock interview with:", { config, questions });
         toast.success("Starting your mock interview...");
 
-        // For now, just show success
-        // Later: navigate("/candidate/mock-interview/session", { state: config });
+        // Later: navigate("/candidate/mock-interview/session", { state: { config, questions } });
+    };
+
+    // Remove a question
+    const removeQuestion = (index: number) => {
+        setQuestions((prev) => prev.filter((_, i) => i !== index));
+        toast.success("Question removed");
     };
 
     return (
@@ -88,163 +162,266 @@ export default function MockInterviewSetup() {
                 {/* Header */}
                 <div className="mb-8">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={() => {
+                            if (step === 2) {
+                                setStep(1); // Go back to form
+                            } else {
+                                navigate(-1); // Go back to previous page
+                            }
+                        }}
                         className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
                     >
                         <ArrowLeft className="w-5 h-5" />
                         <span>Back</span>
                     </button>
                     <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                        Create Your Mock Interview
+                        {step === 1 ? "Create Your Mock Interview" : "Generated Interview Questions"}
                     </h1>
                     <p className="text-lg text-gray-600 dark:text-gray-300">
-                        Customize your practice session to match your goals
+                        {step === 1
+                            ? "Customize your practice session to match your goals"
+                            : `${questions.length} AI-generated questions for ${config.jobPosition}`}
                     </p>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Main Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
-                        {/* Job Position */}
-                        <div className="mb-8">
-                            <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                                <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                Job Position *
-                            </label>
-                            <input
-                                type="text"
-                                value={config.jobPosition}
-                                onChange={(e) =>
-                                    setConfig({ ...config, jobPosition: e.target.value })
-                                }
-                                placeholder="e.g., Senior Full Stack Developer"
-                                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
+                {/* Step 1: Configuration Form */}
+                {step === 1 && (
+                    <div className="space-y-8">
+                        {/* Main Card */}
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
+                            {/* Job Position */}
+                            <div className="mb-8">
+                                <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                                    <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    Job Position *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.jobPosition}
+                                    onChange={(e) =>
+                                        setConfig({ ...config, jobPosition: e.target.value })
+                                    }
+                                    placeholder="e.g., Senior Full Stack Developer"
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                />
+                            </div>
 
-                        {/* Job Description */}
-                        <div className="mb-8">
-                            <label className="block text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                                Job Description{" "}
-                                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                                    (Optional)
-                                </span>
-                            </label>
-                            <textarea
-                                value={config.jobDescription}
-                                onChange={(e) =>
-                                    setConfig({ ...config, jobDescription: e.target.value })
-                                }
-                                placeholder="Paste the job description here to help tailor questions to the role..."
-                                rows={4}
-                                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                            />
-                        </div>
+                            {/* Job Description */}
+                            <div className="mb-8">
+                                <label className="block text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                                    Job Description{" "}
+                                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                                        (Optional)
+                                    </span>
+                                </label>
+                                <textarea
+                                    value={config.jobDescription}
+                                    onChange={(e) =>
+                                        setConfig({ ...config, jobDescription: e.target.value })
+                                    }
+                                    placeholder="Paste the job description here to help tailor questions to the role..."
+                                    rows={4}
+                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                                />
+                            </div>
 
-                        {/* Duration */}
-                        <div className="mb-8">
-                            <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                Interview Duration
-                            </label>
-                            <div className="grid grid-cols-4 gap-3">
-                                {durationOptions.map((duration) => (
-                                    <button
-                                        key={duration}
-                                        type="button"
-                                        onClick={() => setConfig({ ...config, duration })}
-                                        className={`py-3 px-4 rounded-xl font-semibold transition-all ${config.duration === duration
+                            {/* Duration */}
+                            <div className="mb-8">
+                                <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                                    <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    Interview Duration
+                                </label>
+                                <div className="grid grid-cols-4 gap-3">
+                                    {durationOptions.map((duration) => (
+                                        <button
+                                            key={duration}
+                                            type="button"
+                                            onClick={() => setConfig({ ...config, duration })}
+                                            className={`py-3 px-4 rounded-xl font-semibold transition-all ${config.duration === duration
                                                 ? "bg-blue-600 text-white shadow-lg scale-105"
                                                 : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                                            }`}
-                                    >
-                                        {duration} min
-                                    </button>
-                                ))}
+                                                }`}
+                                        >
+                                            {duration} min
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Interview Type */}
-                        <div className="mb-8">
-                            <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                Interview Type
-                            </label>
-                            <div className="grid md:grid-cols-3 gap-4">
-                                {interviewTypes.map((type) => (
-                                    <button
-                                        key={type.value}
-                                        type="button"
-                                        onClick={() =>
-                                            setConfig({ ...config, interviewType: type.value })
-                                        }
-                                        className={`p-4 rounded-xl border-2 transition-all text-left ${config.interviewType === type.value
+                            {/* Interview Type */}
+                            <div className="mb-8">
+                                <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                                    <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    Interview Type
+                                </label>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    {interviewTypes.map((type) => (
+                                        <button
+                                            key={type.value}
+                                            type="button"
+                                            onClick={() =>
+                                                setConfig({ ...config, interviewType: type.value })
+                                            }
+                                            className={`p-4 rounded-xl border-2 transition-all text-left ${config.interviewType === type.value
                                                 ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-105"
                                                 : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                                            }`}
-                                    >
-                                        <div className="text-3xl mb-2">{type.icon}</div>
-                                        <div className="font-semibold text-gray-900 dark:text-white mb-1">
-                                            {type.label}
-                                        </div>
-                                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                                            {type.description}
-                                        </div>
-                                    </button>
-                                ))}
+                                                }`}
+                                        >
+                                            <div className="text-3xl mb-2">{type.icon}</div>
+                                            <div className="font-semibold text-gray-900 dark:text-white mb-1">
+                                                {type.label}
+                                            </div>
+                                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                {type.description}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Difficulty Level */}
-                        <div>
-                            <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                                <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                Difficulty Level
-                            </label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {difficultyLevels.map((level) => (
-                                    <button
-                                        key={level.value}
-                                        type="button"
-                                        onClick={() =>
-                                            setConfig({ ...config, difficulty: level.value })
-                                        }
-                                        className={`p-4 rounded-xl border-2 transition-all ${config.difficulty === level.value
+                            {/* Difficulty Level */}
+                            <div>
+                                <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                                    <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    Difficulty Level
+                                </label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {difficultyLevels.map((level) => (
+                                        <button
+                                            key={level.value}
+                                            type="button"
+                                            onClick={() =>
+                                                setConfig({ ...config, difficulty: level.value })
+                                            }
+                                            className={`p-4 rounded-xl border-2 transition-all ${config.difficulty === level.value
                                                 ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-105"
                                                 : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                                            }`}
+                                                }`}
+                                        >
+                                            <div className="font-semibold text-gray-900 dark:text-white mb-1">
+                                                {level.label}
+                                            </div>
+                                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                                                {level.description}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Generate Button */}
+                        <div className="flex items-center justify-center">
+                            <button
+                                type="button"
+                                onClick={handleGenerateQuestions}
+                                disabled={generating || !config.jobPosition.trim()}
+                                className="flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {generating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                        Generating Questions...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-5 h-5 mr-2" />
+                                        Generate Questions with AI
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Step 2: Generated Questions */}
+                {step === 2 && (
+                    <div className="space-y-6">
+                        {/* Questions List */}
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center">
+                                    <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2" />
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        Generated Questions ({questions.length})
+                                    </h2>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleGenerateQuestions}
+                                    disabled={generating}
+                                    className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                >
+                                    <RefreshCw
+                                        className={`w-4 h-4 mr-1 ${generating ? "animate-spin" : ""}`}
+                                    />
+                                    Regenerate
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {questions.map((question, index) => (
+                                    <div
+                                        key={index}
+                                        className="p-5 bg-white dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-colors"
                                     >
-                                        <div className="font-semibold text-gray-900 dark:text-white mb-1">
-                                            {level.label}
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                {/* Question Header with Type Badge and Number */}
+                                                <div className="flex items-center mb-3">
+                                                    <span className="text-gray-500 dark:text-gray-400 font-semibold mr-3">
+                                                        Question {index + 1}
+                                                    </span>
+                                                    <span
+                                                        className={`${getQuestionTypeColor(question.type).bg} ${getQuestionTypeColor(question.type).text} text-xs font-semibold px-3 py-1 rounded-full capitalize border ${getQuestionTypeColor(question.type).border}`}
+                                                    >
+                                                        {question.type.replace("_", " ")}
+                                                    </span>
+                                                </div>
+
+                                                {/* Question Text */}
+                                                <p className="text-gray-900 dark:text-white font-medium text-base mb-3 leading-relaxed">
+                                                    {question.text}
+                                                </p>
+
+                                                {/* Expected Answer in Green */}
+                                                {question.expectedAnswer && (
+                                                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-md border-l-4 border-green-500">
+                                                        <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-1">
+                                                            Expected Answer:
+                                                        </p>
+                                                        <p className="text-sm text-green-600 dark:text-green-300 leading-relaxed whitespace-pre-wrap">
+                                                            {question.expectedAnswer}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeQuestion(index)}
+                                                className="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                                title="Remove question"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                                            {level.description}
-                                        </div>
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Submit Button */}
-                    <div className="flex items-center justify-between">
-                        <button
-                            type="button"
-                            onClick={() => navigate(-1)}
-                            className="px-6 py-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-500 dark:to-cyan-500 text-white font-semibold rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-105"
-                        >
-                            Start Interview →
-                        </button>
+                        {/* Start Interview Button */}
+                        <div className="flex items-center justify-end">
+                            <button
+                                type="button"
+                                onClick={handleStartInterview}
+                                className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                            >
+                                Start Interview →
+                            </button>
+                        </div>
                     </div>
-                </form>
+                )}
             </div>
         </div>
     );

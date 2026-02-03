@@ -10,6 +10,13 @@ import {
     Briefcase,
     Puzzle,
     Crown,
+    FileText,
+    Users,
+    Presentation,
+    MessageSquare,
+    Target,
+    Book,
+    Megaphone,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -46,6 +53,41 @@ export const INTERVIEW_TYPES: InterviewTypeOption[] = [
         icon: Crown,
         description: 'Management, decision making',
     },
+    {
+        title: 'Case Study',
+        icon: FileText,
+        description: 'Business scenarios, strategic thinking',
+    },
+    {
+        title: 'Cultural Fit',
+        icon: Users,
+        description: 'Values alignment, team compatibility',
+    },
+    {
+        title: 'Presentation',
+        icon: Presentation,
+        description: 'Public speaking, presentation skills',
+    },
+    {
+        title: 'Group Discussion',
+        icon: MessageSquare,
+        description: 'Team collaboration, debate skills',
+    },
+    {
+        title: 'Aptitude',
+        icon: Target,
+        description: 'Numerical, verbal, reasoning tests',
+    },
+    {
+        title: 'Domain Specific',
+        icon: Book,
+        description: 'Industry knowledge, specialized skills',
+    },
+    {
+        title: 'Communication',
+        icon: Megaphone,
+        description: 'Verbal and written communication',
+    },
 ];
 
 // Duration options for interviews
@@ -64,6 +106,13 @@ export const QUESTION_TYPE_COLORS: Record<string, { bg: string; text: string; bo
     Experience: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
     'Problem Solving': { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
     Leadership: { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-200' },
+    'Case Study': { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200' },
+    'Cultural Fit': { bg: 'bg-pink-50', text: 'text-pink-600', border: 'border-pink-200' },
+    Presentation: { bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-200' },
+    'Group Discussion': { bg: 'bg-cyan-50', text: 'text-cyan-600', border: 'border-cyan-200' },
+    Aptitude: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' },
+    'Domain Specific': { bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-200' },
+    Communication: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
     General: { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' },
 };
 

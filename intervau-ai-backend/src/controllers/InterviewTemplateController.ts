@@ -167,6 +167,9 @@ export class InterviewTemplateController {
 
     // Generate interview questions using OpenRouter AI with improved prompt
     static async generateQuestions(req: Request, res: Response) {
+        const startTime = Date.now();
+        const requestId = Math.random().toString(36).substring(7);
+
         try {
             const {
                 jobPosition,
@@ -177,18 +180,42 @@ export class InterviewTemplateController {
                 questionCount = 5,
             } = req.body;
 
+            // Log incoming request
+            console.log(`[${requestId}] 📥 Generate questions request received:`, {
+                jobPosition,
+                hasDescription: !!jobDescription,
+                interviewModes,
+                difficultyLevel,
+                duration,
+                questionCount,
+                userId: (req as any).user?.id,
+            });
+
+            // Validate required fields
             if (!jobPosition || !jobDescription || !interviewModes || interviewModes.length === 0) {
+                console.warn(`[${requestId}] ⚠️ Validation failed - missing required fields`);
                 return res.status(400).json({
                     success: false,
+                    error: 'Validation Error',
                     message: 'Job position, description, and at least one interview mode are required',
+                    details: {
+                        jobPosition: !jobPosition ? 'Missing job position' : undefined,
+                        jobDescription: !jobDescription ? 'Missing job description' : undefined,
+                        interviewModes: !interviewModes || interviewModes.length === 0
+                            ? 'At least one interview mode is required'
+                            : undefined,
+                    },
                 });
             }
 
+            // Check API key configuration
             const apiKey = process.env.OPENROUTER_API_KEY;
             if (!apiKey) {
+                console.error(`[${requestId}] ❌ OpenRouter API key not configured in environment`);
                 return res.status(500).json({
                     success: false,
-                    message: 'OpenRouter API key not configured',
+                    error: 'Configuration Error',
+                    message: 'OpenRouter API key not configured. Please contact support.',
                 });
             }
 
@@ -230,8 +257,11 @@ format:
 
 🎯 The goal is to create a structured, relevant, and time-optimized interview plan for a ${jobPosition} role.`;
 
-            console.log('📝 Generating questions with improved prompt...');
+            console.log(`[${requestId}] 📝 Generating questions with OpenRouter AI...`);
+            console.log(`[${requestId}] 🎯 Target: ${questionCount} questions for ${duration} duration`);
 
+            // Make API request to OpenRouter
+            const apiStartTime = Date.now();
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -249,16 +279,27 @@ format:
                         },
                     ],
                     temperature: 0.7,
-                    max_tokens: 3000,
+                    max_tokens: 4000, // Increased to prevent truncation
                 }),
             });
 
+            const apiDuration = Date.now() - apiStartTime;
+            console.log(`[${requestId}] 🌐 OpenRouter API responded in ${apiDuration}ms with status: ${response.status}`);
+
             if (!response.ok) {
                 const errorData = await response.text();
-                console.error('OpenRouter API error:', errorData);
+                console.error(`[${requestId}] ❌ OpenRouter API error:`, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorData.substring(0, 500),
+                });
                 return res.status(500).json({
                     success: false,
-                    message: 'Failed to generate questions from AI service',
+                    error: 'AI Service Error',
+                    message: 'Failed to generate questions from AI service. Please try again.',
+                    ...(process.env.NODE_ENV === 'development' && {
+                        details: { status: response.status, error: errorData },
+                    }),
                 });
             }
 
@@ -266,13 +307,16 @@ format:
             let content = data.choices?.[0]?.message?.content;
 
             if (!content) {
+                console.error(`[${requestId}] ❌ No content in AI response:`, data);
                 return res.status(500).json({
                     success: false,
-                    message: 'No response from AI service',
+                    error: 'AI Service Error',
+                    message: 'No response from AI service. Please try again.',
                 });
             }
 
-            console.log('🧪 Raw AI content:', content.substring(0, 500));
+            console.log(`[${requestId}] 🧪 Raw AI content length: ${content.length} characters`);
+            console.log(`[${requestId}] 🧪 Raw AI content preview:`, content.substring(0, 200) + '...');
 
             // Remove markdown formatting if present
             content = content.replace(/```json|```/g, '').trim();
@@ -280,37 +324,77 @@ format:
             // Parse the JSON response
             let questions;
             try {
-                // Extract the first valid JSON array
-                const jsonMatch = content.match(/\[[\s\S]*\]/);
-                if (jsonMatch) {
-                    questions = JSON.parse(jsonMatch[0]);
-                } else {
-                    // Try parsing the whole content as JSON
+                // Try parsing the whole content as JSON first
+                try {
                     const parsed = JSON.parse(content);
                     questions = Array.isArray(parsed)
                         ? parsed
                         : parsed.interviewQuestions || parsed.questions || [];
+                    console.log(`[${requestId}] ✅ Direct JSON parsing successful`);
+                } catch (directParseError) {
+                    console.log(`[${requestId}] ⚠️ Direct parsing failed, attempting regex extraction...`);
+                    // If direct parsing fails, try extracting JSON array/object
+                    const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+                    if (!jsonMatch) {
+                        throw new Error('No valid JSON structure found in AI response');
+                    }
+
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    questions = Array.isArray(parsed)
+                        ? parsed
+                        : parsed.interviewQuestions || parsed.questions || [];
+                    console.log(`[${requestId}] ✅ Regex extraction successful`);
                 }
             } catch (parseError) {
-                // Try to fix common JSON issues
+                console.log(`[${requestId}] ⚠️ JSON parsing failed, attempting fixes...`);
+                // Last resort: try to fix common JSON issues and use eval as fallback
                 try {
-                    const jsonMatch = content.match(/\[[\s\S]*\]/);
-                    if (jsonMatch) {
-                        let fixedJson = jsonMatch[0]
-                            .replace(/'/g, '"')
-                            .replace(/,\s*}/g, '}')
-                            .replace(/,\s*\]/g, ']');
-                        questions = JSON.parse(fixedJson);
-                    } else {
-                        throw new Error('No JSON array found');
+                    const jsonMatch = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+                    if (!jsonMatch) {
+                        throw new Error('No JSON structure found');
                     }
-                } catch (err) {
-                    console.error('Failed to parse AI response:', content);
+
+                    // Try fixing common issues
+                    let fixedJson = jsonMatch[0]
+                        .replace(/'/g, '"')           // Replace single quotes
+                        .replace(/,\s*}/g, '}')       // Remove trailing commas in objects
+                        .replace(/,\s*\]/g, ']');     // Remove trailing commas in arrays
+
+                    try {
+                        questions = JSON.parse(fixedJson);
+                        console.log(`[${requestId}] ✅ Fixed JSON parsing successful`);
+                    } catch (err) {
+                        // Unsafe fallback: eval (similar to Next.js implementation)
+                        console.warn(`[${requestId}] ⚠️ Using eval fallback for JSON parsing`);
+                        const evaluated = eval('(' + jsonMatch[0] + ')');
+                        questions = Array.isArray(evaluated)
+                            ? evaluated
+                            : evaluated.interviewQuestions || evaluated.questions || [];
+                    }
+                } catch (err: any) {
+                    console.error(`[${requestId}] ❌ Failed to parse AI response:`, {
+                        error: err.message,
+                        contentPreview: content.substring(0, 500),
+                    });
                     return res.status(500).json({
                         success: false,
+                        error: 'Parsing Error',
                         message: 'Failed to parse AI-generated questions. Please try again.',
+                        ...(process.env.NODE_ENV === 'development' && {
+                            details: { parseError: err.message, contentPreview: content.substring(0, 500) },
+                        }),
                     });
                 }
+            }
+
+            // Validate that we have an array of questions
+            if (!Array.isArray(questions) || questions.length === 0) {
+                console.error(`[${requestId}] ❌ Parsed data is not a valid array:`, typeof questions);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Validation Error',
+                    message: 'AI did not return valid questions. Please try again.',
+                });
             }
 
             // Normalize question format to ensure consistency
@@ -320,16 +404,31 @@ format:
                 expectedAnswer: q.expectedAnswer || '',
             }));
 
+            const totalDuration = Date.now() - startTime;
+            console.log(`[${requestId}] ✅ Successfully generated ${normalizedQuestions.length} questions in ${totalDuration}ms`);
+
             res.status(200).json({
                 success: true,
                 data: normalizedQuestions,
                 message: `Generated ${normalizedQuestions.length} interview questions`,
+                ...(process.env.NODE_ENV === 'development' && {
+                    meta: { requestId, duration: `${totalDuration}ms`, apiDuration: `${apiDuration}ms` },
+                }),
             });
         } catch (error: any) {
-            console.error('Error generating questions:', error);
+            const totalDuration = Date.now() - startTime;
+            console.error(`[${requestId}] ❌ Unexpected error in generateQuestions after ${totalDuration}ms:`, {
+                error: error.message,
+                stack: error.stack,
+                name: error.name,
+            });
             res.status(500).json({
                 success: false,
+                error: error.name || 'Internal Server Error',
                 message: error.message || 'Failed to generate interview questions',
+                ...(process.env.NODE_ENV === 'development' && {
+                    details: { stack: error.stack, requestId },
+                }),
             });
         }
     }
