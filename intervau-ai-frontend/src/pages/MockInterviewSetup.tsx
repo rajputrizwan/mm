@@ -143,7 +143,7 @@ export default function MockInterviewSetup() {
       } else {
         toast.error(response.error || "Unable to generate questions.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating questions:", error);
       toast.error("Unable to generate questions. Please try again.");
     } finally {
@@ -152,7 +152,7 @@ export default function MockInterviewSetup() {
   };
 
   // Start interview with generated questions
-  const handleStartInterview = () => {
+  const handleStartInterview = async () => {
     if (questions.length === 0) {
       toast.error("Please generate questions first.");
       return;
@@ -178,15 +178,38 @@ export default function MockInterviewSetup() {
       startedAt: new Date().toISOString(),
     };
 
-    // Store session in localStorage for the ready page to retrieve
+    // Store session in localStorage first (ensures we can always navigate)
     localStorage.setItem(
       "currentInterviewSession",
       JSON.stringify(sessionConfig),
     );
 
+    // Try to save session to backend (non-blocking)
+    try {
+      const response = await api.createMockInterviewSession({
+        sessionId,
+        position: config.jobPosition,
+        duration: config.duration,
+        questionCount: questions.length,
+        difficulty: config.difficulty,
+        questions: sessionConfig.questions,
+      });
+
+      if (!response.success) {
+        console.warn("Backend session creation failed:", response.error);
+        // Continue anyway - localStorage has the session
+      }
+    } catch (error: unknown) {
+      console.warn(
+        "Backend session creation error (continuing with localStorage):",
+        error,
+      );
+      // Continue anyway - localStorage has the session
+    }
+
     toast.success("Preparing your mock interview...");
 
-    // Navigate to the ready page (for system check before session)
+    // Navigate to the ready page (system check before session)
     const readyPath = ROUTES.MOCK_INTERVIEW_READY.replace(
       ":sessionId",
       sessionId,

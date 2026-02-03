@@ -475,6 +475,86 @@ export const api = {
       startedAt: string;
     }>(`/interview-session/${sessionId}/status`),
 
+  // Mock Interview Session APIs
+  createMockInterviewSession: (data: {
+    sessionId: string;
+    position: string;
+    duration: number;
+    questionCount: number;
+    difficulty: string;
+    questions: Array<{
+      id: number;
+      category: string;
+      difficulty: string;
+      text: string;
+      duration: number;
+    }>;
+  }) =>
+    request<{
+      sessionId: string;
+      position: string;
+      duration: number;
+      questionCount: number;
+      difficulty: string;
+      status: string;
+      questions: any[];
+      createdAt: string;
+    }>("/interviews/mock-interviews/sessions", {
+      method: "POST",
+      body: data,
+    }),
+
+  getMockInterviewSession: (sessionId: string) =>
+    request<{
+      sessionId: string;
+      position: string;
+      duration: number;
+      questionCount: number;
+      difficulty: string;
+      status: string;
+      systemCheckPassed: boolean;
+      questions: any[];
+      currentQuestionIndex: number;
+      startedAt?: string;
+      completedAt?: string;
+      createdAt: string;
+    }>(`/interviews/mock-interviews/sessions/${sessionId}`),
+
+  updateMockInterviewSystemCheck: (sessionId: string, passed: boolean) =>
+    request<{
+      sessionId: string;
+      systemCheckPassed: boolean;
+    }>(`/interviews/mock-interviews/sessions/${sessionId}/system-check`, {
+      method: "PUT",
+      body: { passed },
+    }),
+
+  startMockInterviewSession: (sessionId: string) =>
+    request<{
+      sessionId: string;
+      status: string;
+      startedAt: string;
+      currentQuestionIndex: number;
+      firstQuestion: any;
+    }>(`/interviews/mock-interviews/sessions/${sessionId}/start`, {
+      method: "PUT",
+    }),
+
+  getMockInterviewHistory: (params?: {
+    status?: string;
+    limit?: number;
+    page?: number;
+  }) =>
+    request<{
+      sessions: any[];
+      pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
+    }>("/interviews/mock-interviews/sessions", { params }),
+
   apiLogout: () => request("/auth/logout", { method: "POST" }),
 };
 
