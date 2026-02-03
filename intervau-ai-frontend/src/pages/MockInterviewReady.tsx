@@ -18,6 +18,7 @@ import {
 import toast from "react-hot-toast";
 import { ROUTES } from "../router";
 import { api } from "../services/api";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface SessionConfig {
   id: string;
@@ -48,6 +49,7 @@ interface CheckStatus {
 export default function MockInterviewReady() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Session state
   const [sessionConfig, setSessionConfig] = useState<SessionConfig | null>(
@@ -78,16 +80,14 @@ export default function MockInterviewReady() {
       // First try localStorage for fast loading
       const stored = localStorage.getItem("currentInterviewSession");
       if (!stored) {
-        setError(
-          "No interview session found. Please set up a new mock interview.",
-        );
+        setError("noSessionFound");
         return;
       }
 
       try {
         const localSession = JSON.parse(stored) as SessionConfig;
         if (localSession.id !== sessionId) {
-          setError("Session ID mismatch. Please set up a new mock interview.");
+          setError("sessionMismatch");
           return;
         }
 
@@ -115,7 +115,7 @@ export default function MockInterviewReady() {
         }
       } catch (err) {
         console.error("Error loading session:", err);
-        setError("Invalid session data. Please set up a new mock interview.");
+        setError("invalidSessionData");
       }
     };
 
@@ -152,7 +152,7 @@ export default function MockInterviewReady() {
       return true;
     } catch (err) {
       setStatus((prev) => ({ ...prev, camera: "failed" }));
-      setCheckError("Camera access denied or not available");
+      setCheckError("cameraAccessDenied");
       return false;
     }
   };
@@ -193,7 +193,7 @@ export default function MockInterviewReady() {
       return true;
     } catch (err) {
       setStatus((prev) => ({ ...prev, microphone: "failed" }));
-      setCheckError("Microphone access denied or not available");
+      setCheckError("microphoneAccessDenied");
       return false;
     }
   };
@@ -229,11 +229,11 @@ export default function MockInterviewReady() {
       // Update backend with system check status
       try {
         await api.updateMockInterviewSystemCheck(sessionId!, true);
-        toast.success("System check passed! You're ready to start.");
+        toast.success(t("mockInterviewReady.systemCheckPassed"));
       } catch (err) {
         console.error("Failed to update system check status:", err);
         // Still allow to continue even if backend update fails
-        toast.success("System check passed! You're ready to start.");
+        toast.success(t("mockInterviewReady.systemCheckPassed"));
       }
     }
   };
@@ -241,7 +241,7 @@ export default function MockInterviewReady() {
   // Handle start interview
   const handleStartInterview = async () => {
     if (!allPassed) {
-      toast.error("Please complete the system check first.");
+      toast.error(t("mockInterviewReady.completeCheckFirst"));
       return;
     }
 
@@ -252,12 +252,12 @@ export default function MockInterviewReady() {
       const response = await api.startMockInterviewSession(sessionId!);
 
       if (!response.success) {
-        toast.error(response.error || "Failed to start interview session");
+        toast.error(response.error || t("mockInterviewReady.failedToStart"));
         setStarting(false);
         return;
       }
 
-      toast.success("Starting your mock interview...");
+      toast.success(t("mockInterviewReady.startingMockInterview"));
 
       // Navigate to session page
       const sessionPath = ROUTES.MOCK_INTERVIEW_SESSION.replace(
@@ -267,7 +267,7 @@ export default function MockInterviewReady() {
       navigate(sessionPath);
     } catch (err: any) {
       console.error("Error starting interview:", err);
-      toast.error("Failed to start interview. Please try again.");
+      toast.error(t("mockInterviewReady.failedToStart"));
       setStarting(false);
     }
   };
@@ -315,13 +315,13 @@ export default function MockInterviewReady() {
   ) => {
     switch (checkStatus) {
       case "passed":
-        return "Ready";
+        return t("mockInterviewReady.statusReady");
       case "failed":
-        return "Failed";
+        return t("mockInterviewReady.statusFailed");
       case "checking":
-        return "Checking...";
+        return t("mockInterviewReady.statusChecking");
       default:
-        return "Pending";
+        return t("mockInterviewReady.statusPending");
     }
   };
 
@@ -333,20 +333,22 @@ export default function MockInterviewReady() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-4">
+      <div className="flex items-center justify-center px-4 py-12">
         <div className="text-center max-w-md">
           <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10 text-red-500" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Session Not Found
+            {t("mockInterviewReady.sessionNotFound")}
           </h1>
-          <p className="text-gray-600 dark:text-slate-400 mb-6">{error}</p>
+          <p className="text-gray-600 dark:text-slate-400 mb-6">
+            {t(`mockInterviewReady.${error}`)}
+          </p>
           <button
             onClick={() => navigate(ROUTES.MOCK_INTERVIEW_SETUP)}
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium rounded-xl hover:shadow-lg transition-all"
           >
-            Create New Mock Interview
+            {t("mockInterviewReady.createNewMockInterview")}
           </button>
         </div>
       </div>
@@ -356,11 +358,11 @@ export default function MockInterviewReady() {
   // Loading state
   if (!sessionConfig) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600 dark:text-slate-400">
-            Loading interview session...
+            {t("mockInterviewReady.loadingSession")}
           </p>
         </div>
       </div>
@@ -368,15 +370,15 @@ export default function MockInterviewReady() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div>
+      <div className="max-w-4xl mx-auto py-6">
         {/* Back Button */}
         <button
           onClick={handleGoBack}
           className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-8"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Back to Setup</span>
+          <span>{t("mockInterviewReady.backToSetup")}</span>
         </button>
 
         {/* Header */}
@@ -384,15 +386,14 @@ export default function MockInterviewReady() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-cyan-500/20 dark:to-blue-500/20 border border-blue-200 dark:border-cyan-500/30 rounded-full mb-6">
             <Sparkles className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
             <span className="text-blue-700 dark:text-cyan-300 text-sm font-medium">
-              AI-Powered Mock Interview
+              {t("mockInterviewReady.aiPoweredBadge")}
             </span>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Ready to Start Your Interview?
+            {t("mockInterviewReady.pageTitle")}
           </h1>
           <p className="text-gray-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">
-            Make sure your camera and microphone are working properly before
-            starting.
+            {t("mockInterviewReady.pageSubtitle")}
           </p>
         </div>
 
@@ -400,7 +401,7 @@ export default function MockInterviewReady() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8 border border-gray-100 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
             <Briefcase className="w-6 h-6 text-blue-600 dark:text-cyan-400" />
-            Interview Details
+            {t("mockInterviewReady.interviewDetails")}
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -412,7 +413,7 @@ export default function MockInterviewReady() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Position
+                    {t("mockInterviewReady.position")}
                   </p>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {sessionConfig.position}
@@ -429,10 +430,10 @@ export default function MockInterviewReady() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Duration
+                    {t("mockInterviewReady.duration")}
                   </p>
                   <p className="font-semibold text-gray-900 dark:text-white">
-                    {sessionConfig.duration} minutes
+                    {sessionConfig.duration} {t("mockInterviewReady.minutes")}
                   </p>
                 </div>
               </div>
@@ -446,10 +447,11 @@ export default function MockInterviewReady() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Questions
+                    {t("mockInterviewReady.questions")}
                   </p>
                   <p className="font-semibold text-gray-900 dark:text-white">
-                    {sessionConfig.questionCount} Questions
+                    {sessionConfig.questionCount}{" "}
+                    {t("mockInterviewReady.questions")}
                   </p>
                 </div>
               </div>
@@ -463,10 +465,12 @@ export default function MockInterviewReady() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Difficulty
+                    {t("mockInterviewReady.difficulty")}
                   </p>
                   <p className="font-semibold text-gray-900 dark:text-white capitalize">
-                    {sessionConfig.difficulty}
+                    {t(
+                      `mockInterviewReady.difficulty${sessionConfig.difficulty.charAt(0).toUpperCase() + sessionConfig.difficulty.slice(1)}`,
+                    )}
                   </p>
                 </div>
               </div>
@@ -476,14 +480,14 @@ export default function MockInterviewReady() {
           {/* What to expect */}
           <div className="mb-8">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-              What to expect:
+              {t("mockInterviewReady.whatToExpect")}
             </h3>
             <div className="space-y-3">
               {[
-                "Mix of technical and behavioral questions",
-                "Real-time AI analysis of your responses",
-                "Evaluation of communication clarity and confidence",
-                "Detailed performance report at the end",
+                t("mockInterviewReady.expectItem1"),
+                t("mockInterviewReady.expectItem2"),
+                t("mockInterviewReady.expectItem3"),
+                t("mockInterviewReady.expectItem4"),
               ].map((item, idx) => (
                 <div key={idx} className="flex items-start space-x-3">
                   <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -498,7 +502,7 @@ export default function MockInterviewReady() {
           {/* Question Categories */}
           <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Question Categories:
+              {t("mockInterviewReady.questionCategories")}
             </p>
             <div className="flex flex-wrap gap-2">
               {Array.from(
@@ -523,7 +527,7 @@ export default function MockInterviewReady() {
             ) : (
               <AlertCircle className="w-6 h-6 text-yellow-500" />
             )}
-            System Check
+            {t("mockInterviewReady.systemCheck")}
           </h2>
 
           {/* Camera Preview */}
@@ -543,7 +547,7 @@ export default function MockInterviewReady() {
             {status.camera === "passed" && (
               <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                 <Check className="w-3 h-3" />
-                Live
+                {t("mockInterviewReady.statusLive")}
               </div>
             )}
           </div>
@@ -559,7 +563,7 @@ export default function MockInterviewReady() {
               <div className="flex items-center gap-3">
                 <Video className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <span className="text-gray-700 dark:text-gray-300">
-                  Camera Access
+                  {t("mockInterviewReady.cameraAccess")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -587,7 +591,7 @@ export default function MockInterviewReady() {
               <div className="flex items-center gap-3 flex-1">
                 <Mic className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <span className="text-gray-700 dark:text-gray-300">
-                  Microphone Access
+                  {t("mockInterviewReady.microphoneAccess")}
                 </span>
                 {status.microphone === "passed" && (
                   <div className="flex-1 mx-4 max-w-[150px]">
@@ -625,7 +629,7 @@ export default function MockInterviewReady() {
               <div className="flex items-center gap-3">
                 <Volume2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <span className="text-gray-700 dark:text-gray-300">
-                  Speaker/Audio Output
+                  {t("mockInterviewReady.speakerAccess")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -648,7 +652,7 @@ export default function MockInterviewReady() {
           {/* Error Message */}
           {checkError && (
             <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-red-600 dark:text-red-400 text-sm mb-6">
-              {checkError}
+              {t(`mockInterviewReady.${checkError}`)}
             </div>
           )}
 
@@ -666,10 +670,10 @@ export default function MockInterviewReady() {
               {isChecking ? (
                 <span className="flex items-center justify-center gap-2">
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  Running System Check...
+                  {t("mockInterviewReady.runningSystemCheck")}
                 </span>
               ) : (
-                "Run System Check"
+                t("mockInterviewReady.runSystemCheck")
               )}
             </button>
           )}
@@ -681,10 +685,10 @@ export default function MockInterviewReady() {
                 <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
               <p className="text-green-600 dark:text-green-400 font-medium mb-1">
-                All systems ready!
+                {t("mockInterviewReady.allSystemsReady")}
               </p>
               <p className="text-gray-500 dark:text-slate-400 text-sm">
-                Your camera and microphone are working properly.
+                {t("mockInterviewReady.cameraAndMicReady")}
               </p>
             </div>
           )}
@@ -693,16 +697,16 @@ export default function MockInterviewReady() {
         {/* Tips Section */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8 border border-gray-100 dark:border-gray-700">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-            Tips for Success
+            {t("mockInterviewReady.tipsForSuccess")}
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
             {[
-              "Find a quiet, well-lit space",
-              "Look directly at the camera when speaking",
-              "Speak clearly and at a moderate pace",
-              "Take a moment to think before answering",
-              "Use specific examples in your responses",
-              "Stay calm and be yourself",
+              t("mockInterviewReady.tip1"),
+              t("mockInterviewReady.tip2"),
+              t("mockInterviewReady.tip3"),
+              t("mockInterviewReady.tip4"),
+              t("mockInterviewReady.tip5"),
+              t("mockInterviewReady.tip6"),
             ].map((tip, index) => (
               <div key={index} className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-blue-500 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
@@ -726,18 +730,18 @@ export default function MockInterviewReady() {
             {starting ? (
               <>
                 <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                Starting Interview...
+                {t("mockInterviewReady.startingInterview")}
               </>
             ) : (
               <>
                 <Sparkles className="w-6 h-6" />
-                Start Interview
+                {t("mockInterviewReady.startInterview")}
               </>
             )}
           </button>
           {!allPassed && (
             <p className="text-gray-500 dark:text-slate-500 text-sm mt-4">
-              Complete the system check above to enable this button
+              {t("mockInterviewReady.completeSystemCheck")}
             </p>
           )}
         </div>

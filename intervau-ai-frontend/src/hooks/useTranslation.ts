@@ -6,6 +6,7 @@ import de from "../locales/de.json";
 import pt from "../locales/pt.json";
 
 type TranslationKey = string;
+type InterpolationValues = Record<string, string | number>;
 
 const translations = {
   en,
@@ -18,7 +19,10 @@ const translations = {
 export function useTranslation() {
   const { language } = useApp();
 
-  const t = (key: TranslationKey, defaultValue?: string): string => {
+  const t = (
+    key: TranslationKey,
+    valuesOrDefault?: InterpolationValues | string,
+  ): string => {
     const keys = key.split(".");
     let value: any = translations[language as keyof typeof translations];
 
@@ -26,11 +30,23 @@ export function useTranslation() {
       if (value && typeof value === "object") {
         value = value[k];
       } else {
-        return defaultValue || key;
+        // Return default value if it's a string, otherwise return the key
+        return typeof valuesOrDefault === "string" ? valuesOrDefault : key;
       }
     }
 
-    return typeof value === "string" ? value : defaultValue || key;
+    if (typeof value !== "string") {
+      return typeof valuesOrDefault === "string" ? valuesOrDefault : key;
+    }
+
+    // If valuesOrDefault is an object, perform interpolation
+    if (typeof valuesOrDefault === "object" && valuesOrDefault !== null) {
+      return value.replace(/\{\{(\w+)\}\}/g, (_, placeholder) => {
+        return String(valuesOrDefault[placeholder] ?? `{{${placeholder}}}`);
+      });
+    }
+
+    return value;
   };
 
   return { t, language };

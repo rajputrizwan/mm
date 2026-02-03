@@ -214,7 +214,9 @@ function AppRoutes() {
         path={ROUTES.MOCK_INTERVIEW_READY}
         element={
           <ProtectedRoute roles={["candidate"]}>
-            <MockInterviewReady />
+            <AuthenticatedLayout>
+              <MockInterviewReady />
+            </AuthenticatedLayout>
           </ProtectedRoute>
         }
       />

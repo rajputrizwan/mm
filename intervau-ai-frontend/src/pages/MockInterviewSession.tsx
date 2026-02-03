@@ -20,6 +20,7 @@ import {
 import { ROUTES } from "../router";
 import toast from "react-hot-toast";
 import { useMediaStream } from "../components/interview/MediaStreamHandler";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface Question {
   id: number;
@@ -51,6 +52,7 @@ export default function MockInterviewSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { t } = useTranslation();
 
   // Session state
   const [sessionConfig, setSessionConfig] = useState<SessionConfig | null>(
@@ -104,7 +106,7 @@ export default function MockInterviewSession() {
     },
     onError: (error) => {
       console.error("Media stream error:", error);
-      toast.error("Unable to access the camera or microphone.");
+      toast.error(t("mockInterviewSession.cameraOrMicError"));
     },
   });
 
@@ -112,7 +114,7 @@ export default function MockInterviewSession() {
   useEffect(() => {
     const stored = localStorage.getItem("currentInterviewSession");
     if (!stored) {
-      toast.error("No active interview session found.");
+      toast.error(t("mockInterviewSession.noActiveSession"));
       navigate(ROUTES.MOCK_INTERVIEW);
       return;
     }
@@ -120,7 +122,7 @@ export default function MockInterviewSession() {
     try {
       const session = JSON.parse(stored) as SessionConfig;
       if (session.id !== sessionId) {
-        toast.error("Session ID does not match.");
+        toast.error(t("mockInterviewSession.sessionMismatch"));
         navigate(ROUTES.MOCK_INTERVIEW);
         return;
       }
@@ -129,23 +131,30 @@ export default function MockInterviewSession() {
 
       // Add initial AI greeting to transcript
       addToTranscript(
-        "AI Interviewer",
-        `Welcome to your mock interview for the ${session.position} role. I will ask you ${session.questions.length} questions. Let's begin.`,
+        t("mockInterviewSession.aiInterviewer"),
+        t("mockInterviewSession.welcomeMessage", {
+          position: session.position,
+          count: session.questions.length,
+        }),
         false,
       );
 
       // Add first question after a delay
       setTimeout(() => {
         if (session.questions.length > 0) {
-          addToTranscript("AI Interviewer", session.questions[0].text, false);
+          addToTranscript(
+            t("mockInterviewSession.aiInterviewer"),
+            session.questions[0].text,
+            false,
+          );
         }
       }, 2000);
     } catch (error) {
       console.error("Failed to parse session:", error);
-      toast.error("Invalid session data. Please start a new session.");
+      toast.error(t("mockInterviewSession.invalidSession"));
       navigate(ROUTES.MOCK_INTERVIEW);
     }
-  }, [sessionId, navigate]);
+  }, [sessionId, navigate, t, addToTranscript]);
 
   // Timer effect
   useEffect(() => {
@@ -236,7 +245,7 @@ export default function MockInterviewSession() {
     if (!userResponse.trim() || !sessionConfig) return;
 
     // Add user response to transcript
-    addToTranscript("You", userResponse, true);
+    addToTranscript(t("mockInterviewSession.you"), userResponse, true);
 
     // Update speaking patterns
     const words = userResponse.split(" ").length;
@@ -256,15 +265,15 @@ export default function MockInterviewSession() {
 
     // AI feedback
     const feedbackResponses = [
-      "That's a good answer. Let me follow up on that...",
-      "Excellent explanation! Moving on to the next question.",
-      "Thank you for that response. Let's continue.",
-      "Good point. Could you elaborate a bit more?",
-      "Nice! Your technical knowledge shows through clearly.",
+      t("mockInterviewSession.aiFeedback1"),
+      t("mockInterviewSession.aiFeedback2"),
+      t("mockInterviewSession.aiFeedback3"),
+      t("mockInterviewSession.aiFeedback4"),
+      t("mockInterviewSession.aiFeedback5"),
     ];
     const feedback =
       feedbackResponses[Math.floor(Math.random() * feedbackResponses.length)];
-    addToTranscript("AI Interviewer", feedback, false);
+    addToTranscript(t("mockInterviewSession.aiInterviewer"), feedback, false);
 
     setIsAIProcessing(false);
   };
@@ -280,7 +289,7 @@ export default function MockInterviewSession() {
       // Add next question to transcript
       setTimeout(() => {
         addToTranscript(
-          "AI Interviewer",
+          t("mockInterviewSession.aiInterviewer"),
           sessionConfig.questions[nextIndex].text,
           false,
         );
@@ -290,7 +299,7 @@ export default function MockInterviewSession() {
 
   // Handle end session
   const handleEndSession = () => {
-    if (confirm("Are you sure you want to end this interview session?")) {
+    if (confirm(t("mockInterviewSession.confirmEndSession"))) {
       setIsSessionActive(false);
       localStorage.removeItem("currentInterviewSession");
 
@@ -308,7 +317,7 @@ export default function MockInterviewSession() {
       };
       localStorage.setItem("lastInterviewResults", JSON.stringify(results));
 
-      toast.success("Interview session completed.");
+      toast.success(t("mockInterviewSession.sessionCompleted"));
       navigate(ROUTES.CANDIDATE_DASHBOARD);
     }
   };
@@ -338,7 +347,9 @@ export default function MockInterviewSession() {
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading interview session...</p>
+          <p className="text-gray-400">
+            {t("mockInterviewSession.loadingSession")}
+          </p>
         </div>
       </div>
     );
@@ -358,7 +369,7 @@ export default function MockInterviewSession() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-red-900/30 text-red-400 px-4 py-2 rounded-lg font-medium">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                <span>Recording</span>
+                <span>{t("mockInterviewSession.recording")}</span>
               </div>
               <div className="flex items-center space-x-2 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
                 <Clock className="w-5 h-5 text-gray-400" />
@@ -381,12 +392,15 @@ export default function MockInterviewSession() {
                       style={{ animationDelay: "0.2s" }}
                     />
                   </div>
-                  <span>Speaking</span>
+                  <span>{t("mockInterviewSession.speaking")}</span>
                 </div>
               )}
             </div>
             <div className="text-gray-400 font-medium">
-              Question {currentQuestionIndex + 1} of {questions.length}
+              {t("mockInterviewSession.questionOf", {
+                current: currentQuestionIndex + 1,
+                total: questions.length,
+              })}
             </div>
           </div>
 
@@ -411,7 +425,7 @@ export default function MockInterviewSession() {
                   </div>
                 ) : streamError ? (
                   <div className="absolute inset-0 flex items-center justify-center text-red-400">
-                    <p>Camera access denied</p>
+                    <p>{t("mockInterviewSession.cameraAccessDenied")}</p>
                   </div>
                 ) : (
                   <video
@@ -425,14 +439,18 @@ export default function MockInterviewSession() {
                 {!videoEnabled && !streamLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
                     <div className="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center">
-                      <span className="text-3xl text-white font-bold">You</span>
+                      <span className="text-3xl text-white font-bold">
+                        {t("mockInterviewSession.you")}
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {/* Participant label */}
                 <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 rounded-lg">
-                  <span className="text-white text-sm font-medium">You</span>
+                  <span className="text-white text-sm font-medium">
+                    {t("mockInterviewSession.you")}
+                  </span>
                 </div>
               </div>
 
@@ -501,7 +519,7 @@ export default function MockInterviewSession() {
                   onKeyPress={(e) =>
                     e.key === "Enter" && handleSubmitResponse()
                   }
-                  placeholder="Type your response or speak..."
+                  placeholder={t("mockInterviewSession.typeResponse")}
                   className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={isAIProcessing}
                 />
@@ -525,7 +543,7 @@ export default function MockInterviewSession() {
                 onClick={handleNextQuestion}
                 className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
               >
-                <span>Next Question</span>
+                <span>{t("mockInterviewSession.nextQuestion")}</span>
                 <ChevronRight className="w-5 h-5" />
               </button>
             )}
@@ -536,7 +554,7 @@ export default function MockInterviewSession() {
                 className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
               >
                 <CheckCircle className="w-5 h-5" />
-                <span>Complete Interview</span>
+                <span>{t("mockInterviewSession.completeInterview")}</span>
               </button>
             )}
 
@@ -544,32 +562,42 @@ export default function MockInterviewSession() {
             <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
               <div className="flex items-center space-x-2 mb-4">
                 <BarChart3 className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold text-white">Speaking Patterns</h3>
+                <h3 className="font-semibold text-white">
+                  {t("mockInterviewSession.speakingPatterns")}
+                </h3>
               </div>
               <div className="grid md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-blue-400">
                     {speakingPatterns.fillerWords}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">Filler Words</p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    {t("mockInterviewSession.fillerWords")}
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-green-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-green-400">
                     {speakingPatterns.avgResponseTime}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">Avg Response</p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    {t("mockInterviewSession.avgResponse")}
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-orange-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-orange-400">
                     {speakingPatterns.totalWords}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">Total Words</p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    {t("mockInterviewSession.totalWords")}
+                  </p>
                 </div>
                 <div className="text-center p-4 bg-cyan-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-cyan-400">
                     {speakingPatterns.avgWordsPerMinute}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">Words/Minute</p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    {t("mockInterviewSession.wordsPerMinute")}
+                  </p>
                 </div>
               </div>
             </div>
@@ -581,14 +609,18 @@ export default function MockInterviewSession() {
             <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl shadow-lg p-6 text-white">
               <div className="flex items-center space-x-2 mb-4">
                 <Sparkles className="w-5 h-5" />
-                <h3 className="font-semibold">Live AI Analysis</h3>
+                <h3 className="font-semibold">
+                  {t("mockInterviewSession.liveAIAnalysis")}
+                </h3>
               </div>
               <div className="space-y-4">
                 {Object.entries(liveMetrics).map(([key, value]) => (
                   <div key={key}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="capitalize">
-                        {key.replace(/([A-Z])/g, " $1").trim()}
+                        {t(
+                          `mockInterviewSession.metric${key.charAt(0).toUpperCase() + key.slice(1)}`,
+                        )}
                       </span>
                       <span>{Math.round(value)}%</span>
                     </div>
@@ -608,23 +640,23 @@ export default function MockInterviewSession() {
               <div className="flex items-center space-x-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-orange-400" />
                 <h4 className="text-sm font-semibold text-white">
-                  Real-time Tips
+                  {t("mockInterviewSession.realTimeTips")}
                 </h4>
               </div>
               <div className="space-y-2">
                 <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-800">
                   <p className="text-xs text-gray-300">
-                    Maintain eye contact with the camera
+                    {t("mockInterviewSession.tipEyeContact")}
                   </p>
                 </div>
                 <div className="p-3 bg-green-900/20 rounded-lg border border-green-800">
                   <p className="text-xs text-gray-300">
-                    Great use of technical examples!
+                    {t("mockInterviewSession.tipTechnicalExamples")}
                   </p>
                 </div>
                 <div className="p-3 bg-orange-900/20 rounded-lg border border-orange-800">
                   <p className="text-xs text-gray-300">
-                    Try to reduce filler words
+                    {t("mockInterviewSession.tipFillerWords")}
                   </p>
                 </div>
               </div>
@@ -635,7 +667,7 @@ export default function MockInterviewSession() {
               <div className="flex items-center space-x-2 mb-3">
                 <FileText className="w-4 h-4 text-gray-400" />
                 <h4 className="text-sm font-semibold text-white">
-                  Question List
+                  {t("mockInterviewSession.questionList")}
                 </h4>
               </div>
               <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -671,13 +703,13 @@ export default function MockInterviewSession() {
               <div className="flex items-center space-x-2 mb-3">
                 <MessageSquare className="w-4 h-4 text-gray-400" />
                 <h4 className="text-sm font-semibold text-white">
-                  Live Transcript
+                  {t("mockInterviewSession.liveTranscript")}
                 </h4>
               </div>
               <div className="space-y-3 max-h-80 overflow-y-auto">
                 {transcript.length === 0 ? (
                   <p className="text-xs text-gray-500 text-center py-4">
-                    Transcript will appear here...
+                    {t("mockInterviewSession.transcriptPlaceholder")}
                   </p>
                 ) : (
                   transcript.map((entry) => (
