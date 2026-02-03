@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../services/api";
+import { ROUTES } from "../router";
 import { getQuestionTypeColor } from "../constants/interviewConstants";
 
 interface InterviewQuestion {
@@ -157,11 +158,40 @@ export default function MockInterviewSetup() {
       return;
     }
 
-    // TODO: Navigate to interview session with config and questions
-    console.log("Starting mock interview with:", { config, questions });
+    // Generate a unique session ID
+    const sessionId = `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // Prepare session config with formatted questions
+    const sessionConfig = {
+      id: sessionId,
+      position: config.jobPosition,
+      duration: config.duration,
+      questionCount: questions.length,
+      difficulty: config.difficulty,
+      questions: questions.map((q, index) => ({
+        id: index + 1,
+        category: q.type,
+        difficulty: config.difficulty,
+        text: q.text,
+        duration: Math.floor((config.duration * 60) / questions.length), // seconds per question
+      })),
+      startedAt: new Date().toISOString(),
+    };
+
+    // Store session in localStorage for the session page to retrieve
+    localStorage.setItem(
+      "currentInterviewSession",
+      JSON.stringify(sessionConfig),
+    );
+
     toast.success("Starting your mock interview...");
 
-    // Later: navigate("/candidate/mock-interview/session", { state: { config, questions } });
+    // Navigate to the session page
+    const sessionPath = ROUTES.MOCK_INTERVIEW_SESSION.replace(
+      ":sessionId",
+      sessionId,
+    );
+    navigate(sessionPath);
   };
 
   // Remove a question

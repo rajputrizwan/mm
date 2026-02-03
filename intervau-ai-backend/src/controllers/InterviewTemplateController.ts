@@ -94,6 +94,19 @@ const sanitizeJsonString = (input: string) => {
   return result;
 };
 
+const stripMarkdown = (value: string) => {
+  if (!value) return value;
+  return value
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/_(.*?)_/g, '$1')
+    .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+    .replace(/#+\s?/g, '')
+    .replace(/>\s?/g, '')
+    .trim();
+};
+
 export class InterviewTemplateController {
   // Create a new interview template
   static async create(req: Request, res: Response) {
@@ -342,8 +355,10 @@ Generate a list of interview questions depends on interview duration (approximat
 Adjust the number and depth of questions to match the interview duration.
 Ensure the questions match the tone and structure of a real-life ${typeString} interview.
 
-🍀 Format your response in JSON format with array list of questions.
-Return ONLY a valid JSON array with no additional text. Each object should have:
+  🍀 Format your response in JSON format with array list of questions.
+Return ONLY a valid JSON array with no additional text.
+Do NOT use markdown or formatting (no **, *, _, backticks, headings, or bullet symbols) inside any text fields.
+Each object should have:
 - "text": The question text
 - "type": One of [${interviewModes.map((m: string) => `"${m}"`).join(', ')}]
 - "expectedAnswer": A brief ideal answer outline (2-3 sentences)
@@ -520,9 +535,9 @@ format:
       // Normalize question format to ensure consistency
       const normalizedQuestions = questions
         .map((q: any, index: number) => ({
-          text: q.text || q.question || '',
+          text: stripMarkdown(q.text || q.question || ''),
           type: q.type || 'General',
-          expectedAnswer: q.expectedAnswer || '',
+          expectedAnswer: stripMarkdown(q.expectedAnswer || ''),
         }))
         .filter((q: any) => q.text && q.text.trim().length > 0);
 

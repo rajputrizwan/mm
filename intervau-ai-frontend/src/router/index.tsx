@@ -52,9 +52,10 @@ export const ROUTES = {
   // Candidate Routes
   CANDIDATE_DASHBOARD: "/candidate/dashboard",
   RESUME: "/candidate/resume",
-  MOCK_INTERVIEW: "/candidate/mock-interviews",
-  MOCK_INTERVIEW_SETUP: "/candidate/mock-interviews/setup",
-  MOCK_INTERVIEW_SESSION: "/candidate/mock-interviews/session/:sessionId",
+  MOCK_INTERVIEW: "/candidate/interviews",
+  MOCK_INTERVIEW_SETUP: "/candidate/interviews/mock-interviews/create-mock",
+  MOCK_INTERVIEW_SESSION:
+    "/candidate/interviews/mock-interviews/session/:sessionId",
   INTERVIEW_HISTORY: "/candidate/interview-history",
   INTERVIEW_REPORT: "/candidate/interview-report/:reportId",
   CANDIDATE_PROFILE_SETTINGS: "/candidate/profile-settings",
@@ -103,7 +104,7 @@ export const routeHelpers = {
   candidateReport: (reportId: string) =>
     `/candidate/interview-report/${reportId}`,
   mockInterviewSession: (sessionId: string) =>
-    `/candidate/mock-interviews/session/${sessionId}`,
+    `/candidate/interviews/mock-interviews/session/${sessionId}`,
   liveInterview: (sessionId: string) => `/live-interview/${sessionId}`,
   interviewSummary: (summaryId: string) => `/interview-summary/${summaryId}`,
   candidateReview: (candidateId: string) =>

@@ -62,7 +62,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/interview-templates', interviewTemplateRoutes);
 app.use('/api/interview-session', interviewSessionRoutes);
-app.use('/api/mock-interviews', mockInterviewRoutes);
+app.use('/api/interviews/mock-interviews', mockInterviewRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
   res.json({
@@ -78,7 +78,7 @@ app.get('/api', (req: Request, res: Response) => {
       dashboard: '/api/dashboard',
       search: '/api/search',
       interviewTemplates: '/api/interview-templates',
-      mockInterviews: '/api/mock-interviews',
+      mockInterviews: '/api/interviews/mock-interviews',
       health: '/api/health',
     },
   });
