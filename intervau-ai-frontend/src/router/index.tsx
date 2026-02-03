@@ -54,6 +54,7 @@ export const ROUTES = {
   RESUME: "/candidate/resume",
   MOCK_INTERVIEW: "/candidate/interviews",
   MOCK_INTERVIEW_SETUP: "/candidate/interviews/mock-interviews/create-mock",
+  MOCK_INTERVIEW_READY: "/candidate/interviews/mock-interviews/ready/:sessionId",
   MOCK_INTERVIEW_SESSION:
     "/candidate/interviews/mock-interviews/session/:sessionId",
   INTERVIEW_HISTORY: "/candidate/interview-history",
@@ -103,6 +104,8 @@ export function getDefaultRoute(role: UserRole | null): string {
 export const routeHelpers = {
   candidateReport: (reportId: string) =>
     `/candidate/interview-report/${reportId}`,
+  mockInterviewReady: (sessionId: string) =>
+    `/candidate/interviews/mock-interviews/ready/${sessionId}`,
   mockInterviewSession: (sessionId: string) =>
     `/candidate/interviews/mock-interviews/session/${sessionId}`,
   liveInterview: (sessionId: string) => `/live-interview/${sessionId}`,

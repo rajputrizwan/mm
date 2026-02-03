@@ -178,20 +178,20 @@ export default function MockInterviewSetup() {
       startedAt: new Date().toISOString(),
     };
 
-    // Store session in localStorage for the session page to retrieve
+    // Store session in localStorage for the ready page to retrieve
     localStorage.setItem(
       "currentInterviewSession",
       JSON.stringify(sessionConfig),
     );
 
-    toast.success("Starting your mock interview...");
+    toast.success("Preparing your mock interview...");
 
-    // Navigate to the session page
-    const sessionPath = ROUTES.MOCK_INTERVIEW_SESSION.replace(
+    // Navigate to the ready page (for system check before session)
+    const readyPath = ROUTES.MOCK_INTERVIEW_READY.replace(
       ":sessionId",
       sessionId,
     );
-    navigate(sessionPath);
+    navigate(readyPath);
   };
 
   // Remove a question
