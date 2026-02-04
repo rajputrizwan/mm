@@ -158,63 +158,77 @@ export default function MockInterviewSetup() {
       return;
     }
 
-    // Generate a unique session ID
-    const sessionId = `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-    // Prepare session config with formatted questions
-    const sessionConfig = {
-      id: sessionId,
-      position: config.jobPosition,
-      duration: config.duration,
-      questionCount: questions.length,
-      difficulty: config.difficulty,
-      questions: questions.map((q, index) => ({
-        id: index + 1,
-        category: q.type,
-        difficulty: config.difficulty,
-        text: q.text,
-        duration: Math.floor((config.duration * 60) / questions.length), // seconds per question
-      })),
-      startedAt: new Date().toISOString(),
-    };
-
-    // Store session in localStorage first (ensures we can always navigate)
-    localStorage.setItem(
-      "currentInterviewSession",
-      JSON.stringify(sessionConfig),
-    );
-
-    // Try to save session to backend (non-blocking)
     try {
-      const response = await api.createMockInterviewSession({
-        sessionId,
+      // Generate a unique session ID
+      const sessionId = `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      // Prepare session config with formatted questions
+      const sessionConfig = {
+        id: sessionId,
         position: config.jobPosition,
         duration: config.duration,
         questionCount: questions.length,
         difficulty: config.difficulty,
-        questions: sessionConfig.questions,
-      });
+        questions: questions.map((q, index) => ({
+          id: index + 1,
+          category: q.type,
+          difficulty: config.difficulty,
+          text: q.text,
+          duration: Math.floor((config.duration * 60) / questions.length), // seconds per question
+        })),
+        startedAt: new Date().toISOString(),
+      };
 
-      if (!response.success) {
-        console.warn("Backend session creation failed:", response.error);
+      // Store session in localStorage first (ensures we can always navigate)
+      localStorage.setItem(
+        "currentInterviewSession",
+        JSON.stringify(sessionConfig),
+      );
+
+      // Try to save session to backend (non-blocking with timeout)
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout")), 5000),
+        );
+
+        const apiPromise = api.createMockInterviewSession({
+          sessionId,
+          position: config.jobPosition,
+          duration: config.duration,
+          questionCount: questions.length,
+          difficulty: config.difficulty,
+          questions: sessionConfig.questions,
+        });
+
+        const response = (await Promise.race([
+          apiPromise,
+          timeoutPromise,
+        ])) as Awaited<ReturnType<typeof api.createMockInterviewSession>>;
+
+        if (!response.success) {
+          console.warn("Backend session creation failed:", response.error);
+        }
+      } catch (error: unknown) {
+        console.warn(
+          "Backend session creation error (continuing with localStorage):",
+          error,
+        );
         // Continue anyway - localStorage has the session
       }
-    } catch (error: unknown) {
-      console.warn(
-        "Backend session creation error (continuing with localStorage):",
-        error,
+
+      toast.success("Preparing your mock interview...");
+
+      // Navigate to the ready page (system check before session)
+      const readyPath = ROUTES.MOCK_INTERVIEW_READY.replace(
+        ":sessionId",
+        sessionId,
       );
-      // Continue anyway - localStorage has the session
+      console.log("Navigating to:", readyPath);
+      navigate(readyPath);
+    } catch (error: unknown) {
+      console.error("Error starting interview:", error);
+      toast.error("Failed to start interview. Please try again.");
     }
-
-    toast.success("Preparing your mock interview...");
-
-    // Navigate to the ready page (system check before session)
-    const readyPath = ROUTES.MOCK_INTERVIEW_READY.replace(
-      ":sessionId",
-      sessionId,
-    );
-    navigate(readyPath);
   };
 
   // Remove a question

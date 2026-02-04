@@ -20,7 +20,16 @@ export function ProtectedRoute({
   roles?: UserRole[];
   requiresAuth?: boolean;
 }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Wait for auth to initialize before deciding to redirect
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (requiresAuth && !user) {
     return <Navigate to="/login" replace />;

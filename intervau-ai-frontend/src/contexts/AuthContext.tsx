@@ -16,13 +16,17 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean,
+  ) => Promise<void>;
   register: (
     name: string,
     email: string,
     password: string,
     role: "candidate" | "hr",
-    companyName?: string
+    companyName?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -32,11 +36,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Initialize user from localStorage on mount
   useEffect(() => {
     const initializeAuth = async () => {
+      setLoading(true);
       const token = getAuthToken();
       if (token) {
         try {
@@ -71,7 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string, rememberMe: boolean = false) => {
+  const login = async (
+    email: string,
+    password: string,
+    rememberMe: boolean = false,
+  ) => {
     setLoading(true);
     try {
       // Call the API login endpoint
@@ -107,12 +116,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     role: "candidate" | "hr",
-    companyName?: string
+    companyName?: string,
   ) => {
     setLoading(true);
     try {
       // Try API first
-      const response = await api.register(name, email, password, role, companyName);
+      const response = await api.register(
+        name,
+        email,
+        password,
+        role,
+        companyName,
+      );
 
       if (response.success && response.data?.accessToken) {
         setAuthToken(response.data.accessToken);

@@ -555,6 +555,64 @@ export const api = {
       };
     }>("/interviews/mock-interviews/sessions", { params }),
 
+  // Submit a response to a question and get AI feedback with analytics
+  submitMockInterviewResponse: (
+    sessionId: string,
+    data: {
+      questionIndex: number;
+      response: string;
+      responseTime?: number;
+    },
+  ) =>
+    request<{
+      aiResponse: string;
+      shouldMoveToNext: boolean;
+      isFollowUp: boolean;
+      aiAnalysis: {
+        score: number;
+        feedback: string;
+        strengths: string[];
+        improvements: string[];
+        metrics: {
+          confidence: number;
+          clarity: number;
+          pace: number;
+          technicalAccuracy: number;
+          fillerWords: number;
+          wordCount: number;
+          responseTime: number;
+        };
+      };
+      tips: Array<{ type: "success" | "warning" | "info"; message: string }>;
+      currentQuestionIndex: number;
+      nextQuestion: any | null;
+    }>(`/interviews/mock-interviews/sessions/${sessionId}/respond`, {
+      method: "POST",
+      body: data,
+    }),
+
+  // Complete the mock interview session and get final metrics
+  completeMockInterviewSession: (sessionId: string) =>
+    request<{
+      sessionId: string;
+      status: string;
+      completedAt: string;
+      metrics: {
+        overallScore: number;
+        confidence: number;
+        clarity: number;
+        technicalAccuracy: number;
+        communicationSkills: number;
+        fillerWords: number;
+        averageResponseTime: number;
+      };
+      summary: string;
+      questionsAnswered: number;
+      totalQuestions: number;
+    }>(`/interviews/mock-interviews/sessions/${sessionId}/complete`, {
+      method: "PUT",
+    }),
+
   apiLogout: () => request("/auth/logout", { method: "POST" }),
 };
 

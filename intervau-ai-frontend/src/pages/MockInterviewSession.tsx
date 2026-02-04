@@ -16,6 +16,8 @@ import {
   Send,
   Loader2,
   CheckCircle,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { ROUTES } from "../router";
 import toast from "react-hot-toast";
@@ -73,6 +75,26 @@ export default function MockInterviewSession() {
   const [userResponse, setUserResponse] = useState("");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Voice recognition state
+  const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const responseStartTimeRef = useRef<number>(0);
+
+  // Text-to-Speech state
+  const [isTTSEnabled, setIsTTSEnabled] = useState(true);
+  const [isSpeakingTTS, setIsSpeakingTTS] = useState(false);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+
+  // Real-time tips from AI
+  const [realTimeTips, setRealTimeTips] = useState<
+    Array<{ type: "success" | "warning" | "info"; message: string }>
+  >([
+    { type: "info", message: "Maintain eye contact with the camera" },
+    { type: "success", message: "Great use of technical examples!" },
+    { type: "warning", message: "Try to reduce filler words" },
+  ]);
 
   // Ref for elapsedTime to avoid re-creating addToTranscript on every tick
   const elapsedTimeRef = useRef(elapsedTime);
@@ -214,16 +236,108 @@ export default function MockInterviewSession() {
     return () => clearInterval(timer);
   }, [isSessionActive]);
 
-  // Simulate speaking detection
+  // Initialize Speech Recognition
   useEffect(() => {
-    if (!isSessionActive) return;
+    if (typeof window === "undefined") return;
 
-    const speakingInterval = setInterval(() => {
-      setIsSpeaking(Math.random() > 0.7);
-    }, 1000);
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    return () => clearInterval(speakingInterval);
-  }, [isSessionActive]);
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interim = "";
+        let final = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript;
+          } else {
+            interim += transcript;
+          }
+        }
+
+        if (final) {
+          setUserResponse((prev) => prev + " " + final);
+          setInterimTranscript("");
+        } else {
+          setInterimTranscript(interim);
+        }
+
+        // Update speaking state based on audio activity
+        setIsSpeaking(true);
+      };
+
+      recognition.onspeechend = () => {
+        setIsSpeaking(false);
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error("Speech recognition error:", event.error);
+        if (event.error !== "no-speech") {
+          setIsListening(false);
+        }
+      };
+
+      recognition.onend = () => {
+        // Restart if still supposed to be listening
+        if (isListening && recognitionRef.current) {
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            // Ignore errors when restarting
+          }
+        }
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    // Initialize Speech Synthesis
+    if (window.speechSynthesis) {
+      synthRef.current = window.speechSynthesis;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+    };
+  }, [isListening]);
+
+  // Speaking detection based on real audio analysis
+  useEffect(() => {
+    if (!isSessionActive || !stream) return;
+
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+    const microphone = audioContext.createMediaStreamSource(stream);
+    microphone.connect(analyser);
+    analyser.fftSize = 256;
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    const checkAudio = () => {
+      analyser.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+      setIsSpeaking(average > 20);
+    };
+
+    const interval = setInterval(checkAudio, 100);
+
+    return () => {
+      clearInterval(interval);
+      audioContext.close();
+    };
+  }, [isSessionActive, stream]);
 
   // Simulate live metric updates
   useEffect(() => {
@@ -287,15 +401,82 @@ export default function MockInterviewSession() {
     [], // Empty deps - uses ref for elapsedTime
   );
 
-  // Handle user response submission
+  // Text-to-Speech function
+  const speakText = useCallback(
+    (text: string) => {
+      if (!isTTSEnabled || !synthRef.current) return;
+
+      // Cancel any ongoing speech
+      synthRef.current.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      // Try to use a professional-sounding voice
+      const voices = synthRef.current.getVoices();
+      const preferredVoice = voices.find(
+        (v) =>
+          v.name.includes("Google") ||
+          v.name.includes("Microsoft") ||
+          v.name.includes("Samantha"),
+      );
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      utterance.onstart = () => setIsSpeakingTTS(true);
+      utterance.onend = () => setIsSpeakingTTS(false);
+      utterance.onerror = () => setIsSpeakingTTS(false);
+
+      synthRef.current.speak(utterance);
+    },
+    [isTTSEnabled],
+  );
+
+  // Start/Stop voice recognition
+  const toggleVoiceRecognition = useCallback(() => {
+    if (!recognitionRef.current) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        responseStartTimeRef.current = Date.now();
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error("Failed to start speech recognition:", error);
+      }
+    }
+  }, [isListening]);
+
+  // Handle user response submission with real API
   const handleSubmitResponse = async () => {
-    if (!userResponse.trim() || !sessionConfig) return;
+    const responseText = (userResponse + " " + interimTranscript).trim();
+    if (!responseText || !sessionConfig || !sessionId) return;
+
+    // Stop listening if active
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+
+    // Calculate response time
+    const responseTime = responseStartTimeRef.current
+      ? (Date.now() - responseStartTimeRef.current) / 1000
+      : 0;
 
     // Add user response to transcript
-    addToTranscript(t("mockInterviewSession.you"), userResponse, true);
+    addToTranscript(t("mockInterviewSession.you"), responseText, true);
 
     // Update speaking patterns
-    const words = userResponse.split(" ").length;
+    const words = responseText.split(" ").length;
     setSpeakingPatterns((prev) => ({
       ...prev,
       totalWords: prev.totalWords + words,
@@ -305,24 +486,85 @@ export default function MockInterviewSession() {
     }));
 
     setUserResponse("");
+    setInterimTranscript("");
     setIsAIProcessing(true);
 
-    // Simulate AI processing
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Call real API for response processing
+      const response = await api.submitMockInterviewResponse(sessionId, {
+        questionIndex: currentQuestionIndex,
+        response: responseText,
+        responseTime,
+      });
 
-    // AI feedback
-    const feedbackResponses = [
-      t("mockInterviewSession.aiFeedback1"),
-      t("mockInterviewSession.aiFeedback2"),
-      t("mockInterviewSession.aiFeedback3"),
-      t("mockInterviewSession.aiFeedback4"),
-      t("mockInterviewSession.aiFeedback5"),
-    ];
-    const feedback =
-      feedbackResponses[Math.floor(Math.random() * feedbackResponses.length)];
-    addToTranscript(t("mockInterviewSession.aiInterviewer"), feedback, false);
+      if (response.success && response.data) {
+        const { aiResponse, aiAnalysis, tips, shouldMoveToNext, nextQuestion } =
+          response.data;
+
+        // Update live metrics from AI analysis
+        if (aiAnalysis?.metrics) {
+          setLiveMetrics((prev) => ({
+            confidence: aiAnalysis.metrics.confidence || prev.confidence,
+            clarity: aiAnalysis.metrics.clarity || prev.clarity,
+            pace: aiAnalysis.metrics.pace || prev.pace,
+            eyeContact: prev.eyeContact, // Keep simulated for now
+            technicalAccuracy:
+              aiAnalysis.metrics.technicalAccuracy || prev.technicalAccuracy,
+            articulation: prev.articulation, // Keep simulated for now
+          }));
+
+          // Update speaking patterns from analysis
+          setSpeakingPatterns((prev) => ({
+            ...prev,
+            fillerWords:
+              prev.fillerWords + (aiAnalysis.metrics.fillerWords || 0),
+            avgResponseTime: `${responseTime.toFixed(1)}s`,
+          }));
+        }
+
+        // Update real-time tips
+        if (tips && tips.length > 0) {
+          setRealTimeTips(tips);
+        }
+
+        // Add AI feedback to transcript
+        addToTranscript(
+          t("mockInterviewSession.aiInterviewer"),
+          aiResponse,
+          false,
+        );
+
+        // Speak the AI response
+        speakText(aiResponse);
+
+        // Auto-advance to next question if indicated
+        if (shouldMoveToNext && nextQuestion) {
+          setCurrentQuestionIndex((prev) => prev + 1);
+
+          // Add and speak next question after a delay
+          setTimeout(() => {
+            addToTranscript(
+              t("mockInterviewSession.aiInterviewer"),
+              nextQuestion.text,
+              false,
+            );
+            speakText(nextQuestion.text);
+          }, 2000);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to process response:", error);
+      // Fallback to local feedback
+      const fallbackFeedback = t("mockInterviewSession.aiFeedback1");
+      addToTranscript(
+        t("mockInterviewSession.aiInterviewer"),
+        fallbackFeedback,
+        false,
+      );
+    }
 
     setIsAIProcessing(false);
+    responseStartTimeRef.current = Date.now(); // Reset for next response
   };
 
   // Handle next question
@@ -333,24 +575,59 @@ export default function MockInterviewSession() {
       const nextIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(nextIndex);
 
-      // Add next question to transcript
+      // Add next question to transcript and speak it
       setTimeout(() => {
+        const questionText = sessionConfig.questions[nextIndex].text;
         addToTranscript(
           t("mockInterviewSession.aiInterviewer"),
-          sessionConfig.questions[nextIndex].text,
+          questionText,
           false,
         );
+        speakText(questionText);
       }, 1000);
     }
   };
 
-  // Handle end session
-  const handleEndSession = () => {
-    if (confirm(t("mockInterviewSession.confirmEndSession"))) {
-      setIsSessionActive(false);
-      localStorage.removeItem("currentInterviewSession");
+  // Handle end session with API completion
+  const handleEndSession = async () => {
+    if (!confirm(t("mockInterviewSession.confirmEndSession"))) return;
 
-      // Save session results
+    setIsSessionActive(false);
+    setIsAIProcessing(true);
+
+    // Stop any ongoing speech
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+
+    try {
+      // Complete session via API
+      if (sessionId) {
+        const response = await api.completeMockInterviewSession(sessionId);
+
+        if (response.success && response.data) {
+          // Store complete results
+          const results = {
+            sessionId,
+            position: sessionConfig?.position,
+            duration: elapsedTime,
+            questionsAnswered: response.data.questionsAnswered,
+            totalQuestions: response.data.totalQuestions,
+            transcript,
+            metrics: response.data.metrics,
+            summary: response.data.summary,
+            speakingPatterns,
+            completedAt: response.data.completedAt,
+          };
+          localStorage.setItem("lastInterviewResults", JSON.stringify(results));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to complete session:", error);
+      // Save local results as fallback
       const results = {
         sessionId,
         position: sessionConfig?.position,
@@ -363,10 +640,12 @@ export default function MockInterviewSession() {
         completedAt: new Date().toISOString(),
       };
       localStorage.setItem("lastInterviewResults", JSON.stringify(results));
-
-      toast.success(t("mockInterviewSession.sessionCompleted"));
-      navigate(ROUTES.CANDIDATE_DASHBOARD);
     }
+
+    localStorage.removeItem("currentInterviewSession");
+    setIsAIProcessing(false);
+    toast.success(t("mockInterviewSession.sessionCompleted"));
+    navigate(ROUTES.CANDIDATE_DASHBOARD);
   };
 
   // Toggle mic/video
@@ -377,6 +656,11 @@ export default function MockInterviewSession() {
         track.enabled = !micEnabled;
       });
     }
+    // Also toggle voice recognition with mic
+    if (micEnabled && isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
   };
 
   const toggleVideo = () => {
@@ -386,6 +670,14 @@ export default function MockInterviewSession() {
         track.enabled = !videoEnabled;
       });
     }
+  };
+
+  // Toggle TTS
+  const toggleTTS = () => {
+    if (isTTSEnabled && synthRef.current) {
+      synthRef.current.cancel();
+    }
+    setIsTTSEnabled(!isTTSEnabled);
   };
 
   // Loading state
@@ -510,6 +802,7 @@ export default function MockInterviewSession() {
                       ? "bg-gray-700 text-white hover:bg-gray-600"
                       : "bg-red-600 text-white hover:bg-red-700"
                   }`}
+                  title={micEnabled ? "Mute microphone" : "Unmute microphone"}
                 >
                   {micEnabled ? (
                     <Mic className="w-6 h-6" />
@@ -524,6 +817,7 @@ export default function MockInterviewSession() {
                       ? "bg-gray-700 text-white hover:bg-gray-600"
                       : "bg-red-600 text-white hover:bg-red-700"
                   }`}
+                  title={videoEnabled ? "Turn off camera" : "Turn on camera"}
                 >
                   {videoEnabled ? (
                     <Video className="w-6 h-6" />
@@ -532,8 +826,24 @@ export default function MockInterviewSession() {
                   )}
                 </button>
                 <button
+                  onClick={toggleTTS}
+                  className={`p-4 rounded-full transition-all ${
+                    isTTSEnabled
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-orange-600 text-white hover:bg-orange-700"
+                  } ${isSpeakingTTS ? "ring-2 ring-blue-500 animate-pulse" : ""}`}
+                  title={isTTSEnabled ? "Mute AI voice" : "Unmute AI voice"}
+                >
+                  {isTTSEnabled ? (
+                    <Volume2 className="w-6 h-6" />
+                  ) : (
+                    <VolumeX className="w-6 h-6" />
+                  )}
+                </button>
+                <button
                   onClick={handleEndSession}
                   className="p-4 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all"
+                  title="End interview"
                 >
                   <Phone className="w-6 h-6 rotate-[135deg]" />
                 </button>
@@ -558,29 +868,73 @@ export default function MockInterviewSession() {
               </p>
 
               {/* Response Input */}
-              <div className="flex space-x-3">
-                <input
-                  type="text"
-                  value={userResponse}
-                  onChange={(e) => setUserResponse(e.target.value)}
-                  onKeyPress={(e) =>
-                    e.key === "Enter" && handleSubmitResponse()
-                  }
-                  placeholder={t("mockInterviewSession.typeResponse")}
-                  className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isAIProcessing}
-                />
-                <button
-                  onClick={handleSubmitResponse}
-                  disabled={!userResponse.trim() || isAIProcessing}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {isAIProcessing ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </button>
+              <div className="space-y-3">
+                {/* Interim transcript display */}
+                {interimTranscript && (
+                  <div className="px-4 py-2 bg-gray-700/50 rounded-lg border border-gray-600/50">
+                    <p className="text-gray-400 text-sm italic">
+                      {interimTranscript}...
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex space-x-3">
+                  {/* Voice input button */}
+                  <button
+                    onClick={toggleVoiceRecognition}
+                    disabled={!micEnabled}
+                    className={`px-4 py-3 rounded-xl transition-all ${
+                      isListening
+                        ? "bg-red-600 text-white animate-pulse"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    } ${!micEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                    title={isListening ? "Stop listening" : "Start voice input"}
+                  >
+                    {isListening ? (
+                      <MicOff className="w-5 h-5" />
+                    ) : (
+                      <Mic className="w-5 h-5" />
+                    )}
+                  </button>
+
+                  <input
+                    type="text"
+                    value={userResponse}
+                    onChange={(e) => setUserResponse(e.target.value)}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && handleSubmitResponse()
+                    }
+                    placeholder={
+                      isListening
+                        ? t("mockInterviewSession.listening") || "Listening..."
+                        : t("mockInterviewSession.typeResponse")
+                    }
+                    className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isAIProcessing}
+                  />
+                  <button
+                    onClick={handleSubmitResponse}
+                    disabled={
+                      (!userResponse.trim() && !interimTranscript) ||
+                      isAIProcessing
+                    }
+                    className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isAIProcessing ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Voice status indicator */}
+                {isListening && (
+                  <div className="flex items-center justify-center space-x-2 text-red-400 text-sm">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span>Recording your response...</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -691,21 +1045,20 @@ export default function MockInterviewSession() {
                 </h4>
               </div>
               <div className="space-y-2">
-                <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-800">
-                  <p className="text-xs text-gray-300">
-                    {t("mockInterviewSession.tipEyeContact")}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-900/20 rounded-lg border border-green-800">
-                  <p className="text-xs text-gray-300">
-                    {t("mockInterviewSession.tipTechnicalExamples")}
-                  </p>
-                </div>
-                <div className="p-3 bg-orange-900/20 rounded-lg border border-orange-800">
-                  <p className="text-xs text-gray-300">
-                    {t("mockInterviewSession.tipFillerWords")}
-                  </p>
-                </div>
+                {realTimeTips.map((tip, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-lg border transition-all ${
+                      tip.type === "success"
+                        ? "bg-green-900/20 border-green-800"
+                        : tip.type === "warning"
+                          ? "bg-orange-900/20 border-orange-800"
+                          : "bg-blue-900/20 border-blue-800"
+                    }`}
+                  >
+                    <p className="text-xs text-gray-300">{tip.message}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
