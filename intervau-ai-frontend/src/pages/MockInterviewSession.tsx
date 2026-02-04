@@ -21,6 +21,7 @@ import { ROUTES } from "../router";
 import toast from "react-hot-toast";
 import { useMediaStream } from "../components/interview/MediaStreamHandler";
 import { useTranslation } from "../hooks/useTranslation";
+import api from "../services/api";
 
 interface Question {
   id: number;
@@ -71,6 +72,11 @@ export default function MockInterviewSession() {
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [userResponse, setUserResponse] = useState("");
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Ref for elapsedTime to avoid re-creating addToTranscript on every tick
+  const elapsedTimeRef = useRef(elapsedTime);
+  elapsedTimeRef.current = elapsedTime;
 
   // Metrics state (simulated live updates)
   const [liveMetrics, setLiveMetrics] = useState({
@@ -110,51 +116,92 @@ export default function MockInterviewSession() {
     },
   });
 
-  // Load session from localStorage
+  // Load session from localStorage or fetch from backend
   useEffect(() => {
-    const stored = localStorage.getItem("currentInterviewSession");
-    if (!stored) {
-      toast.error(t("mockInterviewSession.noActiveSession"));
-      navigate(ROUTES.MOCK_INTERVIEW);
-      return;
-    }
+    const loadSession = async () => {
+      setIsLoading(true);
+      let session: SessionConfig | null = null;
 
-    try {
-      const session = JSON.parse(stored) as SessionConfig;
-      if (session.id !== sessionId) {
-        toast.error(t("mockInterviewSession.sessionMismatch"));
+      // Try localStorage first
+      const stored = localStorage.getItem("currentInterviewSession");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as SessionConfig;
+          if (parsed.id === sessionId) {
+            session = parsed;
+          }
+        } catch (error) {
+          console.error("Failed to parse localStorage session:", error);
+        }
+      }
+
+      // If localStorage doesn't have valid session, try fetching from backend
+      if (!session && sessionId) {
+        try {
+          const response = await api.getMockInterviewSession(sessionId);
+          if (response.success && response.data) {
+            const data = response.data;
+            session = {
+              id: data.sessionId || sessionId,
+              position: data.position || "Unknown Position",
+              duration: data.duration || 30,
+              questionCount: data.questions?.length || 0,
+              difficulty: data.difficulty || "medium",
+              questions: data.questions || [],
+              startedAt: data.startedAt || new Date().toISOString(),
+            };
+            // Store in localStorage for future use
+            localStorage.setItem(
+              "currentInterviewSession",
+              JSON.stringify(session),
+            );
+          }
+        } catch (error) {
+          console.error("Failed to fetch session from backend:", error);
+        }
+      }
+
+      if (!session) {
+        toast.error(t("mockInterviewSession.noActiveSession"));
         navigate(ROUTES.MOCK_INTERVIEW);
+        setIsLoading(false);
         return;
       }
+
       setSessionConfig(session);
       setIsSessionActive(true);
+      setIsLoading(false);
 
       // Add initial AI greeting to transcript
-      addToTranscript(
-        t("mockInterviewSession.aiInterviewer"),
-        t("mockInterviewSession.welcomeMessage", {
+      const greeting: TranscriptEntry = {
+        id: Date.now().toString(),
+        speaker: t("mockInterviewSession.aiInterviewer"),
+        text: t("mockInterviewSession.welcomeMessage", {
           position: session.position,
           count: session.questions.length,
         }),
-        false,
-      );
+        time: "00:00",
+        isCandidate: false,
+      };
+      setTranscript([greeting]);
 
       // Add first question after a delay
       setTimeout(() => {
-        if (session.questions.length > 0) {
-          addToTranscript(
-            t("mockInterviewSession.aiInterviewer"),
-            session.questions[0].text,
-            false,
-          );
+        if (session && session.questions.length > 0) {
+          const firstQuestion: TranscriptEntry = {
+            id: (Date.now() + 1).toString(),
+            speaker: t("mockInterviewSession.aiInterviewer"),
+            text: session.questions[0].text,
+            time: "00:02",
+            isCandidate: false,
+          };
+          setTranscript((prev) => [...prev, firstQuestion]);
         }
       }, 2000);
-    } catch (error) {
-      console.error("Failed to parse session:", error);
-      toast.error(t("mockInterviewSession.invalidSession"));
-      navigate(ROUTES.MOCK_INTERVIEW);
-    }
-  }, [sessionId, navigate, t, addToTranscript]);
+    };
+
+    loadSession();
+  }, [sessionId, navigate, t]);
 
   // Timer effect
   useEffect(() => {
@@ -225,19 +272,19 @@ export default function MockInterviewSession() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Add transcript entry
+  // Add transcript entry - uses ref for elapsedTime to keep callback stable
   const addToTranscript = useCallback(
     (speaker: string, text: string, isCandidate: boolean) => {
       const entry: TranscriptEntry = {
         id: Date.now().toString(),
         speaker,
         text,
-        time: formatTime(elapsedTime),
+        time: formatTime(elapsedTimeRef.current),
         isCandidate,
       };
       setTranscript((prev) => [...prev, entry]);
     },
-    [elapsedTime],
+    [], // Empty deps - uses ref for elapsedTime
   );
 
   // Handle user response submission
@@ -342,7 +389,7 @@ export default function MockInterviewSession() {
   };
 
   // Loading state
-  if (!sessionConfig) {
+  if (isLoading || !sessionConfig) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">

@@ -30,6 +30,7 @@ import MockInterview from "./pages/MockInterview";
 import MockInterviewSetup from "./pages/MockInterviewSetup";
 import MockInterviewReady from "./pages/MockInterviewReady";
 import MockInterviewSession from "./pages/MockInterviewSession";
+import MockInterviewErrorBoundary from "./components/interview/MockInterviewErrorBoundary";
 import InterviewHistory from "./pages/InterviewHistory";
 import InterviewReport from "./pages/InterviewReport";
 import ProfileSettings from "./pages/ProfileSettings";
@@ -225,7 +226,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute roles={["candidate"]}>
             <AuthenticatedLayout>
-              <MockInterviewSession />
+              <MockInterviewErrorBoundary>
+                <MockInterviewSession />
+              </MockInterviewErrorBoundary>
             </AuthenticatedLayout>
           </ProtectedRoute>
         }
