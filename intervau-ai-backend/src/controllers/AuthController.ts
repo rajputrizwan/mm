@@ -566,11 +566,12 @@ export class AuthController {
       // Find user by email
       const user = await User.findOne({ email: email.toLowerCase().trim() });
 
-      // Don't reveal if user exists or not for security
+      // Return clear error when email is not registered
       if (!user) {
-        return res.status(200).json({
-          success: true,
-          message: 'If an account exists with this email, you will receive password reset instructions.',
+        return res.status(404).json({
+          success: false,
+          message: 'We couldn\'t find an account with that email address. Please double-check your email or create a new account.',
+          error: 'We couldn\'t find an account with that email address. Please double-check your email or create a new account.',
         });
       }
 
