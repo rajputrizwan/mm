@@ -114,7 +114,7 @@ function AppRoutes() {
       <Route
         path={ROUTES.FORGOT_PASSWORD}
         element={
-          <PublicLayout>
+          <PublicLayout showNavbar={false}>
             <ForgotPassword />
           </PublicLayout>
         }
@@ -122,7 +122,7 @@ function AppRoutes() {
       <Route
         path={ROUTES.RESET_PASSWORD}
         element={
-          <PublicLayout>
+          <PublicLayout showNavbar={false}>
             <ResetPassword />
           </PublicLayout>
         }
