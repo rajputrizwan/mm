@@ -464,7 +464,7 @@ export const sendPasswordResetEmail = async (
               <p>To reset your password, click the button below:</p>
               
               <div style="text-align: center;">
-                <a href="${resetUrl}" class="reset-button">Reset My Password</a>
+                <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#2563eb 0%,#06b6d4 100%);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;margin:25px 0;text-align:center;">Reset My Password</a>
               </div>
               
               <div class="expiry-info">
