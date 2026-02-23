@@ -38,12 +38,31 @@ export default function Login() {
     }
   }, [user, navigate]);
 
+  // Load saved Remember Me preferences on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    const savedRememberMe = localStorage.getItem("rememberMe") === "true";
+    if (savedRememberMe && savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       await login(email, password, rememberMe);
+
+      // Persist or clear email based on Remember Me checkbox
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+        localStorage.setItem("rememberMe", "true");
+      } else {
+        localStorage.removeItem("rememberedEmail");
+        localStorage.removeItem("rememberMe");
+      }
 
       // Show success notification
       addNotification("Signed in successfully. Redirecting...", "success");
