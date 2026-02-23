@@ -8,6 +8,8 @@ import {
   Users,
   TrendingUp,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -24,6 +26,8 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [companyName, setCompanyName] = useState("Intervau");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const { addNotification } = useApp();
@@ -246,11 +250,10 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("candidate")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "candidate"
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
                     ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
@@ -260,11 +263,10 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setRole("hr")}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  role === "hr"
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
                     ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UserIcon className="w-4 h-4" />
@@ -307,38 +309,91 @@ export default function Register() {
                 required
               />
 
-              <Input
-                type="password"
-                label={t("auth.password")}
-                icon={Lock}
-                placeholder={t("auth.passwordPlaceholder")}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                helperText="Must be 8+ characters with uppercase, lowercase, and number"
-                error={
-                  password && validatePassword(password)
-                    ? validatePassword(password) || undefined
-                    : undefined
-                }
-                required
-                minLength={8}
-              />
+              {/* Password field with visibility toggle */}
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t("auth.password")}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder={t("auth.passwordPlaceholder")}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className={`block w-full rounded-lg border ${password && validatePassword(password)
+                        ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
+                        : "border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                      } pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 transition-colors`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+                {password && validatePassword(password) ? (
+                  <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                    {validatePassword(password)}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+                    Must be 8+ characters with uppercase, lowercase, and number
+                  </p>
+                )}
+              </div>
 
-              <Input
-                type="password"
-                label={t("auth.confirmPassword")}
-                icon={Lock}
-                placeholder={t("auth.passwordPlaceholder")}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                error={
-                  password && confirmPassword && password !== confirmPassword
-                    ? t("auth.passwordsDoNotMatch")
-                    : undefined
-                }
-                required
-                minLength={8}
-              />
+              {/* Confirm Password field with visibility toggle */}
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t("auth.confirmPassword")}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder={t("auth.passwordPlaceholder")}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className={`block w-full rounded-lg border ${password && confirmPassword && password !== confirmPassword
+                        ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
+                        : "border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                      } pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 transition-colors`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+                {password && confirmPassword && password !== confirmPassword && (
+                  <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                    {t("auth.passwordsDoNotMatch")}
+                  </p>
+                )}
+              </div>
 
               <div className="text-xs text-gray-600 dark:text-gray-400">
                 {t("auth.agreeTerms")}{" "}
