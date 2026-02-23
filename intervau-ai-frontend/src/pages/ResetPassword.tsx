@@ -24,6 +24,7 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [tokenError, setTokenError] = useState(false);
+  const [countdown, setCountdown] = useState(3);
   const navigate = useNavigate();
 
   const token = searchParams.get("token");
@@ -33,6 +34,22 @@ export default function ResetPassword() {
       setTokenError(true);
     }
   }, [token]);
+
+  // Countdown and auto-redirect after successful reset
+  useEffect(() => {
+    if (!success) return;
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          navigate(ROUTES.LOGIN);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [success, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,10 +84,7 @@ export default function ResetPassword() {
 
       if (response.success) {
         setSuccess(true);
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          navigate(ROUTES.LOGIN);
-        }, 3000);
+        // Redirect handled by countdown useEffect
       } else {
         setError(
           response.error || "Failed to reset password. Please try again.",
@@ -111,7 +125,7 @@ export default function ResetPassword() {
             </Button>
 
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-              Redirecting automatically in 3 seconds...
+              Redirecting automatically in {countdown} second{countdown !== 1 ? "s" : ""}...
             </p>
           </div>
         </div>
