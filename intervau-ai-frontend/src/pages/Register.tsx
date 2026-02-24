@@ -30,7 +30,7 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
-  const { addNotification } = useApp();
+  const { addNotification, addToast } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -56,18 +56,18 @@ export default function Register() {
     // Validate password strength
     const passwordError = validatePassword(password);
     if (passwordError) {
-      addNotification(passwordError, "error");
+      addToast(passwordError, "error");
       return;
     }
 
     if (password !== confirmPassword) {
-      addNotification("Passwords do not match.", "error");
+      addToast("Passwords do not match.", "error");
       return;
     }
 
     // Validate HR requires company name
     if (role === "hr" && !companyName.trim()) {
-      addNotification("Company name is required for HR accounts.", "error");
+      addToast("Company name is required for HR accounts.", "error");
       return;
     }
 
@@ -75,7 +75,12 @@ export default function Register() {
 
     try {
       await register(name, email, password, role, companyName);
-      addNotification("Account created successfully.", "success");
+      // Persistent welcome notification in the bell panel
+      addNotification(
+        `Welcome to Intervau.AI, ${name || "there"}! Your account is ready.`,
+        "success",
+        "Account created!",
+      );
       setTimeout(() => {
         setLoading(false);
         navigate(getDefaultRoute(role));
@@ -86,7 +91,7 @@ export default function Register() {
         error?.message ||
         error?.error ||
         "Account creation failed. Please try again.";
-      addNotification(errorMessage, "error");
+      addNotification(errorMessage, "error", "Registration failed");
     }
   };
 
@@ -251,8 +256,8 @@ export default function Register() {
                 type="button"
                 onClick={() => setRole("candidate")}
                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "candidate"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -264,8 +269,8 @@ export default function Register() {
                 type="button"
                 onClick={() => setRole("hr")}
                 className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${role === "hr"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-md"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -326,8 +331,8 @@ export default function Register() {
                     required
                     minLength={8}
                     className={`block w-full rounded-lg border ${password && validatePassword(password)
-                        ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                      ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
                       } pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 transition-colors`}
                   />
                   <button
@@ -371,8 +376,8 @@ export default function Register() {
                     required
                     minLength={8}
                     className={`block w-full rounded-lg border ${password && confirmPassword && password !== confirmPassword
-                        ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                      ? "border-red-300 dark:border-red-700 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
                       } pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 transition-colors`}
                   />
                   <button

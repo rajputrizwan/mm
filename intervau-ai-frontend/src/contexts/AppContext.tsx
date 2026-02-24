@@ -9,14 +9,7 @@ import {
 export type Theme = "light" | "dark";
 export type Language = "en" | "es" | "fr" | "de" | "pt";
 
-interface AppState {
-  theme: Theme;
-  language: Language;
-  sidebarOpen: boolean;
-  notifications: Notification[];
-}
-
-interface Notification {
+export interface Notification {
   id: string;
   title?: string;
   message: string;
@@ -24,6 +17,15 @@ interface Notification {
   timestamp: Date;
   read: boolean;
   dismissed: boolean;
+  /** true → stored in bell-panel history; false → ephemeral toast only */
+  persistent: boolean;
+}
+
+interface AppState {
+  theme: Theme;
+  language: Language;
+  sidebarOpen: boolean;
+  notifications: Notification[];
 }
 
 interface AppContextType extends AppState {
@@ -32,16 +34,20 @@ interface AppContextType extends AppState {
   setLanguage: (language: Language) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+  /** Add a PERSISTENT notification — stored in the bell-panel history */
   addNotification: (
     message: string,
     type: Notification["type"],
     title?: string,
   ) => void;
+  /** Add a TOAST-ONLY notification — shown in overlay for 3 s, never in bell panel */
+  addToast: (message: string, type: Notification["type"]) => void;
   removeNotification: (id: string) => void;
   dismissNotification: (id: string) => void;
   clearNotifications: () => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
+  /** Count of unread PERSISTENT notifications (used for bell badge) */
   unreadCount: number;
 }
 
@@ -71,6 +77,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
   }, [language]);
 
+  // Clear all notifications when the user logs out
+  useEffect(() => {
+    const handleUserLogout = () => setNotifications([]);
+    window.addEventListener("userLogout", handleUserLogout);
+    return () => window.removeEventListener("userLogout", handleUserLogout);
+  }, []);
+
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
   };
@@ -87,6 +100,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSidebarOpen((prev) => !prev);
   };
 
+  /** Persistent notification → added to bell-panel history */
   const addNotification = (
     message: string,
     type: Notification["type"],
@@ -100,6 +114,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       timestamp: new Date(),
       read: false,
       dismissed: false,
+      persistent: true,
+    };
+    setNotifications((prev) => [notification, ...prev]);
+  };
+
+  /** Toast-only notification → shows in overlay, never in bell panel */
+  const addToast = (message: string, type: Notification["type"]) => {
+    const notification: Notification = {
+      id: Date.now().toString(),
+      message,
+      type,
+      timestamp: new Date(),
+      read: true,
+      dismissed: false,
+      persistent: false,
     };
     setNotifications((prev) => [notification, ...prev]);
   };
@@ -115,7 +144,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const clearNotifications = () => {
-    setNotifications([]);
+    // Only clear persistent ones; let transient toasts self-dismiss
+    setNotifications((prev) => prev.filter((n) => !n.persistent));
   };
 
   const markAsRead = (id: string) => {
@@ -128,7 +158,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  /** Badge count: only unread persistent notifications */
+  const unreadCount = notifications.filter(
+    (n) => n.persistent && !n.read,
+  ).length;
 
   return (
     <AppContext.Provider
@@ -143,6 +176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toggleSidebar,
         notifications,
         addNotification,
+        addToast,
         removeNotification,
         dismissNotification,
         clearNotifications,

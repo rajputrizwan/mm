@@ -14,11 +14,13 @@ import {
   X,
 } from "lucide-react";
 import api from "../services/api";
+import { useApp } from "../contexts/AppContext";
 import { ResumeAnalysisResult } from "../types/resume";
 import toast from "react-hot-toast";
 
 export default function Resume() {
   const navigate = useNavigate();
+  const { addNotification } = useApp();
   const [analyzing, setAnalyzing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analysisResult, setAnalysisResult] =
@@ -101,6 +103,13 @@ export default function Resume() {
         // Save to localStorage
         localStorage.setItem("resumeAnalysis", JSON.stringify(response.data));
         toast.success("Resume analyzed successfully.");
+        // Persistent bell-panel notification with skill count
+        const skillCount = response.data.extractedSkills?.length ?? 0;
+        addNotification(
+          `Your resume was analysed — ${skillCount} skill${skillCount !== 1 ? 's' : ''} extracted.`,
+          "success",
+          "Resume analysed",
+        );
       } else {
         throw new Error(response.message || "Analysis failed.");
       }
@@ -166,6 +175,11 @@ export default function Resume() {
     // Also clear from DB
     try {
       await api.deleteResumeAnalysis();
+      addNotification(
+        "Your resume and analysis have been cleared.",
+        "info",
+        "Resume removed",
+      );
     } catch {
       // Non-critical — localStorage already cleared
     }

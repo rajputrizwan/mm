@@ -27,6 +27,9 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
     } = useApp();
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    // Bell panel only shows persistent (non-transient) notifications
+    const panelNotifications = notifications.filter((n) => n.persistent);
+
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -102,7 +105,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                             <Check className="w-4 h-4" />
                         </button>
                     )}
-                    {notifications.length > 0 && (
+                    {panelNotifications.length > 0 && (
                         <button
                             onClick={clearNotifications}
                             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
@@ -116,7 +119,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
 
             {/* Notifications List */}
             <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
+                {panelNotifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 px-4">
                         <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                             <Bell className="w-8 h-8 text-gray-400 dark:text-gray-500" />
@@ -128,7 +131,7 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {notifications.map((notification) => {
+                        {panelNotifications.map((notification) => {
                             const Icon = icons[notification.type];
                             return (
                                 <div
@@ -175,10 +178,10 @@ export default function NotificationDropdown({ isOpen, onClose }: NotificationDr
             </div>
 
             {/* Footer */}
-            {notifications.length > 0 && (
+            {panelNotifications.length > 0 && (
                 <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
                     <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                        {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+                        {panelNotifications.length} notification{panelNotifications.length !== 1 ? 's' : ''}
                     </p>
                 </div>
             )}

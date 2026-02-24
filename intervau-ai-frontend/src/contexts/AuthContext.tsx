@@ -159,6 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       removeAuthToken();
       // Clear any user-specific cached data so it never leaks to the next account
       localStorage.removeItem("resumeAnalysis");
+      // Signal AppContext to clear its notification list
+      window.dispatchEvent(new CustomEvent("userLogout"));
       setUser(null);
       setLoading(false);
     }

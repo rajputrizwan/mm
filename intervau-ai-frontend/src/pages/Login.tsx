@@ -26,7 +26,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
-  const { addNotification } = useApp();
+  const { addNotification, addToast } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -64,15 +64,23 @@ export default function Login() {
         localStorage.removeItem("rememberMe");
       }
 
-      // Show success notification
-      addNotification("Signed in successfully. Redirecting...", "success");
+      // Brief ephemeral toast (not stored in bell panel)
+      addToast("Signed in successfully. Redirecting...", "success");
+
+      // Persistent welcome notification in bell panel — fetch user from auth state
+      addNotification(
+        `You have signed in successfully.`,
+        "success",
+        `Welcome back!`,
+      );
     } catch (error: any) {
-      // Show error notification
+      // Show persistent error in bell panel so user doesn't miss it
       console.error("Login failed:", error);
       addNotification(
         error?.message ||
         "Sign-in failed. Check your email and password, then try again.",
         "error",
+        "Login failed",
       );
     } finally {
       setLoading(false);

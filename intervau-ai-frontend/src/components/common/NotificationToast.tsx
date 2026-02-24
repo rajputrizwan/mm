@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
-import { useApp } from "../../contexts/AppContext";
+import { useApp, Notification } from "../../contexts/AppContext";
 
 function ToastItem({
   notification,
   onDismiss,
 }: {
-  notification: any;
+  notification: Notification;
   onDismiss: (id: string) => void;
 }) {
   useEffect(() => {
@@ -57,8 +57,8 @@ function ToastItem({
 export default function NotificationToast() {
   const { notifications, dismissNotification } = useApp();
 
-  // Only show notifications that haven't been dismissed
-  const activeToasts = notifications.filter((n) => !n.dismissed);
+  // Only show toast-only (non-persistent) notifications that haven't been dismissed
+  const activeToasts = notifications.filter((n) => !n.persistent && !n.dismissed);
 
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
