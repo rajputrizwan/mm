@@ -145,6 +145,20 @@ export const api = {
       body: { email },
     }),
 
+  // Resume Analysis persistence
+  getResumeAnalysis: () =>
+    request<{
+      extractedSkills: Array<{ name: string; category: string; level?: number }>;
+      skillGaps: Array<{ skill: string; importance: string; recommendation: string }>;
+      suggestedQuestions: Array<{ question: string; category: string; difficulty: string }>;
+      matchScore: number;
+      analyzedAt: string;
+      fileName: string;
+    }>("/candidates/resume-analysis", { method: "GET" }),
+
+  deleteResumeAnalysis: () =>
+    request("/candidates/resume-analysis", { method: "DELETE" }),
+
   resetPassword: (
     token: string,
     newPassword: string,
@@ -332,8 +346,6 @@ export const api = {
       }));
   },
 
-  getResumeAnalysis: (resumeId: string) =>
-    request<any>(`/resume/${resumeId}/analysis`),
 
   // Profile Management
   updateProfile: (data: any) =>

@@ -35,6 +35,20 @@ const { upload } = require('../middleware/upload');
 router.post('/analyze-resume', upload.single('resume'), CandidateController.analyzeResume);
 
 /**
+ * GET /api/candidates/resume-analysis
+ * Get the authenticated user's saved resume analysis (Candidate only)
+ * MUST come before /:id route to avoid conflicts
+ */
+router.get('/resume-analysis', CandidateController.getResumeAnalysis);
+
+/**
+ * DELETE /api/candidates/resume-analysis
+ * Delete the authenticated user's saved resume analysis (Candidate only)
+ * MUST come before /:id route to avoid conflicts
+ */
+router.delete('/resume-analysis', CandidateController.deleteResumeAnalysis);
+
+/**
  * GET /api/candidates/dashboard/stats
  * Get dashboard statistics (Candidate only)
  * MUST come before /:id route to avoid conflicts

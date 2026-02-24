@@ -26,17 +26,39 @@ export default function Resume() {
   const [error, setError] = useState<string | null>(null);
   const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
 
-  // Load saved analysis from localStorage on mount
+  // Load saved analysis: try DB first, fall back to localStorage only on network failure
   useEffect(() => {
-    const saved = localStorage.getItem("resumeAnalysis");
-    if (saved) {
+    const loadAnalysis = async () => {
+      let serverResponded = false;
       try {
-        const parsed = JSON.parse(saved);
-        setAnalysisResult(parsed);
-      } catch (e) {
-        localStorage.removeItem("resumeAnalysis");
+        const response = await api.getResumeAnalysis();
+        serverResponded = true; // server replied (even with 404)
+
+        if (response.success && response.data) {
+          // Server has a resume for this user — load it and sync cache
+          setAnalysisResult(response.data as any);
+          localStorage.setItem("resumeAnalysis", JSON.stringify(response.data));
+        } else {
+          // Server confirmed this user has NO resume — clear any stale cache
+          // from a previous account so it is never shown to the wrong user.
+          localStorage.removeItem("resumeAnalysis");
+        }
+      } catch {
+        // Network / CORS failure — server was unreachable.
+        // Only use cache as an offline fallback when we couldn't reach the server at all.
+        if (!serverResponded) {
+          const saved = localStorage.getItem("resumeAnalysis");
+          if (saved) {
+            try {
+              setAnalysisResult(JSON.parse(saved));
+            } catch {
+              localStorage.removeItem("resumeAnalysis");
+            }
+          }
+        }
       }
-    }
+    };
+    loadAnalysis();
   }, []);
 
   // Handle file drop/selection
@@ -136,11 +158,17 @@ export default function Resume() {
       maxSize: 10 * 1024 * 1024, // 10MB
     });
 
-  const handleNewUpload = () => {
+  const handleNewUpload = async () => {
     setAnalysisResult(null);
     setError(null);
     setUploadProgress(0);
     localStorage.removeItem("resumeAnalysis");
+    // Also clear from DB
+    try {
+      await api.deleteResumeAnalysis();
+    } catch {
+      // Non-critical — localStorage already cleared
+    }
   };
 
   const handleSessionExpiredClose = () => {
@@ -216,11 +244,10 @@ export default function Resume() {
 
           <div
             {...getRootProps()}
-            className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-12 border-2 border-dashed transition-all cursor-pointer ${
-              isDragActive
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-105"
-                : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
-            } ${error ? "border-red-500" : ""}`}
+            className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-12 border-2 border-dashed transition-all cursor-pointer ${isDragActive
+              ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-105"
+              : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
+              } ${error ? "border-red-500" : ""}`}
           >
             <input {...getInputProps()} />
             <div className="text-center">

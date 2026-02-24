@@ -157,6 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout error:", error);
     } finally {
       removeAuthToken();
+      // Clear any user-specific cached data so it never leaks to the next account
+      localStorage.removeItem("resumeAnalysis");
       setUser(null);
       setLoading(false);
     }

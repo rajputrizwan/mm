@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Candidate } from '../models/Candidate';
+import { ResumeAnalysis } from '../models/ResumeAnalysis';
 
 export class CandidateController {
   static async create(req: Request, res: Response) {
@@ -343,11 +344,30 @@ export class CandidateController {
         matchScore = 0;
       }
 
-      // Step 6: Update candidate profile
+      // Step 6: Persist full analysis to DB + update candidate profile
       try {
         const userId = (req as any).user?.id;
         if (userId) {
-          console.log('[Resume Analysis] Updating candidate profile for user:', userId);
+          console.log('[Resume Analysis] Persisting analysis to DB for user:', userId);
+
+          // Upsert the full analysis result (replaces previous analysis)
+          await ResumeAnalysis.findOneAndUpdate(
+            { userId },
+            {
+              $set: {
+                userId,
+                fileName: file.originalname,
+                matchScore,
+                extractedSkills,
+                skillGaps,
+                suggestedQuestions,
+                analyzedAt: new Date(),
+              },
+            },
+            { upsert: true, new: true }
+          );
+
+          // Also update the Candidate profile skills
           await Candidate.findOneAndUpdate(
             { userId },
             {
@@ -358,11 +378,12 @@ export class CandidateController {
             },
             { upsert: true }
           );
-          console.log('[Resume Analysis] Candidate profile updated successfully');
+
+          console.log('[Resume Analysis] Analysis persisted to DB successfully');
         }
       } catch (updateError: any) {
         // Non-critical, just log the error
-        console.error('[Resume Analysis] Failed to update candidate profile:', updateError);
+        console.error('[Resume Analysis] Failed to persist analysis:', updateError);
       }
 
       // Clean up uploaded file (temporary storage)
@@ -581,6 +602,85 @@ export class CandidateController {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch top skills',
+      });
+    }
+  }
+  /**
+   * GET /api/candidates/resume-analysis
+   * Returns the authenticated user's saved resume analysis from DB.
+   */
+  static async getResumeAnalysis(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+      }
+
+      const analysis = await ResumeAnalysis.findOne({ userId });
+
+      if (!analysis) {
+        return res.status(404).json({
+          success: false,
+          message: 'No resume analysis found for this user.',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          extractedSkills: analysis.extractedSkills,
+          skillGaps: analysis.skillGaps,
+          suggestedQuestions: analysis.suggestedQuestions,
+          matchScore: analysis.matchScore,
+          analyzedAt: analysis.analyzedAt.toISOString(),
+          fileName: analysis.fileName,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching resume analysis:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch resume analysis.',
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/candidates/resume-analysis
+   * Deletes the authenticated user's saved resume analysis from DB.
+   */
+  static async deleteResumeAnalysis(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+      }
+
+      await ResumeAnalysis.findOneAndDelete({ userId });
+
+      // Also clear skills from Candidate profile
+      await Candidate.findOneAndUpdate(
+        { userId },
+        { $set: { skills: [], 'resume.uploadedAt': null } }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: 'Resume analysis deleted successfully.',
+      });
+    } catch (error) {
+      console.error('Error deleting resume analysis:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete resume analysis.',
       });
     }
   }
