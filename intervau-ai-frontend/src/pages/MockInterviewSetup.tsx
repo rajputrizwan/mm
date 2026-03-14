@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { api } from "../services/api";
 import { ROUTES } from "../router";
 import { getQuestionTypeColor } from "../constants/interviewConstants";
+import { useTranslation } from "../hooks/useTranslation";
 
 interface InterviewQuestion {
   text: string;
@@ -33,6 +34,7 @@ interface InterviewConfig {
 
 export default function MockInterviewSetup() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState<1 | 2>(1); // Step 1: Form, Step 2: Questions
   const [generating, setGenerating] = useState(false);
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
@@ -52,22 +54,22 @@ export default function MockInterviewSetup() {
   const interviewTypes = [
     {
       value: "technical" as const,
-      label: "Technical",
-      description: "Coding, system design,  technical knowledge",
+      label: t("mockInterviewSetup.typeTechnical"),
+      description: t("mockInterviewSetup.typeTechnicalDesc"),
       icon: "💻",
       color: "from-blue-500 to-cyan-500",
     },
     {
       value: "behavioral" as const,
-      label: "Behavioral",
-      description: "STAR method, soft skills, experience",
+      label: t("mockInterviewSetup.typeBehavioral"),
+      description: t("mockInterviewSetup.typeBehavioralDesc"),
       icon: "💬",
       color: "from-green-500 to-teal-500",
     },
     {
       value: "mixed" as const,
-      label: "Mixed",
-      description: "Balanced combination of both types",
+      label: t("mockInterviewSetup.typeMixed"),
+      description: t("mockInterviewSetup.typeMixedDesc"),
       icon: "⚡",
       color: "from-purple-500 to-pink-500",
     },
@@ -76,18 +78,18 @@ export default function MockInterviewSetup() {
   const difficultyLevels = [
     {
       value: "beginner" as const,
-      label: "Beginner",
-      description: "Entry-level questions",
+      label: t("mockInterviewSetup.diffBeginner"),
+      description: t("mockInterviewSetup.diffBeginnerDesc"),
     },
     {
       value: "intermediate" as const,
-      label: "Intermediate",
-      description: "Mid-level professional",
+      label: t("mockInterviewSetup.diffIntermediate"),
+      description: t("mockInterviewSetup.diffIntermediateDesc"),
     },
     {
       value: "advanced" as const,
-      label: "Advanced",
-      description: "Senior/Expert level",
+      label: t("mockInterviewSetup.diffAdvanced"),
+      description: t("mockInterviewSetup.diffAdvancedDesc"),
     },
   ];
 
@@ -120,7 +122,7 @@ export default function MockInterviewSetup() {
   // Generate questions using AI
   const handleGenerateQuestions = async () => {
     if (!config.jobPosition.trim()) {
-      toast.error("Please enter a job position");
+      toast.error(t("mockInterviewSetup.enterJobPosition"));
       return;
     }
 
@@ -139,13 +141,17 @@ export default function MockInterviewSetup() {
       if (response.success && response.data) {
         setQuestions(response.data);
         setStep(2); // Move to questions step
-        toast.success(`Generated ${response.data.length} interview questions!`);
+        toast.success(
+          t("mockInterviewSetup.generatedSuccess", {
+            count: response.data.length,
+          }),
+        );
       } else {
-        toast.error(response.error || "Unable to generate questions.");
+        toast.error(response.error || t("mockInterviewSetup.unableToGenerate"));
       }
     } catch (error: unknown) {
       console.error("Error generating questions:", error);
-      toast.error("Unable to generate questions. Please try again.");
+      toast.error(t("mockInterviewSetup.unableToGenerateTryAgain"));
     } finally {
       setGenerating(false);
     }
@@ -154,7 +160,7 @@ export default function MockInterviewSetup() {
   // Start interview with generated questions
   const handleStartInterview = async () => {
     if (questions.length === 0) {
-      toast.error("Please generate questions first.");
+      toast.error(t("mockInterviewSetup.generateQuestionsFirst"));
       return;
     }
 
@@ -216,7 +222,7 @@ export default function MockInterviewSetup() {
         // Continue anyway - localStorage has the session
       }
 
-      toast.success("Preparing your mock interview...");
+      toast.success(t("mockInterviewSetup.preparingInterview"));
 
       // Navigate to the ready page (system check before session)
       const readyPath = ROUTES.MOCK_INTERVIEW_READY.replace(
@@ -227,14 +233,14 @@ export default function MockInterviewSetup() {
       navigate(readyPath);
     } catch (error: unknown) {
       console.error("Error starting interview:", error);
-      toast.error("Failed to start interview. Please try again.");
+      toast.error(t("mockInterviewSetup.failedToStart"));
     }
   };
 
   // Remove a question
   const removeQuestion = (index: number) => {
     setQuestions((prev) => prev.filter((_, i) => i !== index));
-    toast.success("Question removed");
+    toast.success(t("mockInterviewSetup.questionRemoved"));
   };
 
   return (
@@ -253,17 +259,20 @@ export default function MockInterviewSetup() {
             className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span>Back</span>
+            <span>{t("mockInterviewSetup.back")}</span>
           </button>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
             {step === 1
-              ? "Create Your Mock Interview"
-              : "Generated Interview Questions"}
+              ? t("mockInterviewSetup.pageTitle")
+              : t("mockInterviewSetup.pageTitleStep2")}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
             {step === 1
-              ? "Customize your practice session to match your goals"
-              : `${questions.length} AI-generated questions for ${config.jobPosition}`}
+              ? t("mockInterviewSetup.pageSubtitle")
+              : t("mockInterviewSetup.pageSubtitleStep2", {
+                  count: questions.length,
+                  position: config.jobPosition,
+                })}
           </p>
         </div>
 
@@ -276,7 +285,7 @@ export default function MockInterviewSetup() {
               <div className="mb-8">
                 <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Job Position *
+                  {t("mockInterviewSetup.jobPositionLabel")}
                 </label>
                 <input
                   type="text"
@@ -284,7 +293,7 @@ export default function MockInterviewSetup() {
                   onChange={(e) =>
                     setConfig({ ...config, jobPosition: e.target.value })
                   }
-                  placeholder="e.g., Senior Full Stack Developer"
+                  placeholder={t("mockInterviewSetup.jobPositionPlaceholder")}
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -292,9 +301,9 @@ export default function MockInterviewSetup() {
               {/* Job Description */}
               <div className="mb-8">
                 <label className="block text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                  Job Description{" "}
+                  {t("mockInterviewSetup.jobDescriptionLabel")}{" "}
                   <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                    (Optional)
+                    {t("mockInterviewSetup.optional")}
                   </span>
                 </label>
                 <textarea
@@ -302,7 +311,9 @@ export default function MockInterviewSetup() {
                   onChange={(e) =>
                     setConfig({ ...config, jobDescription: e.target.value })
                   }
-                  placeholder="Paste the job description here to help tailor questions to the role..."
+                  placeholder={t(
+                    "mockInterviewSetup.jobDescriptionPlaceholder",
+                  )}
                   rows={4}
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                 />
@@ -312,7 +323,7 @@ export default function MockInterviewSetup() {
               <div className="mb-8">
                 <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Interview Duration
+                  {t("mockInterviewSetup.durationLabel")}
                 </label>
                 <div className="grid grid-cols-4 gap-3">
                   {durationOptions.map((duration) => (
@@ -328,11 +339,11 @@ export default function MockInterviewSetup() {
                       }
                       className={`py-3 px-4 rounded-xl font-semibold transition-all ${
                         config.duration === duration
-                          ? "bg-blue-600 text-white shadow-lg scale-105"
+                          ? "bg-blue-600 dark:bg-blue-500 text-white shadow-lg scale-105"
                           : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                       }`}
                     >
-                      {duration} min
+                      {duration} {t("mockInterviewSetup.durationUnit")}
                     </button>
                   ))}
                 </div>
@@ -342,7 +353,7 @@ export default function MockInterviewSetup() {
               <div className="mb-8">
                 <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Number of Questions
+                  {t("mockInterviewSetup.questionsLabel")}
                 </label>
                 <div className="grid grid-cols-5 gap-3 mb-4">
                   {questionCountOptions.map((count) => (
@@ -354,7 +365,7 @@ export default function MockInterviewSetup() {
                       }
                       className={`py-3 px-4 rounded-xl font-semibold transition-all ${
                         config.questionCount === count
-                          ? "bg-blue-600 text-white shadow-lg scale-105"
+                          ? "bg-blue-600 dark:bg-blue-500 text-white shadow-lg scale-105"
                           : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                       }`}
                     >
@@ -379,7 +390,7 @@ export default function MockInterviewSetup() {
                     className="w-32 px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Min 3, max 20
+                    {t("mockInterviewSetup.questionsHint")}
                   </span>
                 </div>
               </div>
@@ -388,7 +399,7 @@ export default function MockInterviewSetup() {
               <div className="mb-8">
                 <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Interview Type
+                  {t("mockInterviewSetup.interviewTypeLabel")}
                 </label>
                 <div className="grid md:grid-cols-3 gap-4">
                   {interviewTypes.map((type) => (
@@ -400,7 +411,7 @@ export default function MockInterviewSetup() {
                       }
                       className={`p-4 rounded-xl border-2 transition-all text-left ${
                         config.interviewType === type.value
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-105"
+                          ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-105"
                           : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                       }`}
                     >
@@ -420,7 +431,7 @@ export default function MockInterviewSetup() {
               <div>
                 <label className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Difficulty Level
+                  {t("mockInterviewSetup.difficultyLabel")}
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {difficultyLevels.map((level) => (
@@ -432,7 +443,7 @@ export default function MockInterviewSetup() {
                       }
                       className={`p-4 rounded-xl border-2 transition-all ${
                         config.difficulty === level.value
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-105"
+                          ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-105"
                           : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                       }`}
                     >
@@ -459,12 +470,12 @@ export default function MockInterviewSetup() {
                 {generating ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Generating Questions...
+                    {t("mockInterviewSetup.generatingQuestions")}
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5 mr-2" />
-                    Generate Questions with AI
+                    {t("mockInterviewSetup.generateButton")}
                   </>
                 )}
               </button>
@@ -481,7 +492,9 @@ export default function MockInterviewSetup() {
                 <div className="flex items-center">
                   <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2" />
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Generated Questions ({questions.length})
+                    {t("mockInterviewSetup.generatedQuestionsTitle", {
+                      count: questions.length,
+                    })}
                   </h2>
                 </div>
                 <button
@@ -493,7 +506,7 @@ export default function MockInterviewSetup() {
                   <RefreshCw
                     className={`w-4 h-4 mr-1 ${generating ? "animate-spin" : ""}`}
                   />
-                  Regenerate
+                  {t("mockInterviewSetup.regenerate")}
                 </button>
               </div>
 
@@ -508,7 +521,9 @@ export default function MockInterviewSetup() {
                         {/* Question Header with Type Badge and Number */}
                         <div className="flex items-center mb-3">
                           <span className="text-gray-500 dark:text-gray-400 font-semibold mr-3">
-                            Question {index + 1}
+                            {t("mockInterviewSetup.questionLabel", {
+                              number: index + 1,
+                            })}
                           </span>
                           <span
                             className={`${getQuestionTypeColor(question.type).bg} ${getQuestionTypeColor(question.type).text} text-xs font-semibold px-3 py-1 rounded-full capitalize border ${getQuestionTypeColor(question.type).border}`}
@@ -524,9 +539,9 @@ export default function MockInterviewSetup() {
 
                         {/* Expected Answer in Green */}
                         {question.expectedAnswer && (
-                          <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-md border-l-4 border-green-500">
+                          <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-md border-l-4 border-green-500 dark:border-green-400">
                             <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-1">
-                              Expected Answer:
+                              {t("mockInterviewSetup.expectedAnswer")}
                             </p>
                             <p className="text-sm text-green-600 dark:text-green-300 leading-relaxed whitespace-pre-wrap">
                               {question.expectedAnswer}
@@ -538,7 +553,7 @@ export default function MockInterviewSetup() {
                         type="button"
                         onClick={() => removeQuestion(index)}
                         className="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                        title="Remove question"
+                        title={t("mockInterviewSetup.removeQuestion")}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -555,7 +570,7 @@ export default function MockInterviewSetup() {
                 onClick={handleStartInterview}
                 className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Start Interview →
+                {t("mockInterviewSetup.startInterview")}
               </button>
             </div>
           </div>

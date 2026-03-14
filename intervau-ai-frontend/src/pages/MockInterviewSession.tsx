@@ -683,10 +683,10 @@ export default function MockInterviewSession() {
   // Loading state
   if (isLoading || !sessionConfig) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">
+          <p className="text-gray-500 dark:text-gray-400">
             {t("mockInterviewSession.loadingSession")}
           </p>
         </div>
@@ -700,26 +700,28 @@ export default function MockInterviewSession() {
   const maxDuration = sessionConfig.duration * 60; // Convert to seconds
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-red-900/30 text-red-400 px-4 py-2 rounded-lg font-medium">
+              <div className="flex items-center space-x-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-4 py-2 rounded-lg font-medium">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                 <span>{t("mockInterviewSession.recording")}</span>
               </div>
-              <div className="flex items-center space-x-2 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700">
-                <Clock className="w-5 h-5 text-gray-400" />
-                <span className="font-medium text-white">
+              <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                <Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <span className="font-medium text-gray-900 dark:text-white">
                   {formatTime(elapsedTime)}
                 </span>
-                <span className="text-gray-500">/</span>
-                <span className="text-gray-400">{formatTime(maxDuration)}</span>
+                <span className="text-gray-400 dark:text-gray-500">/</span>
+                <span className="text-gray-500 dark:text-gray-400">
+                  {formatTime(maxDuration)}
+                </span>
               </div>
               {isSpeaking && (
-                <div className="flex items-center space-x-2 bg-green-900/30 text-green-400 px-4 py-2 rounded-lg font-medium">
+                <div className="flex items-center space-x-2 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 px-4 py-2 rounded-lg font-medium">
                   <div className="flex space-x-1">
                     <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" />
                     <div
@@ -735,7 +737,7 @@ export default function MockInterviewSession() {
                 </div>
               )}
             </div>
-            <div className="text-gray-400 font-medium">
+            <div className="text-gray-500 dark:text-gray-400 font-medium">
               {t("mockInterviewSession.questionOf", {
                 current: currentQuestionIndex + 1,
                 total: questions.length,
@@ -744,7 +746,7 @@ export default function MockInterviewSession() {
           </div>
 
           {/* Progress bar */}
-          <div className="w-full bg-gray-800 rounded-full h-3 shadow-inner">
+          <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-3 shadow-inner">
             <div
               className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all duration-500 shadow-lg"
               style={{ width: `${progress}%` }}
@@ -756,14 +758,14 @@ export default function MockInterviewSession() {
           {/* Main content */}
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
             {/* Video Section */}
-            <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
-              <div className="relative aspect-video bg-gray-900 rounded-xl overflow-hidden mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="relative aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden mb-4">
                 {streamLoading ? (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                   </div>
                 ) : streamError ? (
-                  <div className="absolute inset-0 flex items-center justify-center text-red-400">
+                  <div className="absolute inset-0 flex items-center justify-center text-red-500 dark:text-red-400">
                     <p>{t("mockInterviewSession.cameraAccessDenied")}</p>
                   </div>
                 ) : (
@@ -776,9 +778,9 @@ export default function MockInterviewSession() {
                   />
                 )}
                 {!videoEnabled && !streamLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                    <div className="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center">
-                      <span className="text-3xl text-white font-bold">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+                    <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <span className="text-3xl text-gray-700 dark:text-white font-bold">
                         {t("mockInterviewSession.you")}
                       </span>
                     </div>
@@ -799,7 +801,7 @@ export default function MockInterviewSession() {
                   onClick={toggleMic}
                   className={`p-4 rounded-full transition-all ${
                     micEnabled
-                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                       : "bg-red-600 text-white hover:bg-red-700"
                   }`}
                   title={micEnabled ? "Mute microphone" : "Unmute microphone"}
@@ -814,7 +816,7 @@ export default function MockInterviewSession() {
                   onClick={toggleVideo}
                   className={`p-4 rounded-full transition-all ${
                     videoEnabled
-                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                       : "bg-red-600 text-white hover:bg-red-700"
                   }`}
                   title={videoEnabled ? "Turn off camera" : "Turn on camera"}
@@ -829,7 +831,7 @@ export default function MockInterviewSession() {
                   onClick={toggleTTS}
                   className={`p-4 rounded-full transition-all ${
                     isTTSEnabled
-                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                       : "bg-orange-600 text-white hover:bg-orange-700"
                   } ${isSpeakingTTS ? "ring-2 ring-blue-500 animate-pulse" : ""}`}
                   title={isTTSEnabled ? "Mute AI voice" : "Unmute AI voice"}
@@ -851,7 +853,7 @@ export default function MockInterviewSession() {
             </div>
 
             {/* Current Question */}
-            <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <MessageSquare className="w-5 h-5 text-blue-400" />
@@ -859,11 +861,11 @@ export default function MockInterviewSession() {
                     {currentQuestion.category}
                   </span>
                 </div>
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
                   ~{currentQuestion.duration} min
                 </span>
               </div>
-              <p className="text-lg text-white font-medium mb-6">
+              <p className="text-lg text-gray-900 dark:text-white font-medium mb-6">
                 {currentQuestion.text}
               </p>
 
@@ -871,8 +873,8 @@ export default function MockInterviewSession() {
               <div className="space-y-3">
                 {/* Interim transcript display */}
                 {interimTranscript && (
-                  <div className="px-4 py-2 bg-gray-700/50 rounded-lg border border-gray-600/50">
-                    <p className="text-gray-400 text-sm italic">
+                  <div className="px-4 py-2 bg-gray-100/80 dark:bg-gray-700/50 rounded-lg border border-gray-300/50 dark:border-gray-600/50">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm italic">
                       {interimTranscript}...
                     </p>
                   </div>
@@ -886,7 +888,7 @@ export default function MockInterviewSession() {
                     className={`px-4 py-3 rounded-xl transition-all ${
                       isListening
                         ? "bg-red-600 text-white animate-pulse"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                     } ${!micEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
                     title={isListening ? "Stop listening" : "Start voice input"}
                   >
@@ -909,7 +911,7 @@ export default function MockInterviewSession() {
                         ? t("mockInterviewSession.listening") || "Listening..."
                         : t("mockInterviewSession.typeResponse")
                     }
-                    className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled={isAIProcessing}
                   />
                   <button
@@ -960,43 +962,43 @@ export default function MockInterviewSession() {
             )}
 
             {/* Speaking Patterns */}
-            <div className="bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-2 mb-4">
                 <BarChart3 className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold text-white">
+                <h3 className="font-semibold text-gray-900 dark:text-white">
                   {t("mockInterviewSession.speakingPatterns")}
                 </h3>
               </div>
               <div className="grid md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-900/20 rounded-lg">
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-blue-400">
                     {speakingPatterns.fillerWords}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                     {t("mockInterviewSession.fillerWords")}
                   </p>
                 </div>
-                <div className="text-center p-4 bg-green-900/20 rounded-lg">
+                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-green-400">
                     {speakingPatterns.avgResponseTime}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                     {t("mockInterviewSession.avgResponse")}
                   </p>
                 </div>
-                <div className="text-center p-4 bg-orange-900/20 rounded-lg">
+                <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-orange-400">
                     {speakingPatterns.totalWords}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                     {t("mockInterviewSession.totalWords")}
                   </p>
                 </div>
-                <div className="text-center p-4 bg-cyan-900/20 rounded-lg">
+                <div className="text-center p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg">
                   <p className="text-2xl font-bold text-cyan-400">
                     {speakingPatterns.avgWordsPerMinute}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                     {t("mockInterviewSession.wordsPerMinute")}
                   </p>
                 </div>
@@ -1037,10 +1039,10 @@ export default function MockInterviewSession() {
             </div>
 
             {/* Real-time Tips */}
-            <div className="bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-orange-400" />
-                <h4 className="text-sm font-semibold text-white">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                   {t("mockInterviewSession.realTimeTips")}
                 </h4>
               </div>
@@ -1050,23 +1052,25 @@ export default function MockInterviewSession() {
                     key={idx}
                     className={`p-3 rounded-lg border transition-all ${
                       tip.type === "success"
-                        ? "bg-green-900/20 border-green-800"
+                        ? "bg-green-100 border-green-300 dark:bg-green-900/20 dark:border-green-800"
                         : tip.type === "warning"
-                          ? "bg-orange-900/20 border-orange-800"
-                          : "bg-blue-900/20 border-blue-800"
+                          ? "bg-orange-100 border-orange-300 dark:bg-orange-900/20 dark:border-orange-800"
+                          : "bg-blue-100 border-blue-300 dark:bg-blue-900/20 dark:border-blue-800"
                     }`}
                   >
-                    <p className="text-xs text-gray-300">{tip.message}</p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300">
+                      {tip.message}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Question List */}
-            <div className="bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-2 mb-3">
-                <FileText className="w-4 h-4 text-gray-400" />
-                <h4 className="text-sm font-semibold text-white">
+                <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                   {t("mockInterviewSession.questionList")}
                 </h4>
               </div>
@@ -1076,21 +1080,21 @@ export default function MockInterviewSession() {
                     key={q.id}
                     className={`p-3 rounded-lg border transition-all ${
                       idx === currentQuestionIndex
-                        ? "bg-blue-900/30 border-blue-700 ring-2 ring-blue-800"
+                        ? "bg-blue-50 border-blue-300 ring-2 ring-blue-400 dark:bg-blue-900/30 dark:border-blue-700 dark:ring-blue-800"
                         : idx < currentQuestionIndex
-                          ? "bg-green-900/20 border-green-800"
-                          : "bg-gray-700 border-gray-600"
+                          ? "bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-800"
+                          : "bg-gray-100 border-gray-200 dark:bg-gray-700 dark:border-gray-600"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-white">
+                      <span className="text-xs font-semibold text-gray-900 dark:text-white">
                         Q{idx + 1}
                       </span>
-                      <span className="text-xs bg-gray-800 px-2 py-0.5 rounded text-gray-400">
+                      <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-500 dark:text-gray-400">
                         {q.category}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-300 line-clamp-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
                       {q.text}
                     </p>
                   </div>
@@ -1099,16 +1103,16 @@ export default function MockInterviewSession() {
             </div>
 
             {/* Transcript */}
-            <div className="bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-2 mb-3">
-                <MessageSquare className="w-4 h-4 text-gray-400" />
-                <h4 className="text-sm font-semibold text-white">
+                <MessageSquare className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                   {t("mockInterviewSession.liveTranscript")}
                 </h4>
               </div>
               <div className="space-y-3 max-h-80 overflow-y-auto">
                 {transcript.length === 0 ? (
-                  <p className="text-xs text-gray-500 text-center py-4">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">
                     {t("mockInterviewSession.transcriptPlaceholder")}
                   </p>
                 ) : (
@@ -1117,19 +1121,23 @@ export default function MockInterviewSession() {
                       key={entry.id}
                       className={`p-3 rounded-lg ${
                         entry.isCandidate
-                          ? "bg-blue-900/20 border border-blue-800"
-                          : "bg-gray-700 border border-gray-600"
+                          ? "bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-700"
+                          : "bg-gray-100 border border-gray-200 dark:bg-gray-700/60 dark:border-gray-600"
                       }`}
                     >
                       <div className="flex justify-between text-xs mb-1">
                         <span
-                          className={`font-semibold ${entry.isCandidate ? "text-blue-400" : "text-gray-300"}`}
+                          className={`font-semibold ${entry.isCandidate ? "text-blue-500 dark:text-blue-400" : "text-gray-600 dark:text-gray-300"}`}
                         >
                           {entry.speaker}
                         </span>
-                        <span className="text-gray-500">{entry.time}</span>
+                        <span className="text-gray-400 dark:text-gray-500">
+                          {entry.time}
+                        </span>
                       </div>
-                      <p className="text-xs text-gray-300">{entry.text}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        {entry.text}
+                      </p>
                     </div>
                   ))
                 )}
