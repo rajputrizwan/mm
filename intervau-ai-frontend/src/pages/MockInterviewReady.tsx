@@ -468,9 +468,7 @@ export default function MockInterviewReady() {
                     {t("mockInterviewReady.difficulty")}
                   </p>
                   <p className="font-semibold text-gray-900 dark:text-white capitalize">
-                    {t(
-                      `mockInterviewReady.difficulty${sessionConfig.difficulty.charAt(0).toUpperCase() + sessionConfig.difficulty.slice(1)}`,
-                    )}
+                    {sessionConfig.difficulty}
                   </p>
                 </div>
               </div>
