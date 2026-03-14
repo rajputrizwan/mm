@@ -12,15 +12,15 @@ import {
   Users,
   Plus,
   ArrowRight,
+  Video,
 } from "lucide-react";
 import { useGlobalSearch } from "../../hooks/useGlobalSearch";
-import LogoIcon from "./LogoIcon";
 
 // Icon mapping
 const iconMap: Record<string, any> = {
   LayoutDashboard,
   FileText,
-  Video: LogoIcon,
+  Video,
   History,
   Settings,
   PlayCircle,
