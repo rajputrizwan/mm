@@ -145,6 +145,7 @@ export default function CandidateInterviewLanding() {
         state: {
           sessionId: data.data.sessionId,
           candidateName,
+          candidateEmail,
           ...data.data,
         },
       });

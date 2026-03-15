@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Mic,
@@ -8,24 +8,22 @@ import {
   Phone,
   Clock,
   MessageSquare,
-  ChevronRight,
   Volume2,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import SpeechVisualizer from "../components/interview/SpeechVisualizer";
 import QuestionProgress from "../components/interview/QuestionProgress";
 import { useMediaStream } from "../components/interview/MediaStreamHandler";
 import {
-  saveSession,
   loadSession,
-  addTranscriptEntry,
-  advanceQuestion,
   clearSession,
   getSessionDuration,
 } from "../components/interview/InterviewSessionStorage";
+import { useVapiInterview, VapiMessage } from "../hooks/useVapiInterview";
 
 interface Question {
-  index: number;
+  id: number;
   text: string;
   type: string;
 }
@@ -39,10 +37,14 @@ interface TranscriptEntry {
 interface LocationState {
   sessionId: string;
   candidateName: string;
+  candidateEmail?: string;
   jobPosition: string;
+  jobDescription?: string;
   duration: number;
   totalQuestions: number;
-  currentQuestion: Question;
+  currentQuestion: { index: number; text: string; type: string };
+  /** All interview questions — used to build the Vapi assistant system prompt */
+  questions: Question[];
   aiSettings: {
     difficultyLevel: string;
     autoScore: boolean;
@@ -51,8 +53,90 @@ interface LocationState {
 }
 
 /**
- * AIInterviewSession - Live AI interview session for candidates
- * Displays dual video containers, real-time transcript, and AI interviewer
+ * Builds the Vapi inline-assistant configuration.
+ *
+ * The system prompt embeds all interview questions so the AI knows exactly
+ * what to ask and in which order. Vapi handles speech-to-text, TTS, and
+ * the entire conversational turn-taking.
+ *
+ * ⚙️  Model / voice defaults can be overridden via Vapi dashboard assistant IDs.
+ *    Set VITE_VAPI_ASSISTANT_ID in .env to use a pre-configured dashboard assistant.
+ */
+function buildVapiAssistantConfig(
+  candidateName: string,
+  jobPosition: string,
+  questions: Question[],
+): object {
+  const numberedQuestions = questions
+    .map((q, i) => `${i + 1}. ${q.text}`)
+    .join("\n");
+
+  const systemPrompt = `You are an AI interviewer named Intervau.AI conducting a professional job interview for the position of "${jobPosition}".
+
+Your responsibilities:
+- Ask interview questions one at a time from the list below
+- Wait for the candidate's complete response before asking the next question
+- Maintain a professional and friendly tone
+- If an answer is too short (fewer than 10 words), ask exactly one follow-up question for clarification
+- Do NOT ask follow-ups after you have already asked one for the same question — move to the next
+
+Interview questions to ask (in order):
+${numberedQuestions}
+
+Interview flow:
+1. Greet the candidate: "Hello ${candidateName}, welcome to your AI interview for the ${jobPosition} position. I'll be asking you ${questions.length} questions today. Let's begin."
+2. Ask each question from the list above, one at a time, in order.
+3. After all questions are complete, close with: "Thank you for completing the interview, ${candidateName}. Your responses have been recorded and feedback will be generated shortly. Best of luck!"
+
+Keep responses concise (2–3 sentences). Stay professional at all times.`;
+
+  return {
+    transcriber: {
+      provider: "deepgram",
+      model: "nova-2",
+      language: "en-US",
+    },
+    model: {
+      provider: "openai",
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "system", content: systemPrompt }],
+      temperature: 0.7,
+      maxTokens: 300,
+    },
+    voice: {
+      provider: "11labs",
+      voiceId: "paula",
+    },
+    name: "Intervau AI Interviewer",
+    firstMessage: `Hello ${candidateName}, welcome to your AI interview for the ${jobPosition} position. I'll be asking you ${questions.length} questions today. Let's begin.`,
+    endCallPhrases: [
+      "best of luck",
+      "thank you for completing the interview",
+      "feedback will be generated shortly",
+    ],
+    silenceTimeoutSeconds: 30,
+    maxDurationSeconds: 3600,
+  };
+}
+
+/** Maps Vapi message roles to the TranscriptEntry speaker labels used by the UI */
+function vapiMsgToTranscriptEntry(msg: VapiMessage): TranscriptEntry {
+  return {
+    speaker: msg.role === "assistant" ? "Intervau.AI" : "Candidate",
+    text: msg.content,
+    timestamp: msg.timestamp,
+  };
+}
+
+/**
+ * AIInterviewSession
+ *
+ * Live AI voice interview session powered by Vapi.
+ * - Initialises Vapi with the interview questions embedded in the system prompt
+ * - Displays dual video tiles (AI visualiser + candidate camera)
+ * - Shows a real-time live transcript from Vapi transcription events
+ * - On call end, sends the Q&A pairs to /api/interview-feedback for Mistral evaluation
+ * - Navigates to /interview/:uuid/summary with the feedback data
  */
 export default function AIInterviewSession() {
   const { uuid } = useParams<{ uuid: string }>();
@@ -60,29 +144,125 @@ export default function AIInterviewSession() {
   const navigate = useNavigate();
   const state = location.state as LocationState | null;
 
-  // State
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  // ── Session meta ─────────────────────────────────────────────────────────
   const [candidateName, setCandidateName] = useState("");
   const [jobPosition, setJobPosition] = useState("");
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  // ── UI state ──────────────────────────────────────────────────────────────
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [elapsedTime, setElapsedTime] = useState(0);
-
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [aiMode, setAiMode] = useState<
     "idle" | "speaking" | "thinking" | "listening"
   >("idle");
-  const [isComplete, setIsComplete] = useState(false);
-  const [userInput, setUserInput] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+
+  // ── Post-interview evaluation ─────────────────────────────────────────────
+  const [evaluating, setEvaluating] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
-  // Media stream hook
+  // ── Vapi voice hook ───────────────────────────────────────────────────────
+  const vapiPublicKey = import.meta.env.VITE_VAPI_API_KEY as string;
+
+  /**
+   * handleCallEnd — fired by useVapiInterview when the Vapi call finishes.
+   * Sends the Q&A pairs to the backend for Mistral evaluation, then navigates
+   * to the summary page.
+   */
+  const handleCallEnd = useCallback(
+    async (
+      qaPairs: { question: string; answer: string }[],
+      _rawMessages: VapiMessage[],
+    ) => {
+      setAiMode("thinking");
+      setEvaluating(true);
+
+      try {
+        const apiBase =
+          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+        const res = await fetch(`${apiBase}/interview-feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation:
+              qaPairs.length > 0
+                ? qaPairs
+                : [
+                    {
+                      question: "General interview",
+                      answer: "Candidate completed the interview.",
+                    },
+                  ],
+            candidateName,
+            jobPosition,
+          }),
+        });
+
+        const data = await res.json();
+
+        clearSession();
+
+        navigate(`/interview/${uuid}/summary`, {
+          state: {
+            feedback: res.ok && data.success ? data.data : null,
+            candidateName,
+            jobPosition,
+            questionsAnswered: qaPairs.length,
+            elapsedTime: formatTime(elapsedTime),
+          },
+        });
+      } catch (err) {
+        console.error("Feedback request failed:", err);
+        toast.error("Could not generate feedback. Redirecting...");
+        clearSession();
+        navigate(`/interview/${uuid}/summary`, {
+          state: {
+            feedback: null,
+            candidateName,
+            jobPosition,
+            questionsAnswered: qaPairs.length,
+            elapsedTime: formatTime(elapsedTime),
+          },
+        });
+      } finally {
+        setEvaluating(false);
+      }
+    },
+    [candidateName, jobPosition, uuid, elapsedTime, navigate],
+  );
+
+  const {
+    isCallActive,
+    isSpeaking,
+    messages: vapiMessages,
+    startInterview,
+    stopInterview,
+  } = useVapiInterview({
+    publicKey: vapiPublicKey,
+    onCallStart: () => {
+      setAiMode("speaking");
+      toast.success("Interview started — speak clearly into your microphone.");
+    },
+    onCallEnd: handleCallEnd,
+    onTranscriptUpdate: (msgs) => {
+      setTranscript(msgs.map(vapiMsgToTranscriptEntry));
+      const last = msgs[msgs.length - 1];
+      if (last) {
+        setAiMode(last.role === "assistant" ? "speaking" : "listening");
+      }
+    },
+    onError: (err) => {
+      toast.error(`Voice error: ${err.message}`);
+      setAiMode("idle");
+    },
+  });
+
+  // ── Media stream (candidate camera) ──────────────────────────────────────
   const { stream } = useMediaStream({
     audioEnabled,
     videoEnabled,
@@ -97,45 +277,50 @@ export default function AIInterviewSession() {
     autoStart: true,
   });
 
-  // Initialize session from state or localStorage
+  // ── Session initialisation ────────────────────────────────────────────────
   useEffect(() => {
     if (state) {
-      setSessionId(state.sessionId);
       setCandidateName(state.candidateName);
       setJobPosition(state.jobPosition);
-      setCurrentQuestion(state.currentQuestion);
       setTotalQuestions(state.totalQuestions);
-      setCurrentQuestionIndex(0);
-
-      // Start with AI greeting
-      setAiMode("speaking");
-      const greeting = `Hello ${state.candidateName}. Welcome to your interview for the ${state.jobPosition} role. Let's begin with the first question: ${state.currentQuestion.text}`;
-      addToTranscript("Intervau.AI", greeting);
-
-      setTimeout(() => {
-        setAiMode("listening");
-      }, 3000);
+      setQuestions(state.questions || []);
     } else {
-      // Try to load from localStorage
-      const savedSession = loadSession();
-      if (savedSession && savedSession.shareableLink === uuid) {
-        setSessionId(savedSession.sessionId);
-        setCandidateName(savedSession.candidateName);
-        setJobPosition(savedSession.jobPosition);
-        setCurrentQuestionIndex(savedSession.currentQuestionIndex);
-        setTotalQuestions(savedSession.totalQuestions);
-        setTranscript(savedSession.transcript);
+      const saved = loadSession();
+      if (saved && saved.shareableLink === uuid) {
+        setCandidateName(saved.candidateName);
+        setJobPosition(saved.jobPosition);
+        setTotalQuestions(saved.totalQuestions);
         setElapsedTime(getSessionDuration() * 60);
-        toast.success("Session restored.");
-        setAiMode("listening");
+        toast("Session restored. The voice interview will start shortly.");
       } else {
-        // No valid session, redirect to landing
         navigate(`/interview/${uuid}`);
       }
     }
   }, [state, uuid, navigate]);
 
-  // Timer
+  // ── Start Vapi call once session meta is ready ────────────────────────────
+  useEffect(() => {
+    if (!candidateName || !jobPosition || !vapiPublicKey) return;
+    if (isCallActive) return;
+
+    const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID as
+      | string
+      | undefined;
+
+    if (assistantId) {
+      startInterview(assistantId);
+    } else if (questions.length > 0) {
+      const config = buildVapiAssistantConfig(
+        candidateName,
+        jobPosition,
+        questions,
+      );
+      startInterview(config);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidateName, jobPosition, questions, vapiPublicKey]);
+
+  // ── Timer ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsedTime((prev) => prev + 1);
@@ -143,7 +328,7 @@ export default function AIInterviewSession() {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-scroll transcript
+  // ── Auto-scroll transcript ────────────────────────────────────────────────
   useEffect(() => {
     if (transcriptRef.current) {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
@@ -163,151 +348,42 @@ export default function AIInterviewSession() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const addToTranscript = (speaker: string, text: string) => {
-    const entry: TranscriptEntry = {
-      speaker,
-      text,
-      timestamp: new Date().toISOString(),
-    };
-    setTranscript((prev) => [...prev, entry]);
-    addTranscriptEntry(speaker, text);
-  };
-
-  // Submit response to AI
-  const handleSubmitResponse = async () => {
-    if (!userInput.trim() || !sessionId) return;
-
-    setSubmitting(true);
-    const response = userInput.trim();
-    setUserInput("");
-
-    // Add candidate response to transcript
-    addToTranscript("Candidate", response);
-    setAiMode("thinking");
-
-    try {
-      const apiResponse = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/interview-session/respond`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId,
-            response,
-          }),
-        },
-      );
-
-      const data = await apiResponse.json();
-
-      if (!apiResponse.ok || !data.success) {
-        throw new Error(data.message || "Failed to process response");
-      }
-
-      // Show AI response
-      setAiMode("speaking");
-      addToTranscript("Intervau.AI", data.data.aiResponse);
-
-      // Update question if needed
-      if (data.data.nextQuestion) {
-        setCurrentQuestion(data.data.nextQuestion);
-        setCurrentQuestionIndex(data.data.currentQuestionIndex);
-        advanceQuestion();
-
-        // After AI speaking, announce next question
-        setTimeout(() => {
-          addToTranscript(
-            "Intervau.AI",
-            `Next question: ${data.data.nextQuestion.text}`,
-          );
-          setAiMode("listening");
-        }, 2000);
-      } else if (data.data.isComplete) {
-        setIsComplete(true);
-        setAiMode("idle");
-      } else {
-        // It's a follow-up, just listen
-        setTimeout(() => {
-          setAiMode("listening");
-        }, 2000);
-      }
-
-      // Update session storage
-      saveSession({
-        sessionId,
-        candidateName,
-        candidateEmail: "",
-        jobPosition,
-        shareableLink: uuid!,
-        currentQuestionIndex: data.data.currentQuestionIndex,
-        totalQuestions,
-        transcript: [
-          ...transcript,
-          {
-            speaker: "Candidate",
-            text: response,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-        startedAt: new Date(Date.now() - elapsedTime * 1000).toISOString(),
-        lastUpdated: new Date().toISOString(),
-      });
-    } catch (error: any) {
-      toast.error(error.message || "Unable to process the response.");
-      setAiMode("listening");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // End interview
-  const handleEndInterview = async () => {
+  const handleEndInterview = () => {
     if (!confirm("Are you sure you want to end this interview?")) return;
-
-    setAiMode("thinking");
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/interview-session/end`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        clearSession();
-        navigate(`/interview/${uuid}/summary`, {
-          state: {
-            ...data.data,
-            elapsedTime: formatTime(elapsedTime),
-          },
-        });
-      }
-    } catch (error) {
-      toast.error("Unable to end the interview.");
-    }
+    stopInterview();
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmitResponse();
-    }
-  };
+  const answeredCount = vapiMessages.filter((m) => m.role === "user").length;
+  const progressCurrent = Math.min(answeredCount + 1, totalQuestions);
 
   return (
     <div className="fixed inset-0 bg-slate-950 flex flex-col">
+      {/* ── Evaluating overlay ── */}
+      {evaluating && (
+        <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-6">
+          <Loader2 className="w-16 h-16 text-cyan-400 animate-spin" />
+          <div className="text-center">
+            <p className="text-xl font-semibold text-white mb-2">
+              Analysing your interview…
+            </p>
+            <p className="text-slate-400 text-sm">
+              Our AI is generating your personalised feedback. This may take a
+              moment.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-slate-900 border-b border-slate-800 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              <div
+                className={`w-3 h-3 rounded-full animate-pulse ${isCallActive ? "bg-red-500" : "bg-slate-600"}`}
+              />
               <span className="text-sm font-medium text-white">
-                Interview in Progress
+                {isCallActive ? "Interview in Progress" : "Connecting…"}
               </span>
             </div>
             <div className="h-5 w-px bg-slate-700" />
@@ -326,7 +402,7 @@ export default function AIInterviewSession() {
         {/* Progress bar */}
         <div className="mt-3">
           <QuestionProgress
-            current={currentQuestionIndex + 1}
+            current={progressCurrent}
             total={totalQuestions}
             variant="bar"
           />
@@ -353,6 +429,14 @@ export default function AIInterviewSession() {
                     Intervau.AI
                   </span>
                 </div>
+                {isSpeaking === "assistant" && (
+                  <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-cyan-500/20 px-3 py-1.5 rounded-full border border-cyan-500/30">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+                    <span className="text-xs text-cyan-400 font-medium">
+                      Speaking
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Candidate Video */}
@@ -379,58 +463,63 @@ export default function AIInterviewSession() {
                     <MicOff className="w-4 h-4 text-red-400" />
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* Current Question Display */}
-            <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 text-cyan-400" />
-                </div>
-                <span className="text-sm text-slate-400">
-                  Question {currentQuestionIndex + 1} of {totalQuestions}
-                </span>
-                {currentQuestion?.type && (
-                  <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs text-blue-400 capitalize">
-                    {currentQuestion.type.replace("_", " ")}
-                  </span>
+                {isSpeaking === "user" && (
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-cyan-500/20 px-3 py-1.5 rounded-full border border-cyan-500/30">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+                    <span className="text-xs text-cyan-400 font-medium">
+                      Listening
+                    </span>
+                  </div>
                 )}
               </div>
-              <p className="text-white text-lg leading-relaxed">
-                {currentQuestion?.text || "Preparing your interview..."}
-              </p>
             </div>
 
-            {/* Response Input */}
+            {/* Voice status bar */}
             <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-              <div className="flex gap-3">
-                <textarea
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Type your response here... (Press Enter to submit)"
-                  disabled={submitting || aiMode === "speaking" || isComplete}
-                  className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 resize-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50"
-                  rows={2}
-                />
-                <button
-                  onClick={handleSubmitResponse}
-                  disabled={
-                    !userInput.trim() ||
-                    submitting ||
-                    aiMode === "speaking" ||
-                    isComplete
-                  }
-                  className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              <div className="flex items-center gap-4">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                    isSpeaking === "user"
+                      ? "bg-cyan-500/20 border border-cyan-500/40"
+                      : "bg-slate-800 border border-slate-700"
+                  }`}
                 >
-                  {submitting ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {audioEnabled ? (
+                    <Mic
+                      className={`w-5 h-5 ${isSpeaking === "user" ? "text-cyan-400" : "text-slate-500"}`}
+                    />
                   ) : (
-                    <ChevronRight className="w-5 h-5" />
+                    <MicOff className="w-5 h-5 text-red-400" />
                   )}
-                  Send
-                </button>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-300">
+                    {!isCallActive
+                      ? "Connecting to AI interviewer…"
+                      : isSpeaking === "assistant"
+                        ? "AI interviewer is speaking — listen carefully"
+                        : isSpeaking === "user"
+                          ? "Recording your response…"
+                          : "Speak your answer when ready"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Voice-powered · No typing required · Speak naturally
+                  </p>
+                </div>
+                {isSpeaking === "user" && (
+                  <div className="flex items-end gap-0.5 h-6">
+                    {[3, 5, 7, 4, 6].map((h, i) => (
+                      <div
+                        key={i}
+                        className="w-1 bg-cyan-400 rounded-full animate-pulse"
+                        style={{
+                          height: `${h * 3}px`,
+                          animationDelay: `${i * 0.1}s`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -452,7 +541,9 @@ export default function AIInterviewSession() {
               <div className="text-center py-8">
                 <MessageSquare className="w-10 h-10 text-slate-700 mx-auto mb-2" />
                 <p className="text-sm text-slate-500">
-                  Transcript will appear here
+                  {isCallActive
+                    ? "Transcript will appear as you speak…"
+                    : "Connecting to voice interview…"}
                 </p>
               </div>
             ) : (

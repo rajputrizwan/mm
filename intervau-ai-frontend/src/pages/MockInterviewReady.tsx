@@ -67,12 +67,14 @@ export default function MockInterviewReady() {
   const [isChecking, setIsChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [speakerTesting, setSpeakerTesting] = useState(false);
 
   // Refs for media
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const micActiveRef = useRef(false);
 
   // Load session from localStorage and verify with backend
   useEffect(() => {
@@ -122,17 +124,26 @@ export default function MockInterviewReady() {
     loadSession();
   }, [sessionId]);
 
+  // Auto-run checks when session is loaded
+  useEffect(() => {
+    if (sessionConfig && status.camera === "pending") {
+      runAllChecks();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionConfig]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      micActiveRef.current = false;
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
       if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+        try { audioContextRef.current.close(); } catch (_) {}
       }
     };
   }, []);
@@ -141,13 +152,13 @@ export default function MockInterviewReady() {
   const checkCamera = async (): Promise<boolean> => {
     setStatus((prev) => ({ ...prev, camera: "checking" }));
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      });
       streamRef.current = stream;
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-
       setStatus((prev) => ({ ...prev, camera: "passed" }));
       return true;
     } catch (err) {
@@ -157,13 +168,12 @@ export default function MockInterviewReady() {
     }
   };
 
-  // Check microphone
+  // Check microphone with persistent level monitoring
   const checkMicrophone = async (): Promise<boolean> => {
     setStatus((prev) => ({ ...prev, microphone: "checking" }));
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Add audio tracks to existing stream
       if (streamRef.current) {
         stream.getAudioTracks().forEach((track) => {
           streamRef.current?.addTrack(track);
@@ -172,19 +182,28 @@ export default function MockInterviewReady() {
         streamRef.current = stream;
       }
 
-      // Set up audio level monitoring
+      // Stop previous audio context if any
+      if (audioContextRef.current) {
+        try { audioContextRef.current.close(); } catch (_) {}
+      }
+
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       const analyser = audioContextRef.current.createAnalyser();
-      analyser.fftSize = 256;
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.8;
       source.connect(analyser);
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      micActiveRef.current = true;
 
+      // Use ref flag so the loop stays alive regardless of state changes
       const updateLevel = () => {
+        if (!micActiveRef.current) return;
         analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        setAudioLevel(average / 255);
+        const sum = dataArray.reduce((a, b) => a + b, 0);
+        const avg = sum / dataArray.length;
+        setAudioLevel(avg / 255);
         animationFrameRef.current = requestAnimationFrame(updateLevel);
       };
       updateLevel();
@@ -198,12 +217,48 @@ export default function MockInterviewReady() {
     }
   };
 
-  // Check speaker
+  // Play a real audible test tone using Web Audio API
+  const playTestTone = async (): Promise<void> => {
+    setSpeakerTesting(true);
+    try {
+      const ctx = new AudioContext();
+      // Create a pleasant two-tone chime
+      const frequencies = [523.25, 659.25]; // C5, E5
+      for (let i = 0; i < frequencies.length; i++) {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(frequencies[i], ctx.currentTime + i * 0.25);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + i * 0.25);
+        gainNode.gain.linearRampToValueAtTime(0.4, ctx.currentTime + i * 0.25 + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.25 + 0.4);
+        osc.start(ctx.currentTime + i * 0.25);
+        osc.stop(ctx.currentTime + i * 0.25 + 0.4);
+      }
+      await new Promise((r) => setTimeout(r, 700));
+      await ctx.close();
+    } catch (_) {}
+    setSpeakerTesting(false);
+  };
+
+  // Check speaker - plays actual tone and verifies AudioContext works
   const checkSpeaker = async (): Promise<boolean> => {
     setStatus((prev) => ({ ...prev, speaker: "checking" }));
     try {
-      const testContext = new AudioContext();
-      await testContext.close();
+      const ctx = new AudioContext();
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      // Play a short silent buffer to confirm audio path works
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
+      await new Promise((r) => setTimeout(r, 150));
+      await ctx.close();
       setStatus((prev) => ({ ...prev, speaker: "passed" }));
       return true;
     } catch (err) {
@@ -536,15 +591,22 @@ export default function MockInterviewReady() {
               muted
               playsInline
               className="w-full h-full object-cover"
+              style={{ transform: "scaleX(-1)" }}
             />
             {status.camera !== "passed" && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-slate-900/80">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 dark:bg-slate-900/90 gap-3">
                 <Video className="w-12 h-12 text-gray-400 dark:text-slate-600" />
+                {status.camera === "checking" && (
+                  <p className="text-sm text-gray-500 dark:text-slate-400 animate-pulse">Accessing camera...</p>
+                )}
+                {status.camera === "failed" && (
+                  <p className="text-sm text-red-500">Camera access denied</p>
+                )}
               </div>
             )}
             {status.camera === "passed" && (
               <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                <Check className="w-3 h-3" />
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
                 {t("mockInterviewReady.statusLive")}
               </div>
             )}
@@ -624,11 +686,36 @@ export default function MockInterviewReady() {
                 status.speaker,
               )}`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
                 <Volume2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 <span className="text-gray-700 dark:text-gray-300">
                   {t("mockInterviewReady.speakerAccess")}
                 </span>
+                {status.speaker === "passed" && (
+                  <button
+                    type="button"
+                    onClick={playTestTone}
+                    disabled={speakerTesting}
+                    className="ml-2 flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 px-2 py-1 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    {speakerTesting ? (
+                      <>
+                        <span className="flex gap-0.5">
+                          {[0,1,2].map(i => (
+                            <span
+                              key={i}
+                              className="w-0.5 bg-blue-500 rounded animate-bounce"
+                              style={{ height: `${8 + i * 4}px`, animationDelay: `${i * 0.1}s` }}
+                            />
+                          ))}
+                        </span>
+                        Playing...
+                      </>
+                    ) : (
+                      <><Volume2 className="w-3 h-3" /> Test</>  
+                    )}
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <span
