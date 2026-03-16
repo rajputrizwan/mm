@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("Failed to fetch user details after login");
         }
       } else {
-        throw new Error(response.error || "Login failed");
+        throw new Error(response.message || "Login failed");
       }
     } catch (error) {
       console.error("Login error:", error);

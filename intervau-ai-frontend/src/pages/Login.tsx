@@ -75,7 +75,8 @@ export default function Login() {
       );
     } catch (error: any) {
       // Show persistent error in bell panel so user doesn't miss it
-      console.error("Login failed:", error);
+      addToast(error?.message || "Sign-in failed. Check your email and password, then try again.", "error");
+ 
       addNotification(
         error?.message ||
         "Sign-in failed. Check your email and password, then try again.",
