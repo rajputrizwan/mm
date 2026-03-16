@@ -15,6 +15,7 @@ import dashboardRoutes from './routes/dashboard';
 import searchRoutes from './routes/searchRoutes';
 import interviewTemplateRoutes from './routes/interviewTemplates';
 import interviewSessionRoutes from './routes/interviewSession';
+import interviewFeedbackRoutes from './routes/interviewFeedback';
 import mockInterviewRoutes from './routes/mockInterview';
 
 const app: Express = express();
@@ -62,6 +63,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/interview-templates', interviewTemplateRoutes);
 app.use('/api/interview-session', interviewSessionRoutes);
+app.use('/api/interview-feedback', interviewFeedbackRoutes);
 app.use('/api/interviews/mock-interviews', mockInterviewRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
@@ -78,6 +80,8 @@ app.get('/api', (req: Request, res: Response) => {
       dashboard: '/api/dashboard',
       search: '/api/search',
       interviewTemplates: '/api/interview-templates',
+      interviewSession: '/api/interview-session',
+      interviewFeedback: '/api/interview-feedback',
       mockInterviews: '/api/interviews/mock-interviews',
       health: '/api/health',
     },

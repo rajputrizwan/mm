@@ -1,19 +1,6 @@
 import { Request, Response } from 'express';
 import { InterviewTemplate } from '../models/InterviewTemplate';
 
-const DEFAULT_FALLBACK_QUESTIONS = [
-  'Tell me about yourself and your background relevant to this role.',
-  'Walk me through a recent project you worked on and your impact.',
-  'Describe a challenging problem you solved and how you approached it.',
-  'How do you prioritize tasks when you have multiple deadlines?',
-  'What are your strengths and areas you are working to improve?',
-  'Describe a time you received feedback and how you acted on it.',
-  'How do you handle ambiguity or unclear requirements?',
-  'What motivates you in a professional setting?',
-  'Describe a time you collaborated with a team to achieve a goal.',
-  'Why are you interested in this role and company?',
-];
-
 const buildFallbackQuestions = (
   jobPosition: string,
   interviewModes: string[] | string,
@@ -22,14 +9,57 @@ const buildFallbackQuestions = (
 ) => {
   const modes = Array.isArray(interviewModes) ? interviewModes : [interviewModes || 'general'];
 
+  const fallbackPool = [
+    {
+      text: `Walk me through your most technically challenging project as a ${jobPosition} and how you overcame the key obstacles.`,
+      expectedAnswer: `The candidate should describe a specific project with clear context, explain the technical challenges in detail, outline the approach taken to solve them, and quantify the impact or outcome.`,
+    },
+    {
+      text: `How do you stay up-to-date with the latest trends and best practices relevant to your role as a ${jobPosition}?`,
+      expectedAnswer: `A strong answer covers specific resources (blogs, courses, conferences), examples of recently learned skills, and how the candidate applies new knowledge practically.`,
+    },
+    {
+      text: `Describe a situation where you had to make a critical technical decision with limited time or information. What was your process?`,
+      expectedAnswer: `The candidate should describe a real scenario, explain the decision-making framework used, what trade-offs were considered, and what the outcome was.`,
+    },
+    {
+      text: `How do you approach code quality, testing, and ensuring long-term maintainability in your projects?`,
+      expectedAnswer: `Look for mentions of unit/integration testing, code reviews, documentation, design patterns, and CI/CD practices.`,
+    },
+    {
+      text: `Tell me about a time you had a disagreement with a teammate or stakeholder. How did you resolve it?`,
+      expectedAnswer: `A good response demonstrates active listening, empathy, use of data or logic to frame arguments, and a collaborative resolution. The candidate should show they can disagree professionally.`,
+    },
+    {
+      text: `How do you prioritize competing tasks and features when working under tight deadlines?`,
+      expectedAnswer: `Look for a structured approach: stakeholder alignment, impact vs. effort analysis, clear communication about trade-offs, and examples of successfully managed prioritization.`,
+    },
+    {
+      text: `Explain a time when you had to quickly ramp up on an unfamiliar technology or codebase. How did you approach it?`,
+      expectedAnswer: `Strong answers include a structured learning plan, seeking documentation/code examples, pair programming or mentoring, and quick wins to validate understanding.`,
+    },
+    {
+      text: `What does your ideal development or work process look like from requirement gathering to delivery?`,
+      expectedAnswer: `The candidate should discuss requirement clarification, planning/estimation, iterative development, testing, feedback loops, and deployment — with real examples.`,
+    },
+    {
+      text: `Describe a situation where your work had a measurable business impact. How did you quantify and communicate that impact?`,
+      expectedAnswer: `Look for specific metrics (performance gains, cost savings, reduced errors, user growth), clear understanding of business context, and effective communication with non-technical stakeholders.`,
+    },
+    {
+      text: `What are the biggest technical challenges you anticipate in a ${jobPosition} role at a growing company, and how would you address them?`,
+      expectedAnswer: `The candidate should demonstrate forward thinking: scalability, team communication, tech debt management, knowledge sharing, and proactive problem-solving.`,
+    },
+  ];
+
   const normalizedCount = Math.max(3, Math.min(questionCount || 5, 20));
   const questions = Array.from({ length: normalizedCount }).map((_, index) => {
     const type = modes[index % modes.length] || 'general';
-    const base = DEFAULT_FALLBACK_QUESTIONS[index % DEFAULT_FALLBACK_QUESTIONS.length];
+    const base = fallbackPool[index % fallbackPool.length];
     return {
-      text: `${base} (Role: ${jobPosition})`,
+      text: base.text,
       type,
-      expectedAnswer: `A ${difficultyLevel || 'mid'}-level response should include relevant experience, clear reasoning, and role-specific examples.`,
+      expectedAnswer: base.expectedAnswer,
     };
   });
 
@@ -339,40 +369,38 @@ export class InterviewTemplateController {
         ? interviewModes.map((mode: string) => mode.replace('_', ' ')).join(', ')
         : interviewModes;
 
-      // Use the improved prompt template from the reference
-      const prompt = `You are an expert technical interviewer.
-Based on the following inputs, generate a well-structured list of high-quality interview questions:
+      // Use the improved prompt template
+      const prompt = `You are a senior technical hiring manager with 15+ years of experience interviewing candidates for ${jobPosition} roles.
+
+Your task is to generate exactly ${questionCount} high-quality, specific, and challenging interview questions for the following position:
 
 Job Title: ${jobPosition}
 Job Description: ${jobDescription}
 Interview Duration: ${duration}
-Interview Type: ${typeString}
-Difficulty Level: ${difficultyLevel || 'mid'}
+Interview Focus: ${typeString}
+Difficulty Level: ${difficultyLevel || 'mid'} (junior = entry level, mid = 2-5 years experience, senior = 5+ years)
 
-📝 Your task:
-Analyze the job description to identify key responsibilities, required skills, and expected experience.
-Generate a list of interview questions depends on interview duration (approximately ${questionCount} questions).
-Adjust the number and depth of questions to match the interview duration.
-Ensure the questions match the tone and structure of a real-life ${typeString} interview.
+IMPORTANT RULES:
+1. Questions MUST be specific to the "${jobPosition}" role and the job description provided — not generic.
+2. DO NOT append "(Role: ...)" or any role label at the end of questions.
+3. Each question must be substantive and require a detailed, thoughtful answer.
+4. Questions should reflect the difficulty level: ${difficultyLevel || 'mid'}-level depth.
+5. For technical questions: ask about specific technologies, architecture decisions, real problem-solving, or system design relevant to the job description.
+6. For behavioral questions: use the STAR format context and ask about concrete past experiences.
+7. The expectedAnswer should be 2-4 sentences outlining what a strong answer would include.
+8. Do NOT use markdown formatting inside JSON string values (no **, *, #, backticks).
+9. Return ONLY a valid JSON array. No preamble, no explanation, no trailing text.
 
-  🍀 Format your response in JSON format with array list of questions.
-Return ONLY a valid JSON array with no additional text.
-Do NOT use markdown or formatting (no **, *, _, backticks, headings, or bullet symbols) inside any text fields.
-Each object should have:
-- "text": The question text
-- "type": One of [${interviewModes.map((m: string) => `"${m}"`).join(', ')}]
-- "expectedAnswer": A brief ideal answer outline (2-3 sentences)
-
-format:
+Return exactly ${questionCount} questions as a JSON array:
 [
   {
-    "text": "Can you describe your experience with...",
-    "type": "technical",
-    "expectedAnswer": "The candidate should mention..."
+    "text": "<specific, challenging question directly relevant to ${jobPosition}>",
+    "type": "<one of: ${interviewModes.map((m: string) => m).join(', ')}>",
+    "expectedAnswer": "<2-4 sentences describing what a strong answer should cover>"
   }
 ]
 
-🎯 The goal is to create a structured, relevant, and time-optimized interview plan for a ${jobPosition} role.`;
+Generate the questions now:`;
 
       console.log(`[${requestId}] 📝 Generating questions with OpenRouter AI...`);
       console.log(`[${requestId}] 🎯 Target: ${questionCount} questions for ${duration} duration`);

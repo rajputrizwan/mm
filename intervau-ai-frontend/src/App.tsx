@@ -50,6 +50,7 @@ import InterviewSummary from "./pages/InterviewSummary";
 // Public Interview Pages (Shareable Link Access)
 import CandidateInterviewLanding from "./pages/CandidateInterviewLanding";
 import AIInterviewSession from "./pages/AIInterviewSession";
+import PublicInterviewComplete from "./pages/PublicInterviewComplete";
 
 // Error Pages
 import NotFound from "./pages/NotFound";
@@ -168,6 +169,10 @@ function AppRoutes() {
       <Route
         path={ROUTES.PUBLIC_INTERVIEW_SESSION}
         element={<AIInterviewSession />}
+      />
+      <Route
+        path={ROUTES.PUBLIC_INTERVIEW_SUMMARY}
+        element={<PublicInterviewComplete />}
       />
 
       {/* Candidate Routes */}
