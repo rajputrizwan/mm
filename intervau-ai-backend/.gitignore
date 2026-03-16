@@ -34,3 +34,10 @@ dist/
 .fusebox/
 .dynamodb/
 .tern-port
+
+
+# ignore the lock files 
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
