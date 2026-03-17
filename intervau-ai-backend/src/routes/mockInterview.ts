@@ -547,6 +547,12 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
       transcript?: Array<{ speaker: 'ai' | 'candidate'; text: string; timestamp: string }>;
       qaPairs?: Array<{ question: string; answer: string }>;
       durationSeconds?: number;
+      speakingPatterns?: {
+        fillerWords: number;
+        avgResponseTimeSeconds: number;
+        totalWords: number;
+        avgWordsPerMinute: number;
+      };
     };
 
     if (!userId) {
@@ -582,23 +588,12 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     if (body?.transcript && Array.isArray(body.transcript) && body.transcript.length > 0) {
       const transcriptPayload = body.transcript;
 
-      // Replace transcript in place so Mongoose persists the full array (assigning a new array can be lost on save)
-      session.transcript.splice(0, session.transcript.length);
-      transcriptPayload.forEach((t) => {
-        session.transcript.push({
-          speaker: t.speaker,
-          text: t.text,
-          timestamp: new Date(t.timestamp),
-          questionIndex: undefined as number | undefined,
-        });
-      });
-
-      // Derive answer groups: merge consecutive candidate messages into one answer per "turn"
+      // Derive answer groups from payload (merge consecutive candidate messages)
       const answerGroups: string[] = [];
       let currentAnswer: string[] = [];
-      for (let i = 0; i < session.transcript.length; i++) {
-        if (session.transcript[i].speaker === 'candidate') {
-          currentAnswer.push(session.transcript[i].text.trim());
+      for (let i = 0; i < transcriptPayload.length; i++) {
+        if (transcriptPayload[i].speaker === 'candidate') {
+          currentAnswer.push(transcriptPayload[i].text.trim());
         } else {
           if (currentAnswer.length > 0) {
             answerGroups.push(currentAnswer.join(' ').trim());
@@ -610,23 +605,34 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         answerGroups.push(currentAnswer.join(' ').trim());
       }
 
-      // Assign questionIndex to each transcript entry
+      // Build full transcript array so Mongoose persists all entries
+      const newTranscript = transcriptPayload.map((t) => ({
+        speaker: t.speaker,
+        text: t.text,
+        timestamp: new Date(t.timestamp),
+        questionIndex: undefined as number | undefined,
+      }));
+
       let qIndex = 0;
-      for (let i = 0; i < session.transcript.length; i++) {
-        if (session.transcript[i].speaker === 'candidate') {
-          session.transcript[i].questionIndex = qIndex;
+      for (let i = 0; i < newTranscript.length; i++) {
+        if (newTranscript[i].speaker === 'candidate') {
+          newTranscript[i].questionIndex = qIndex;
           qIndex++;
         } else {
-          session.transcript[i].questionIndex = qIndex < session.questions.length ? qIndex : Math.max(0, qIndex - 1);
+          newTranscript[i].questionIndex = qIndex < session.questions.length ? qIndex : Math.max(0, qIndex - 1);
         }
       }
 
+      session.transcript = newTranscript;
       session.markModified('transcript');
 
-      // Map derived answers to session.questions (by order: first answer = Q0, second = Q1, ...)
+      // Prefer qaPairs from frontend (by index); fallback to transcript-derived answer groups
       const durationSeconds = body.durationSeconds ?? sessionDurationMinutes * 60;
       const numQuestions = session.questions.length;
-      const answersToUse = answerGroups.slice(0, numQuestions);
+      const answersToUse =
+        body.qaPairs && body.qaPairs.length > 0
+          ? body.qaPairs.slice(0, numQuestions).map((qa) => qa.answer ?? '')
+          : answerGroups.slice(0, numQuestions);
       questionsAnsweredCount = answersToUse.length;
 
       let totalWords = 0;
@@ -653,28 +659,49 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         const score = Math.round((confidence + clarity + technicalScore + pace) / 4);
         totalScore += score;
 
+        const strengths = extractStrengths(normalizedAnswer, wordCount);
+        const improvements = extractImprovements(fillerWords, wordCount, responseTimePerQuestion);
         question.aiAnalysis = {
           score,
-          feedback: 'Voice response recorded and analyzed.',
-          strengths: extractStrengths(normalizedAnswer, wordCount),
-          improvements: extractImprovements(fillerWords, wordCount, responseTimePerQuestion),
+          feedback: wordCount > 0 ? 'Voice response recorded and analyzed.' : 'No answer provided.',
+          strengths: Array.isArray(strengths) ? strengths : [],
+          improvements: Array.isArray(improvements) ? improvements : [],
         };
+      });
+
+      // Ensure every question has aiAnalysis (strengths/improvements arrays)
+      session.questions.forEach((q) => {
+        if (!q.aiAnalysis) {
+          q.aiAnalysis = {
+            score: 0,
+            feedback: 'No answer provided.',
+            strengths: [],
+            improvements: [],
+          };
+        } else {
+          if (!Array.isArray(q.aiAnalysis.strengths)) q.aiAnalysis.strengths = [];
+          if (!Array.isArray(q.aiAnalysis.improvements)) q.aiAnalysis.improvements = [];
+        }
       });
 
       const avgScore = questionsAnsweredCount > 0 ? Math.round(totalScore / questionsAnsweredCount) : 75;
       const durationMinutes = durationSeconds / 60;
-      const speakingPaceWPM = durationMinutes > 0 ? Math.round(totalWords / durationMinutes) : 0;
+      const fp = body.speakingPatterns;
+      const fillerWordsMetric = fp ? fp.fillerWords : totalFillerWords;
+      const totalWordsMetric = fp ? fp.totalWords : totalWords;
+      const speakingPaceWPMMetric = fp ? fp.avgWordsPerMinute : (durationMinutes > 0 ? Math.round(totalWords / durationMinutes) : 0);
+      const avgResponseTimeMetric = fp ? fp.avgResponseTimeSeconds : Math.round(responseTimePerQuestion * 10) / 10;
 
       session.metrics = {
         overallScore: avgScore,
-        confidence: Math.min(100, Math.max(40, 70 + (totalWords / 100) * 5 - totalFillerWords * 2)),
-        clarity: Math.min(100, Math.max(40, 75 - totalFillerWords)),
+        confidence: Math.min(100, Math.max(40, 70 + (totalWordsMetric / 100) * 5 - fillerWordsMetric * 2)),
+        clarity: Math.min(100, Math.max(40, 75 - fillerWordsMetric)),
         technicalAccuracy: avgScore,
-        communicationSkills: Math.min(100, Math.max(40, 70 + totalWords / 50)),
-        fillerWords: totalFillerWords,
-        averageResponseTime: Math.round(responseTimePerQuestion * 10) / 10,
-        totalWordsSpoken: totalWords,
-        speakingPaceWPM,
+        communicationSkills: Math.min(100, Math.max(40, 70 + totalWordsMetric / 50)),
+        fillerWords: fillerWordsMetric,
+        averageResponseTime: avgResponseTimeMetric,
+        totalWordsSpoken: totalWordsMetric,
+        speakingPaceWPM: speakingPaceWPMMetric,
         overallRating: avgScore >= 85 ? 'Excellent' : avgScore >= 70 ? 'Good' : avgScore >= 55 ? 'Average' : 'Needs Improvement',
         recommendation: avgScore >= 70 ? 'Move to Next Round' : 'Practice and retry',
         aiAnalysisPercentage: Math.min(100, avgScore + 5),
@@ -745,11 +772,12 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     const parsed = parseSummaryMarkdown(summaryText);
     session.summary = {
       text: summaryText,
-      strengths: parsed.strengths,
-      areasForImprovement: parsed.areasForImprovement,
-      recommendations: parsed.recommendations,
-      keyInsights: parsed.keyInsights,
+      strengths: parsed.strengths ?? [],
+      areasForImprovement: parsed.areasForImprovement ?? [],
+      recommendations: parsed.recommendations ?? [],
+      keyInsights: parsed.keyInsights ?? [],
     };
+    session.markModified('summary');
     session.status = 'completed';
     session.completedAt = new Date();
 

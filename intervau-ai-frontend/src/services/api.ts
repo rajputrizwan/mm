@@ -618,6 +618,12 @@ export const api = {
       }>;
       qaPairs?: Array<{ question: string; answer: string }>;
       durationSeconds?: number;
+      speakingPatterns?: {
+        fillerWords: number;
+        avgResponseTimeSeconds: number;
+        totalWords: number;
+        avgWordsPerMinute: number;
+      };
     },
   ) =>
     request<{

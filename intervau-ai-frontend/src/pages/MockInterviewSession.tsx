@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ROUTES } from "../router";
@@ -68,6 +68,58 @@ Flow: Greet briefly → Ask Q1 → wait for answer → brief ack → Ask Q2 → 
   };
 }
 
+/** Count filler words in text (um, uh, like, etc.) */
+function countFillerWords(text: string): number {
+  const patterns = [
+    /\bum+\b/gi,
+    /\buh+\b/gi,
+    /\blike\b/gi,
+    /\byou know\b/gi,
+    /\bbasically\b/gi,
+    /\bactually\b/gi,
+    /\bi mean\b/gi,
+    /\bkind of\b/gi,
+    /\bsort of\b/gi,
+    /\bwell\b/gi,
+  ];
+  let count = 0;
+  patterns.forEach((p) => {
+    const m = text.match(p);
+    if (m) count += m.length;
+  });
+  return count;
+}
+
+/** Compute speaking patterns from VAPI messages and duration (for API payload). */
+function computeSpeakingPatternsFromMessages(
+  msgs: VapiMessage[],
+  durationSeconds: number,
+): { fillerWords: number; avgResponseTimeSeconds: number; totalWords: number; avgWordsPerMinute: number } {
+  const userMessages = msgs.filter((m) => m.role === "user");
+  const allUserText = userMessages.map((m) => m.content).join(" ");
+  const totalWords = allUserText.trim().split(/\s+/).filter(Boolean).length;
+  const fillerWords = countFillerWords(allUserText);
+  const elapsedMinutes = durationSeconds / 60;
+  const avgWordsPerMinute = elapsedMinutes > 0 ? Math.round(totalWords / elapsedMinutes) : 0;
+  let avgResponseTimeSeconds = 0;
+  if (userMessages.length >= 1 && msgs.length >= 2) {
+    const responseTimes: number[] = [];
+    for (let i = 0; i < msgs.length; i++) {
+      if (msgs[i].role === "user") {
+        const prev = msgs[i - 1];
+        if (prev) {
+          const ms = new Date(msgs[i].timestamp).getTime() - new Date(prev.timestamp).getTime();
+          responseTimes.push(ms / 1000);
+        }
+      }
+    }
+    if (responseTimes.length > 0) {
+      avgResponseTimeSeconds = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    }
+  }
+  return { fillerWords, avgResponseTimeSeconds, totalWords, avgWordsPerMinute };
+}
+
 /** Map VAPI messages to transcript entries for the UI */
 function vapiMessagesToTranscript(msgs: VapiMessage[]): TranscriptEntry[] {
   return msgs.map((msg, i) => ({
@@ -105,12 +157,7 @@ export default function MockInterviewSession() {
     technicalAccuracy: 80,
     articulation: 76,
   });
-  const [speakingPatterns] = useState({
-    fillerWords: 0,
-    avgResponseTime: "0.0s",
-    totalWords: 0,
-    avgWordsPerMinute: 0,
-  });
+  // Speaking patterns derived in real time from VAPI transcript
   const [realTimeTips] = useState<
     Array<{ type: "success" | "warning" | "info"; message: string }>
   >([
@@ -142,12 +189,20 @@ export default function MockInterviewSession() {
       timestamp: msg.timestamp,
     }));
 
+    const speakingPatterns = computeSpeakingPatternsFromMessages(rawMessages, durationSeconds);
+
     try {
       if (sessionId) {
         await api.completeMockInterviewSession(sessionId, {
           transcript: transcriptForApi,
           qaPairs,
           durationSeconds,
+          speakingPatterns: {
+            fillerWords: speakingPatterns.fillerWords,
+            avgResponseTimeSeconds: Math.round(speakingPatterns.avgResponseTimeSeconds * 10) / 10,
+            totalWords: speakingPatterns.totalWords,
+            avgWordsPerMinute: speakingPatterns.avgWordsPerMinute,
+          },
         });
       }
     } catch (e) {
@@ -292,6 +347,39 @@ export default function MockInterviewSession() {
   useEffect(() => {
     if (videoRef.current && stream) videoRef.current.srcObject = stream;
   }, [stream]);
+
+  // Real-time speaking patterns from VAPI transcript (must run before any early return to satisfy Rules of Hooks)
+  const speakingPatterns = useMemo(() => {
+    const userMessages = vapiMessages.filter((m) => m.role === "user");
+    const allUserText = userMessages.map((m) => m.content).join(" ");
+    const totalWords = allUserText.trim().split(/\s+/).filter(Boolean).length;
+    const fillerWords = countFillerWords(allUserText);
+    const elapsedMinutes = elapsedTime / 60;
+    const avgWordsPerMinute = elapsedMinutes > 0 ? Math.round(totalWords / elapsedMinutes) : 0;
+    let avgResponseTime = "0.0s";
+    if (userMessages.length >= 1 && vapiMessages.length >= 2) {
+      const responseTimes: number[] = [];
+      for (let i = 0; i < vapiMessages.length; i++) {
+        if (vapiMessages[i].role === "user") {
+          const prev = vapiMessages[i - 1];
+          if (prev) {
+            const ms = new Date(vapiMessages[i].timestamp).getTime() - new Date(prev.timestamp).getTime();
+            responseTimes.push(ms / 1000);
+          }
+        }
+      }
+      if (responseTimes.length > 0) {
+        const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+        avgResponseTime = `${avg.toFixed(1)}s`;
+      }
+    }
+    return {
+      fillerWords,
+      avgResponseTime,
+      totalWords,
+      avgWordsPerMinute,
+    };
+  }, [vapiMessages, elapsedTime]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
