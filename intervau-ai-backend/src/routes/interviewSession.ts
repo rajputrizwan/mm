@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { InterviewTemplate } from '../models/InterviewTemplate';
 import { conductInterview, generateInterviewSummary } from '../services/aiInterviewService';
+import CandidateInterviewSession from '../models/CandidateInterviewSession';
 
 const router = Router();
 
@@ -140,6 +141,124 @@ router.post('/start', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to start interview session',
+    });
+  }
+});
+
+/**
+ * Persist completed interview results from Vapi flow
+ */
+router.post('/save-results', async (req: Request, res: Response) => {
+  try {
+    const {
+      sessionId,
+      conversation,
+      transcript = [],
+      candidateName,
+      candidateEmail,
+      jobPosition,
+      feedback,
+      status = 'completed',
+    } = req.body;
+
+    if (!sessionId || !Array.isArray(conversation) || conversation.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'sessionId and a non-empty conversation array are required',
+      });
+    }
+
+    const activeSession = activeSessions.get(sessionId);
+
+    const fallbackName = typeof candidateName === 'string' ? candidateName : '';
+    const fallbackEmail = typeof candidateEmail === 'string' ? candidateEmail : '';
+    const fallbackJob = typeof jobPosition === 'string' ? jobPosition : '';
+
+    const resolvedCandidateName = activeSession?.candidateName || fallbackName;
+    const resolvedCandidateEmail = activeSession?.candidateEmail || fallbackEmail;
+    const resolvedJobPosition = activeSession?.jobTitle || fallbackJob;
+
+    if (!resolvedCandidateName || !resolvedCandidateEmail || !resolvedJobPosition) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Unable to resolve candidate metadata. Provide candidateName, candidateEmail, and jobPosition.',
+      });
+    }
+
+    const normalizedConversation = conversation
+      .map((entry: { question?: string; answer?: string }) => ({
+        question: String(entry?.question || '').trim(),
+        answer: String(entry?.answer || '(No answer provided)').trim() || '(No answer provided)',
+      }))
+      .filter((entry: { question: string; answer: string }) => entry.question.length > 0);
+
+    const normalizedTranscript = Array.isArray(transcript)
+      ? transcript
+          .map((entry: { speaker?: string; text?: string; timestamp?: string }) => {
+            const speaker = String(entry?.speaker || '').toLowerCase();
+            const normalizedSpeaker = speaker === 'assistant' ? 'assistant' : 'candidate';
+            return {
+              speaker: normalizedSpeaker,
+              text: String(entry?.text || '').trim(),
+              timestamp: entry?.timestamp ? new Date(entry.timestamp) : new Date(),
+            };
+          })
+          .filter(
+            (entry: { speaker: string; text: string; timestamp: Date }) => entry.text.length > 0
+          )
+      : [];
+
+    const endedAt = new Date();
+    const startedAt = activeSession?.startedAt;
+    const durationSeconds = startedAt
+      ? Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000))
+      : undefined;
+
+    const persisted = await CandidateInterviewSession.findOneAndUpdate(
+      { sessionId },
+      {
+        sessionId,
+        templateId: activeSession?.templateId,
+        candidateName: resolvedCandidateName,
+        candidateEmail: resolvedCandidateEmail,
+        jobPosition: resolvedJobPosition,
+        questions: activeSession?.questions || [],
+        conversation: normalizedConversation,
+        transcript: normalizedTranscript,
+        feedback,
+        status,
+        startedAt,
+        endedAt,
+        durationSeconds,
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+
+    if (status !== 'active' && activeSession) {
+      activeSessions.delete(sessionId);
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: persisted._id,
+        sessionId: persisted.sessionId,
+        status: persisted.status,
+        conversationCount: persisted.conversation.length,
+        transcriptCount: persisted.transcript.length,
+      },
+      message: 'Interview results saved successfully',
+    });
+  } catch (error: any) {
+    console.error('Error saving interview results:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to save interview results',
     });
   }
 });

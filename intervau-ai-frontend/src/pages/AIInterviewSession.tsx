@@ -52,6 +52,12 @@ interface LocationState {
   };
 }
 
+function resolveApiBaseUrl(): string {
+  const raw = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  if (!raw) return "http://localhost:5000/api";
+  return raw.endsWith("/api") ? raw : `${raw}/api`;
+}
+
 /**
  * Builds the Vapi inline-assistant configuration.
  *
@@ -146,6 +152,7 @@ export default function AIInterviewSession() {
 
   // ── Session meta ─────────────────────────────────────────────────────────
   const [candidateName, setCandidateName] = useState("");
+  const [sessionId, setSessionId] = useState("");
   const [jobPosition, setJobPosition] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
@@ -176,28 +183,48 @@ export default function AIInterviewSession() {
   const handleCallEnd = useCallback(
     async (
       qaPairs: { question: string; answer: string }[],
-      _rawMessages: VapiMessage[],
+      rawMessages: VapiMessage[],
     ) => {
       setAiMode("thinking");
       setEvaluating(true);
 
       try {
-        const apiBase =
-          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiBase = resolveApiBaseUrl();
+
+        const fallbackConversation = [
+          {
+            question: "General interview",
+            answer: "Candidate completed the interview.",
+          },
+        ];
+
+        const finalConversation =
+          qaPairs.length > 0 ? qaPairs : fallbackConversation;
+        const finalTranscript = rawMessages.map((msg) => ({
+          speaker: msg.role,
+          text: msg.content,
+          timestamp: msg.timestamp,
+        }));
+
+        await fetch(`${apiBase}/interview-session/save-results`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            candidateName,
+            candidateEmail: state?.candidateEmail || "",
+            jobPosition,
+            conversation: finalConversation,
+            transcript: finalTranscript,
+            status: "completed",
+          }),
+        });
 
         const res = await fetch(`${apiBase}/interview-feedback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            conversation:
-              qaPairs.length > 0
-                ? qaPairs
-                : [
-                    {
-                      question: "General interview",
-                      answer: "Candidate completed the interview.",
-                    },
-                  ],
+            conversation: finalConversation,
             candidateName,
             jobPosition,
           }),
@@ -233,7 +260,15 @@ export default function AIInterviewSession() {
         setEvaluating(false);
       }
     },
-    [candidateName, jobPosition, uuid, elapsedTime, navigate],
+    [
+      candidateName,
+      jobPosition,
+      sessionId,
+      state?.candidateEmail,
+      uuid,
+      elapsedTime,
+      navigate,
+    ],
   );
 
   const {
@@ -280,6 +315,7 @@ export default function AIInterviewSession() {
   // ── Session initialisation ────────────────────────────────────────────────
   useEffect(() => {
     if (state) {
+      setSessionId(state.sessionId);
       setCandidateName(state.candidateName);
       setJobPosition(state.jobPosition);
       setTotalQuestions(state.totalQuestions);
@@ -287,6 +323,7 @@ export default function AIInterviewSession() {
     } else {
       const saved = loadSession();
       if (saved && saved.shareableLink === uuid) {
+        setSessionId(saved.sessionId);
         setCandidateName(saved.candidateName);
         setJobPosition(saved.jobPosition);
         setTotalQuestions(saved.totalQuestions);
