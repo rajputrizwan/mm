@@ -100,6 +100,15 @@ export default function MockInterviewSession() {
   const elapsedTimeRef = useRef(elapsedTime);
   elapsedTimeRef.current = elapsedTime;
 
+  // Unique ID counter for transcript entries (avoids duplicate key when adding in same ms)
+  const transcriptIdRef = useRef(0);
+  const nextTranscriptId = () => `transcript-${++transcriptIdRef.current}`;
+
+  // Ref to clear "first question" timeout when effect re-runs or component unmounts
+  const firstQuestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   // Metrics state (simulated live updates)
   const [liveMetrics, setLiveMetrics] = useState({
     confidence: 75,
@@ -196,7 +205,7 @@ export default function MockInterviewSession() {
 
       // Add initial AI greeting to transcript
       const greeting: TranscriptEntry = {
-        id: Date.now().toString(),
+        id: nextTranscriptId(),
         speaker: t("mockInterviewSession.aiInterviewer"),
         text: t("mockInterviewSession.welcomeMessage", {
           position: session.position,
@@ -208,10 +217,13 @@ export default function MockInterviewSession() {
       setTranscript([greeting]);
 
       // Add first question after a delay
-      setTimeout(() => {
+      if (firstQuestionTimeoutRef.current) {
+        clearTimeout(firstQuestionTimeoutRef.current);
+      }
+      firstQuestionTimeoutRef.current = setTimeout(() => {
         if (session && session.questions.length > 0) {
           const firstQuestion: TranscriptEntry = {
-            id: (Date.now() + 1).toString(),
+            id: nextTranscriptId(),
             speaker: t("mockInterviewSession.aiInterviewer"),
             text: session.questions[0].text,
             time: "00:02",
@@ -219,11 +231,19 @@ export default function MockInterviewSession() {
           };
           setTranscript((prev) => [...prev, firstQuestion]);
         }
+        firstQuestionTimeoutRef.current = null;
       }, 2000);
     };
 
     loadSession();
-  }, [sessionId, navigate, t]);
+    return () => {
+      if (firstQuestionTimeoutRef.current) {
+        clearTimeout(firstQuestionTimeoutRef.current);
+        firstQuestionTimeoutRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- omit `t` to avoid max update depth (t reference changes each render)
+  }, [sessionId, navigate]);
 
   // Timer effect
   useEffect(() => {
@@ -390,7 +410,7 @@ export default function MockInterviewSession() {
   const addToTranscript = useCallback(
     (speaker: string, text: string, isCandidate: boolean) => {
       const entry: TranscriptEntry = {
-        id: Date.now().toString(),
+        id: nextTranscriptId(),
         speaker,
         text,
         time: formatTime(elapsedTimeRef.current),
