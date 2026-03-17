@@ -43,7 +43,7 @@ export default function Sidebar() {
     {
       icon: History,
       label: t("navigation.interviewHistory"),
-      path: ROUTES.INTERVIEW_HISTORY,
+      path: ROUTES.INTERVIEW_HISTORY_V2,
     },
     {
       icon: Settings,

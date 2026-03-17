@@ -22,6 +22,64 @@ interface ApiResponse<T = any> {
   statusCode?: number;
 }
 
+/** Mock interview session as returned by API (single session or history item). */
+export interface MockInterviewSessionDetail {
+  sessionId: string;
+  position: string;
+  jobDescription?: string;
+  duration: number;
+  questionCount: number;
+  difficulty: string;
+  status: string;
+  systemCheckPassed?: boolean;
+  currentQuestionIndex?: number;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  questions: Array<{
+    id: number;
+    category: string;
+    difficulty: string;
+    text: string;
+    duration: number;
+    answer?: string;
+    aiAnalysis?: {
+      score: number;
+      feedback: string;
+      strengths: string[];
+      improvements: string[];
+    };
+  }>;
+  transcript?: Array<{
+    speaker: "ai" | "candidate";
+    text: string;
+    timestamp: string;
+    questionIndex?: number;
+  }>;
+  metrics?: {
+    overallScore: number;
+    confidence: number;
+    clarity: number;
+    technicalAccuracy: number;
+    communicationSkills: number;
+    fillerWords: number;
+    averageResponseTime: number;
+    totalWordsSpoken?: number;
+    speakingPaceWPM?: number;
+    overallRating?: string;
+    recommendation?: string;
+    aiAnalysisPercentage?: number;
+    resumeMatchPercentage?: number;
+  };
+  summary?: {
+    text?: string;
+    strengths?: string[];
+    areasForImprovement?: string[];
+    recommendations?: string[];
+    keyInsights?: string[];
+  };
+}
+
 // Get auth token from localStorage
 function getAuthToken(): string | null {
   return localStorage.getItem("authToken");
@@ -519,21 +577,16 @@ export const api = {
     }),
 
   getMockInterviewSession: (sessionId: string) =>
+    request<MockInterviewSessionDetail>(`/interviews/mock-interviews/sessions/${sessionId}`),
+
+  /** v2: Completed mock interview history (full session documents). Uses GET /sessions?status=completed&full=true. */
+  getMockInterviewHistoryV2: (params?: { limit?: number; page?: number }) =>
     request<{
-      sessionId: string;
-      position: string;
-      jobDescription: string;
-      duration: number;
-      questionCount: number;
-      difficulty: string;
-      status: string;
-      systemCheckPassed: boolean;
-      questions: any[];
-      currentQuestionIndex: number;
-      startedAt?: string;
-      completedAt?: string;
-      createdAt: string;
-    }>(`/interviews/mock-interviews/sessions/${sessionId}`),
+      sessions: MockInterviewSessionDetail[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    }>("/interviews/mock-interviews/sessions", {
+      params: { status: "completed", full: "true", limit: params?.limit ?? 20, page: params?.page ?? 1 },
+    }),
 
   updateMockInterviewSystemCheck: (sessionId: string, passed: boolean) =>
     request<{

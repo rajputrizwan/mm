@@ -85,6 +85,55 @@ router.post('/sessions', async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/interviews/mock-interviews/history
+ * Get completed mock interview sessions for the current user (v2 history list).
+ * Query: limit (default 20), page (default 1).
+ */
+router.get('/history', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { limit = 20, page = 1 } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [sessions, total] = await Promise.all([
+      MockInterviewSession.find({ userId, status: 'completed' })
+        .sort({ completedAt: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      MockInterviewSession.countDocuments({ userId, status: 'completed' }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        sessions,
+        pagination: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil(total / Number(limit)),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error fetching mock interview history:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to fetch mock interview history',
+    });
+  }
+});
+
+/**
  * GET /api/interviews/mock-interviews/sessions/:sessionId
  * Get a mock interview session by ID
  */
@@ -247,12 +296,13 @@ router.put('/sessions/:sessionId/start', async (req: AuthRequest, res: Response)
 
 /**
  * GET /api/interviews/mock-interviews/sessions
- * Get all mock interview sessions for the current user (history)
+ * Get all mock interview sessions for the current user (history).
+ * Query: status (e.g. 'completed'), limit, page, full (if 'true' return full documents for v2 history).
  */
 router.get('/sessions', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { status, limit = 10, page = 1 } = req.query;
+    const { status, limit = 10, page = 1, full } = req.query;
 
     const query: Record<string, unknown> = { userId };
     if (status) {
@@ -260,15 +310,18 @@ router.get('/sessions', async (req: AuthRequest, res: Response) => {
     }
 
     const skip = (Number(page) - 1) * Number(limit);
+    const useFull = String(full).toLowerCase() === 'true';
+    const sort = status === 'completed' ? { completedAt: -1, createdAt: -1 } : { createdAt: -1 };
+
+    const baseQuery = MockInterviewSession.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(Number(limit));
 
     const [sessions, total] = await Promise.all([
-      MockInterviewSession.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit))
-        .select(
-          'sessionId position duration questionCount difficulty status startedAt completedAt createdAt metrics'
-        ),
+      useFull ? baseQuery.lean() : baseQuery.select(
+        'sessionId position duration questionCount difficulty status startedAt completedAt createdAt metrics'
+      ),
       MockInterviewSession.countDocuments(query),
     ]);
 
