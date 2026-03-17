@@ -4,6 +4,7 @@ export interface IMockInterviewSession extends Document {
   userId: mongoose.Types.ObjectId;
   sessionId: string;
   position: string;
+  jobDescription: string;
   duration: number;
   questionCount: number;
   difficulty: string;
@@ -42,6 +43,19 @@ export interface IMockInterviewSession extends Document {
     communicationSkills: number;
     fillerWords: number;
     averageResponseTime: number;
+    totalWordsSpoken?: number;
+    speakingPaceWPM?: number;
+    overallRating?: string;
+    recommendation?: string;
+    aiAnalysisPercentage?: number;
+    resumeMatchPercentage?: number;
+  };
+  summary?: {
+    text?: string;
+    strengths?: string[];
+    areasForImprovement?: string[];
+    recommendations?: string[];
+    keyInsights?: string[];
   };
 }
 
@@ -60,6 +74,10 @@ const MockInterviewSessionSchema = new Schema<IMockInterviewSession>(
       index: true,
     },
     position: {
+      type: String,
+      required: true,
+    },
+    jobDescription: {
       type: String,
       required: true,
     },
@@ -126,6 +144,19 @@ const MockInterviewSessionSchema = new Schema<IMockInterviewSession>(
       communicationSkills: Number,
       fillerWords: Number,
       averageResponseTime: Number,
+      totalWordsSpoken: Number,
+      speakingPaceWPM: Number,
+      overallRating: String,
+      recommendation: String,
+      aiAnalysisPercentage: Number,
+      resumeMatchPercentage: Number,
+    },
+    summary: {
+      text: String,
+      strengths: [String],
+      areasForImprovement: [String],
+      recommendations: [String],
+      keyInsights: [String],
     },
   },
   {

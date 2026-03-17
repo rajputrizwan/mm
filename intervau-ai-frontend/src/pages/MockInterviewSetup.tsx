@@ -200,6 +200,7 @@ export default function MockInterviewSetup() {
         const apiPromise = api.createMockInterviewSession({
           sessionId,
           position: config.jobPosition,
+          jobDescription: config.jobDescription,
           duration: config.duration,
           questionCount: questions.length,
           difficulty: config.difficulty,

@@ -491,6 +491,7 @@ export const api = {
   createMockInterviewSession: (data: {
     sessionId: string;
     position: string;
+    jobDescription: string;
     duration: number;
     questionCount: number;
     difficulty: string;
@@ -505,6 +506,7 @@ export const api = {
     request<{
       sessionId: string;
       position: string;
+      jobDescription: string;
       duration: number;
       questionCount: number;
       difficulty: string;
@@ -520,6 +522,7 @@ export const api = {
     request<{
       sessionId: string;
       position: string;
+      jobDescription: string;
       duration: number;
       questionCount: number;
       difficulty: string;
@@ -603,8 +606,20 @@ export const api = {
       body: data,
     }),
 
-  // Complete the mock interview session and get final metrics
-  completeMockInterviewSession: (sessionId: string) =>
+  // Complete the mock interview session and get final metrics.
+  // Optional payload for VAPI/voice flow: transcript, qaPairs, durationSeconds — stored in DB with pattern metrics.
+  completeMockInterviewSession: (
+    sessionId: string,
+    payload?: {
+      transcript?: Array<{
+        speaker: "ai" | "candidate";
+        text: string;
+        timestamp: string;
+      }>;
+      qaPairs?: Array<{ question: string; answer: string }>;
+      durationSeconds?: number;
+    },
+  ) =>
     request<{
       sessionId: string;
       status: string;
@@ -617,12 +632,25 @@ export const api = {
         communicationSkills: number;
         fillerWords: number;
         averageResponseTime: number;
+        totalWordsSpoken?: number;
+        speakingPaceWPM?: number;
+        overallRating?: string;
+        recommendation?: string;
+        aiAnalysisPercentage?: number;
+        resumeMatchPercentage?: number;
       };
       summary: string;
+      summaryStructured?: {
+        strengths?: string[];
+        areasForImprovement?: string[];
+        recommendations?: string[];
+        keyInsights?: string[];
+      };
       questionsAnswered: number;
       totalQuestions: number;
     }>(`/interviews/mock-interviews/sessions/${sessionId}/complete`, {
       method: "PUT",
+      body: payload ?? {},
     }),
 
   apiLogout: () => request("/auth/logout", { method: "POST" }),

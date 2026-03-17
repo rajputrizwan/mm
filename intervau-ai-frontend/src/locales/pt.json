@@ -560,6 +560,13 @@
     "aiFeedback2": "Excelente explicação! Passando para a próxima pergunta.",
     "aiFeedback3": "Obrigado por essa resposta. Vamos continuar.",
     "aiFeedback4": "Bom ponto. Poderia elaborar um pouco mais?",
-    "aiFeedback5": "Muito bem! Seu conhecimento técnico é evidente."
+    "aiFeedback5": "Muito bem! Seu conhecimento técnico é evidente.",
+    "connecting": "Conectando à entrevista por voz…",
+    "listenToQuestion": "Ouça a pergunta — depois responda em voz alta.",
+    "youAreSpeaking": "Você está falando…",
+    "speakWhenReady": "Fale sua resposta quando estiver pronto.",
+    "voiceOnlyHint": "Somente voz — sem digitar. A IA pergunta, você responde, depois a próxima pergunta.",
+    "voiceStarted": "Entrevista por voz iniciada — fale quando a IA perguntar.",
+    "aiSpeaking": "A IA está falando…"
   }
 }

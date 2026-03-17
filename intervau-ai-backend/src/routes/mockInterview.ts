@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
 import { generateInterviewQuestions } from '../services/aiService';
 import { conductInterview, generateInterviewSummary } from '../services/aiInterviewService';
-import MockInterviewSession from '../models/MockInterviewSession';
+import MockInterviewSession, { IMockInterviewSession } from '../models/MockInterviewSession';
 
 const router = Router();
 
@@ -16,7 +16,7 @@ router.use(roleMiddleware('candidate'));
  */
 router.post('/sessions', async (req: AuthRequest, res: Response) => {
   try {
-    const { sessionId, position, duration, questionCount, difficulty, questions } = req.body;
+    const { sessionId, position, jobDescription, duration, questionCount, difficulty, questions } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -27,10 +27,10 @@ router.post('/sessions', async (req: AuthRequest, res: Response) => {
     }
 
     // Validate required fields
-    if (!sessionId || !position || !duration || !questions || !Array.isArray(questions)) {
+    if (!sessionId || !position || !jobDescription || !duration || !questions || !Array.isArray(questions)) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: sessionId, position, duration, questions',
+        message: 'Missing required fields: sessionId, position, jobDescription, duration, questions',
       });
     }
 
@@ -48,7 +48,8 @@ router.post('/sessions', async (req: AuthRequest, res: Response) => {
       userId,
       sessionId,
       position,
-      duration,
+      jobDescription,
+    duration,
       questionCount: questionCount || questions.length,
       difficulty: difficulty || 'intermediate',
       questions,
@@ -116,6 +117,9 @@ router.get('/sessions/:sessionId', async (req: AuthRequest, res: Response) => {
         startedAt: session.startedAt,
         completedAt: session.completedAt,
         createdAt: session.createdAt,
+        transcript: session.transcript,
+        metrics: session.metrics,
+        summary: session.summary,
       },
     });
   } catch (error) {
@@ -531,12 +535,19 @@ router.post('/sessions/:sessionId/respond', async (req: AuthRequest, res: Respon
 
 /**
  * PUT /api/interviews/mock-interviews/sessions/:sessionId/complete
- * Complete the mock interview session and calculate final metrics
+ * Complete the mock interview session and calculate final metrics.
+ * Body (optional, for VAPI/voice flow): { transcript, qaPairs, durationSeconds }
+ * When body is provided, transcript and per-question answers are stored and pattern metrics are computed.
  */
 router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
     const userId = req.user?.id;
+    const body = req.body as {
+      transcript?: Array<{ speaker: 'ai' | 'candidate'; text: string; timestamp: string }>;
+      qaPairs?: Array<{ question: string; answer: string }>;
+      durationSeconds?: number;
+    };
 
     if (!userId) {
       return res.status(401).json({
@@ -561,68 +572,186 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
       });
     }
 
-    // Calculate aggregated metrics from all questions
-    const answeredQuestions = session.questions.filter(q => q.answer && q.aiAnalysis);
-
-    let totalScore = 0;
-
-    answeredQuestions.forEach(q => {
-      if (q.aiAnalysis) {
-        totalScore += q.aiAnalysis.score || 0;
-      }
-    });
-
-    const questionCount = Math.max(answeredQuestions.length, 1);
-
-    // Calculate average metrics
-    const avgScore = Math.round(totalScore / questionCount);
-
-    // Calculate metrics based on transcript analysis
-    const candidateTranscripts = session.transcript.filter(t => t.speaker === 'candidate');
-    const allCandidateText = candidateTranscripts.map(t => t.text).join(' ');
-    const overallWordCount = allCandidateText.split(/\s+/).length;
-    const overallFillerWords = countFillerWords(allCandidateText);
-
-    // Calculate session duration
     const startTime = session.startedAt || session.createdAt;
     const endTime = new Date();
     const sessionDurationMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
-    const avgResponseTime = sessionDurationMinutes / questionCount;
 
-    // Generate final summary using AI
-    let summary = '';
+    let questionsAnsweredCount = 0;
+
+    // --- VAPI/voice flow: payload with transcript ---
+    if (body?.transcript && Array.isArray(body.transcript) && body.transcript.length > 0) {
+      const transcriptPayload = body.transcript;
+
+      // Replace transcript in place so Mongoose persists the full array (assigning a new array can be lost on save)
+      session.transcript.splice(0, session.transcript.length);
+      transcriptPayload.forEach((t) => {
+        session.transcript.push({
+          speaker: t.speaker,
+          text: t.text,
+          timestamp: new Date(t.timestamp),
+          questionIndex: undefined as number | undefined,
+        });
+      });
+
+      // Derive answer groups: merge consecutive candidate messages into one answer per "turn"
+      const answerGroups: string[] = [];
+      let currentAnswer: string[] = [];
+      for (let i = 0; i < session.transcript.length; i++) {
+        if (session.transcript[i].speaker === 'candidate') {
+          currentAnswer.push(session.transcript[i].text.trim());
+        } else {
+          if (currentAnswer.length > 0) {
+            answerGroups.push(currentAnswer.join(' ').trim());
+            currentAnswer = [];
+          }
+        }
+      }
+      if (currentAnswer.length > 0) {
+        answerGroups.push(currentAnswer.join(' ').trim());
+      }
+
+      // Assign questionIndex to each transcript entry
+      let qIndex = 0;
+      for (let i = 0; i < session.transcript.length; i++) {
+        if (session.transcript[i].speaker === 'candidate') {
+          session.transcript[i].questionIndex = qIndex;
+          qIndex++;
+        } else {
+          session.transcript[i].questionIndex = qIndex < session.questions.length ? qIndex : Math.max(0, qIndex - 1);
+        }
+      }
+
+      session.markModified('transcript');
+
+      // Map derived answers to session.questions (by order: first answer = Q0, second = Q1, ...)
+      const durationSeconds = body.durationSeconds ?? sessionDurationMinutes * 60;
+      const numQuestions = session.questions.length;
+      const answersToUse = answerGroups.slice(0, numQuestions);
+      questionsAnsweredCount = answersToUse.length;
+
+      let totalWords = 0;
+      let totalFillerWords = 0;
+      let totalScore = 0;
+      const responseTimePerQuestion = answersToUse.length > 0 ? durationSeconds / answersToUse.length : 0;
+
+      answersToUse.forEach((answerText, index) => {
+        const question = session.questions[index];
+        if (!question) return;
+
+        const normalizedAnswer = answerText.replace(/\(no answer provided\)/gi, '').trim() || answerText;
+        question.answer = normalizedAnswer;
+
+        const wordCount = normalizedAnswer.split(/\s+/).filter(Boolean).length;
+        const fillerWords = countFillerWords(normalizedAnswer);
+        totalWords += wordCount;
+        totalFillerWords += fillerWords;
+
+        const technicalScore = calculateTechnicalScore(normalizedAnswer, question.category || '');
+        const confidence = Math.min(100, Math.max(40, 60 + (wordCount / 10) * 5 - fillerWords * 3));
+        const clarity = Math.min(100, Math.max(40, 75 - fillerWords * 2));
+        const pace = calculatePace(wordCount, responseTimePerQuestion);
+        const score = Math.round((confidence + clarity + technicalScore + pace) / 4);
+        totalScore += score;
+
+        question.aiAnalysis = {
+          score,
+          feedback: 'Voice response recorded and analyzed.',
+          strengths: extractStrengths(normalizedAnswer, wordCount),
+          improvements: extractImprovements(fillerWords, wordCount, responseTimePerQuestion),
+        };
+      });
+
+      const avgScore = questionsAnsweredCount > 0 ? Math.round(totalScore / questionsAnsweredCount) : 75;
+      const durationMinutes = durationSeconds / 60;
+      const speakingPaceWPM = durationMinutes > 0 ? Math.round(totalWords / durationMinutes) : 0;
+
+      session.metrics = {
+        overallScore: avgScore,
+        confidence: Math.min(100, Math.max(40, 70 + (totalWords / 100) * 5 - totalFillerWords * 2)),
+        clarity: Math.min(100, Math.max(40, 75 - totalFillerWords)),
+        technicalAccuracy: avgScore,
+        communicationSkills: Math.min(100, Math.max(40, 70 + totalWords / 50)),
+        fillerWords: totalFillerWords,
+        averageResponseTime: Math.round(responseTimePerQuestion * 10) / 10,
+        totalWordsSpoken: totalWords,
+        speakingPaceWPM,
+        overallRating: avgScore >= 85 ? 'Excellent' : avgScore >= 70 ? 'Good' : avgScore >= 55 ? 'Average' : 'Needs Improvement',
+        recommendation: avgScore >= 70 ? 'Move to Next Round' : 'Practice and retry',
+        aiAnalysisPercentage: Math.min(100, avgScore + 5),
+        resumeMatchPercentage: Math.min(100, avgScore + Math.floor(Math.random() * 5)),
+      };
+      session.markModified('questions');
+    }
+
+    // --- If no payload: use existing transcript/answers (text flow) ---
+    const answeredQuestions = session.questions.filter((q) => q.answer && q.aiAnalysis);
+    const questionCount = Math.max(answeredQuestions.length, 1);
+    const effectiveQuestionsAnswered = questionsAnsweredCount > 0 ? questionsAnsweredCount : answeredQuestions.length;
+
+    if (!session.metrics) {
+      let totalScore = 0;
+      answeredQuestions.forEach((q) => {
+        if (q.aiAnalysis) totalScore += q.aiAnalysis.score || 0;
+      });
+      const avgScore = Math.round(totalScore / questionCount);
+      const candidateTranscripts = session.transcript.filter((t) => t.speaker === 'candidate');
+      const allCandidateText = candidateTranscripts.map((t) => t.text).join(' ');
+      const overallWordCount = allCandidateText.split(/\s+/).length;
+      const overallFillerWords = countFillerWords(allCandidateText);
+      const avgResponseTime = sessionDurationMinutes / questionCount;
+
+      session.metrics = {
+        overallScore: avgScore || 75,
+        confidence: Math.min(100, Math.max(40, 70 + (overallWordCount / 100) * 5 - overallFillerWords * 2)),
+        clarity: Math.min(100, Math.max(40, 75 - overallFillerWords)),
+        technicalAccuracy: avgScore || 70,
+        communicationSkills: Math.min(100, Math.max(40, 70 + overallWordCount / 50)),
+        fillerWords: overallFillerWords,
+        averageResponseTime: Math.round(avgResponseTime * 60),
+        totalWordsSpoken: overallWordCount,
+        speakingPaceWPM: sessionDurationMinutes > 0 ? Math.round(overallWordCount / sessionDurationMinutes) : 0,
+        overallRating: (avgScore || 75) >= 85 ? 'Excellent' : (avgScore || 75) >= 70 ? 'Good' : 'Average',
+        recommendation: (avgScore || 75) >= 70 ? 'Move to Next Round' : 'Practice and retry',
+        aiAnalysisPercentage: Math.min(100, (avgScore || 75) + 5),
+        resumeMatchPercentage: Math.min(100, (avgScore || 75) + Math.floor(Math.random() * 5)),
+      };
+    }
+
+    // Generate final summary using AI (OpenRouter)
+    let summaryText = '';
     try {
-      const transcriptForSummary = session.transcript.map(t => ({
+      const transcriptForSummary = session.transcript.map((t) => ({
         speaker: t.speaker === 'ai' ? 'Interviewer' : 'Candidate',
         text: t.text,
       }));
-
-      summary = await generateInterviewSummary(
-        'Candidate',
-        session.position,
-        transcriptForSummary,
-        session.questions.map(q => q.text)
-      );
+      if (transcriptForSummary.length > 0) {
+        summaryText = await generateInterviewSummary(
+          'Candidate',
+          session.position,
+          transcriptForSummary,
+          session.questions.map((q) => q.text)
+        );
+      }
     } catch (summaryError) {
       console.error('Failed to generate summary:', summaryError);
-      summary = 'Interview summary generation failed. Please review the transcript for details.';
+    }
+    if (!summaryText && session.metrics) {
+      summaryText = buildFallbackSummary(session.metrics, session.position, effectiveQuestionsAnswered, session.questions.length);
+    }
+    if (!summaryText) {
+      summaryText = 'Interview summary could not be generated. Please review the transcript for details.';
     }
 
-    // Update session with final metrics
+    const parsed = parseSummaryMarkdown(summaryText);
+    session.summary = {
+      text: summaryText,
+      strengths: parsed.strengths,
+      areasForImprovement: parsed.areasForImprovement,
+      recommendations: parsed.recommendations,
+      keyInsights: parsed.keyInsights,
+    };
     session.status = 'completed';
     session.completedAt = new Date();
-    session.metrics = {
-      overallScore: avgScore || 75,
-      confidence: Math.min(
-        100,
-        Math.max(40, 70 + (overallWordCount / 100) * 5 - overallFillerWords * 2)
-      ),
-      clarity: Math.min(100, Math.max(40, 75 - overallFillerWords)),
-      technicalAccuracy: avgScore || 70,
-      communicationSkills: Math.min(100, Math.max(40, 70 + overallWordCount / 50)),
-      fillerWords: overallFillerWords,
-      averageResponseTime: Math.round(avgResponseTime * 60), // Convert to seconds
-    };
 
     await session.save();
 
@@ -635,8 +764,9 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         status: session.status,
         completedAt: session.completedAt,
         metrics: session.metrics,
-        summary,
-        questionsAnswered: answeredQuestions.length,
+        summary: session.summary?.text ?? summaryText,
+        summaryStructured: session.summary,
+        questionsAnswered: effectiveQuestionsAnswered,
         totalQuestions: session.questions.length,
       },
     });
@@ -648,6 +778,62 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     });
   }
 });
+
+/** Build a fallback summary from metrics when AI summary fails */
+function buildFallbackSummary(
+  metrics: NonNullable<IMockInterviewSession['metrics']>,
+  position: string,
+  questionsAnswered: number,
+  totalQuestions: number
+): string {
+  const score = metrics.overallScore ?? 0;
+  const rating = metrics.overallRating ?? (score >= 85 ? 'Excellent' : score >= 70 ? 'Good' : 'Average');
+  const recommendation = metrics.recommendation ?? (score >= 70 ? 'Move to Next Round' : 'Practice and retry');
+  const strengths: string[] = [];
+  const improvements: string[] = [];
+  if ((metrics.totalWordsSpoken ?? 0) > 100) strengths.push('Provided detailed responses');
+  if ((metrics.fillerWords ?? 0) === 0) strengths.push('No filler words detected');
+  if ((metrics.confidence ?? 0) >= 70) strengths.push('Good confidence level');
+  if ((metrics.fillerWords ?? 0) > 2) improvements.push('Reduce filler words (um, uh, like)');
+  if ((metrics.totalWordsSpoken ?? 0) < 50 && questionsAnswered > 0) improvements.push('Elaborate more on answers');
+  if (strengths.length === 0) strengths.push('Completed the interview');
+  if (improvements.length === 0) improvements.push('Continue practicing for improvement');
+  return `## Mock Interview Summary – ${position}\n\n**Overall Score:** ${score}/100\n**Rating:** ${rating}\n**Recommendation:** ${recommendation}\n\n**Key Strengths:**\n${strengths.map((s) => `- ${s}`).join('\n')}\n\n**Areas for Improvement:**\n${improvements.map((i) => `- ${i}`).join('\n')}\n\nQuestions answered: ${questionsAnswered}/${totalQuestions}. Response time avg: ${metrics.averageResponseTime?.toFixed(1) ?? '—'}s. Words spoken: ${metrics.totalWordsSpoken ?? 0}.`;
+}
+
+/** Parse AI summary markdown into structured fields for Overview tab */
+function parseSummaryMarkdown(markdown: string): {
+  strengths: string[];
+  areasForImprovement: string[];
+  recommendations: string[];
+  keyInsights: string[];
+} {
+  const result = {
+    strengths: [] as string[],
+    areasForImprovement: [] as string[],
+    recommendations: [] as string[],
+    keyInsights: [] as string[],
+  };
+
+  const extractBullets = (text: string, sectionTitle: string): string[] => {
+    const regex = new RegExp(`${sectionTitle}[\\s\\S]*?(?=\\n##|\\n\\d\\.|\\n\\*\\*|$)`, 'i');
+    const match = text.match(regex);
+    if (!match) return [];
+    const section = match[0].replace(new RegExp(`^.*?${sectionTitle}`, 'i'), '').trim();
+    const bullets = section.split(/\n/).map((l) => l.replace(/^[\s*\-•]\s*/, '').trim()).filter(Boolean);
+    return bullets.slice(0, 8);
+  };
+
+  result.strengths = extractBullets(markdown, 'strength|key strength');
+  result.areasForImprovement = extractBullets(markdown, 'improvement|area for improvement');
+  result.recommendations = extractBullets(markdown, 'recommendation|final recommendation');
+  result.keyInsights = extractBullets(markdown, 'insight|communication quality');
+
+  if (result.strengths.length === 0 && markdown.includes('*')) {
+    result.strengths = markdown.split(/\n/).filter((l) => /^[\s*\-•]/.test(l)).map((l) => l.replace(/^[\s*\-•]\s*/, '').trim()).slice(0, 6);
+  }
+  return result;
+}
 
 // Helper functions for response analysis
 

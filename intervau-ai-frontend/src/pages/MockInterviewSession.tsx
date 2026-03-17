@@ -132,19 +132,32 @@ export default function MockInterviewSession() {
     rawMessages: VapiMessage[],
   ) => {
     setIsSessionActive(false);
+    const config = sessionConfigRef.current;
+    const durationSeconds = elapsedTimeRef.current;
+
+    // Build transcript in backend format for storage and pattern metrics
+    const transcriptForApi = rawMessages.map((msg) => ({
+      speaker: msg.role === "assistant" ? ("ai" as const) : ("candidate" as const),
+      text: msg.content,
+      timestamp: msg.timestamp,
+    }));
+
     try {
       if (sessionId) {
-        await api.completeMockInterviewSession(sessionId);
+        await api.completeMockInterviewSession(sessionId, {
+          transcript: transcriptForApi,
+          qaPairs,
+          durationSeconds,
+        });
       }
     } catch (e) {
       console.error("Failed to complete session:", e);
     }
-    const config = sessionConfigRef.current;
-    const duration = elapsedTimeRef.current;
+
     const results = {
       sessionId,
       position: config?.position,
-      duration,
+      duration: durationSeconds,
       questionsAnswered: qaPairs.length,
       totalQuestions: config?.questions.length ?? 0,
       transcript: vapiMessagesToTranscript(rawMessages),
