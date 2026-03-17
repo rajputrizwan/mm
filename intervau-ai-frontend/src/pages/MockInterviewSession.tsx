@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ROUTES } from "../router";
@@ -6,17 +6,81 @@ import toast from "react-hot-toast";
 import { useMediaStream } from "../components/interview/MediaStreamHandler";
 import { useTranslation } from "../hooks/useTranslation";
 import api from "../services/api";
+import { useVapiInterview, type VapiMessage } from "../hooks/useVapiInterview";
 import type {
   SessionConfig,
   TranscriptEntry,
   LiveMetrics,
 } from "../components/interview/mockSessionTypes";
+import type { Question } from "../components/interview/mockSessionTypes";
 import MockSessionHeader from "../components/interview/MockSessionHeader";
 import MockSessionVideoSection from "../components/interview/MockSessionVideoSection";
-import MockSessionQuestionCard from "../components/interview/MockSessionQuestionCard";
-import MockSessionNavigationButtons from "../components/interview/MockSessionNavigationButtons";
 import MockSessionSpeakingPatterns from "../components/interview/MockSessionSpeakingPatterns";
 import MockSessionSidebar from "../components/interview/MockSessionSidebar";
+
+/**
+ * VAPI assistant config for mock interview: AI asks questions one by one,
+ * user answers with voice, then next question — chatbot style, all via voice.
+ */
+function buildMockSessionVapiConfig(
+  position: string,
+  questions: Question[],
+): Record<string, unknown> {
+  const numberedQuestions = questions
+    .map((q, i) => `${i + 1}. ${q.text}`)
+    .join("\n");
+
+  const systemPrompt = `You are a professional mock interviewer conducting a practice job interview for the role: "${position}".
+
+Your job:
+- Ask the interview questions below ONE at a time, in order.
+- After the candidate answers, give a brief acknowledgment (e.g. "Thanks." or "Good.") then ask the next question.
+- Keep your turn short: ask the question, then stay silent so the candidate can answer.
+- Do NOT repeat the question unless they ask. Do NOT give long feedback between questions — just move to the next.
+- After the last question and their answer, say: "That was the last question. Thank you for completing this mock interview. You can end the call when ready."
+
+Questions to ask (in order):
+${numberedQuestions}
+
+Flow: Greet briefly → Ask Q1 → wait for answer → brief ack → Ask Q2 → … → after last answer, closing message as above.`;
+
+  return {
+    transcriber: {
+      provider: "deepgram",
+      model: "nova-2",
+      language: "en-US",
+    },
+    model: {
+      provider: "openai",
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "system", content: systemPrompt }],
+      temperature: 0.5,
+      maxTokens: 150,
+    },
+    voice: {
+      provider: "11labs",
+      voiceId: "paula",
+    },
+    name: "Mock Interviewer",
+    firstMessage: `Hello. This is your mock interview for the ${position} role. I'll ask you ${questions.length} questions. Answer out loud when I finish each question. Let's begin.`,
+    silenceTimeoutSeconds: 45,
+    maxDurationSeconds: 3600,
+  };
+}
+
+/** Map VAPI messages to transcript entries for the UI */
+function vapiMessagesToTranscript(msgs: VapiMessage[]): TranscriptEntry[] {
+  return msgs.map((msg, i) => ({
+    id: `vapi-${i}-${msg.timestamp}`,
+    speaker: msg.role === "assistant" ? "AI Interviewer" : "You",
+    text: msg.content,
+    time: new Date(msg.timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    isCandidate: msg.role === "user",
+  }));
+}
 
 export default function MockInterviewSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -24,60 +88,16 @@ export default function MockInterviewSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { t } = useTranslation();
 
-  // Session state
-  const [sessionConfig, setSessionConfig] = useState<SessionConfig | null>(
-    null,
-  );
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [sessionConfig, setSessionConfig] = useState<SessionConfig | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isSessionActive, setIsSessionActive] = useState(false);
-
-  // Media state
-  const [micEnabled, setMicEnabled] = useState(true);
-  const [videoEnabled, setVideoEnabled] = useState(true);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  // AI state
-  const [isAIProcessing, setIsAIProcessing] = useState(false);
-  const [userResponse, setUserResponse] = useState("");
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Voice recognition state
-  const [isListening, setIsListening] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const responseStartTimeRef = useRef<number>(0);
+  const [micEnabled, setMicEnabled] = useState(true);
+  const [videoEnabled, setVideoEnabled] = useState(true);
 
-  // Text-to-Speech state
-  const [isTTSEnabled, setIsTTSEnabled] = useState(true);
-  const [isSpeakingTTS, setIsSpeakingTTS] = useState(false);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
-
-  // Real-time tips from AI
-  const [realTimeTips, setRealTimeTips] = useState<
-    Array<{ type: "success" | "warning" | "info"; message: string }>
-  >([
-    { type: "info", message: "Maintain eye contact with the camera" },
-    { type: "success", message: "Great use of technical examples!" },
-    { type: "warning", message: "Try to reduce filler words" },
-  ]);
-
-  // Ref for elapsedTime to avoid re-creating addToTranscript on every tick
-  const elapsedTimeRef = useRef(elapsedTime);
-  elapsedTimeRef.current = elapsedTime;
-
-  // Unique ID counter for transcript entries (avoids duplicate key when adding in same ms)
-  const transcriptIdRef = useRef(0);
-  const nextTranscriptId = () => `transcript-${++transcriptIdRef.current}`;
-
-  // Ref to clear "first question" timeout when effect re-runs or component unmounts
-  const firstQuestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  // Metrics state (simulated live updates)
-  const [liveMetrics, setLiveMetrics] = useState({
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const [liveMetrics] = useState<LiveMetrics>({
     confidence: 75,
     clarity: 72,
     pace: 70,
@@ -85,28 +105,82 @@ export default function MockInterviewSession() {
     technicalAccuracy: 80,
     articulation: 76,
   });
-
-  const [speakingPatterns, setSpeakingPatterns] = useState({
+  const [speakingPatterns] = useState({
     fillerWords: 0,
     avgResponseTime: "0.0s",
     totalWords: 0,
     avgWordsPerMinute: 0,
   });
+  const [realTimeTips] = useState<
+    Array<{ type: "success" | "warning" | "info"; message: string }>
+  >([
+    { type: "info", message: "Answer out loud when the AI finishes each question." },
+    { type: "success", message: "Speak clearly; the AI is listening." },
+    { type: "warning", message: "Avoid long pauses — the call may time out." },
+  ]);
 
-  // Initialize media stream
+  const vapiPublicKey = import.meta.env.VITE_VAPI_API_KEY as string;
+  const hasVapiKey = Boolean(vapiPublicKey?.trim());
+
+  const sessionConfigRef = useRef<SessionConfig | null>(null);
+  const elapsedTimeRef = useRef(0);
+  sessionConfigRef.current = sessionConfig;
+  elapsedTimeRef.current = elapsedTime;
+
+  const handleCallEnd = async (
+    qaPairs: { question: string; answer: string }[],
+    rawMessages: VapiMessage[],
+  ) => {
+    setIsSessionActive(false);
+    try {
+      if (sessionId) {
+        await api.completeMockInterviewSession(sessionId);
+      }
+    } catch (e) {
+      console.error("Failed to complete session:", e);
+    }
+    const config = sessionConfigRef.current;
+    const duration = elapsedTimeRef.current;
+    const results = {
+      sessionId,
+      position: config?.position,
+      duration,
+      questionsAnswered: qaPairs.length,
+      totalQuestions: config?.questions.length ?? 0,
+      transcript: vapiMessagesToTranscript(rawMessages),
+      qaPairs,
+      completedAt: new Date().toISOString(),
+    };
+    localStorage.setItem("lastInterviewResults", JSON.stringify(results));
+    localStorage.removeItem("currentInterviewSession");
+    toast.success(t("mockInterviewSession.sessionCompleted"));
+    navigate(ROUTES.CANDIDATE_DASHBOARD);
+  };
+
   const {
-    stream,
-    isLoading: streamLoading,
-    error: streamError,
-    startStream,
-  } = useMediaStream({
+    status: vapiStatus,
+    isCallActive,
+    isSpeaking,
+    messages: vapiMessages,
+    startInterview,
+    stopInterview,
+  } = useVapiInterview({
+    publicKey: vapiPublicKey || "",
+    onCallStart: () => {
+      setIsSessionActive(true);
+      toast.success(t("mockInterviewSession.voiceStarted") || "Voice interview started — speak when the AI asks.");
+    },
+    onCallEnd: handleCallEnd,
+    onTranscriptUpdate: (msgs) => setTranscript(vapiMessagesToTranscript(msgs)),
+    onError: (err) => toast.error(`Voice: ${err.message}`),
+  });
+
+  const { stream, isLoading: streamLoading, error: streamError } = useMediaStream({
     audioEnabled: micEnabled,
     videoEnabled: videoEnabled,
     autoStart: true,
     onStreamReady: (s) => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-      }
+      if (videoRef.current) videoRef.current.srcObject = s;
     },
     onError: (error) => {
       console.error("Media stream error:", error);
@@ -114,26 +188,23 @@ export default function MockInterviewSession() {
     },
   });
 
-  // Load session from localStorage or fetch from backend
+  // Load session
   useEffect(() => {
+    let cancelled = false;
     const loadSession = async () => {
       setIsLoading(true);
       let session: SessionConfig | null = null;
 
-      // Try localStorage first
       const stored = localStorage.getItem("currentInterviewSession");
       if (stored) {
         try {
           const parsed = JSON.parse(stored) as SessionConfig;
-          if (parsed.id === sessionId) {
-            session = parsed;
-          }
-        } catch (error) {
-          console.error("Failed to parse localStorage session:", error);
+          if (parsed.id === sessionId) session = parsed;
+        } catch (e) {
+          console.error("Failed to parse localStorage session:", e);
         }
       }
 
-      // If localStorage doesn't have valid session, try fetching from backend
       if (!session && sessionId) {
         try {
           const response = await api.getMockInterviewSession(sessionId);
@@ -148,17 +219,14 @@ export default function MockInterviewSession() {
               questions: data.questions || [],
               startedAt: data.startedAt || new Date().toISOString(),
             };
-            // Store in localStorage for future use
-            localStorage.setItem(
-              "currentInterviewSession",
-              JSON.stringify(session),
-            );
+            localStorage.setItem("currentInterviewSession", JSON.stringify(session));
           }
-        } catch (error) {
-          console.error("Failed to fetch session from backend:", error);
+        } catch (e) {
+          console.error("Failed to fetch session:", e);
         }
       }
 
+      if (cancelled) return;
       if (!session) {
         toast.error(t("mockInterviewSession.noActiveSession"));
         navigate(ROUTES.MOCK_INTERVIEW);
@@ -167,507 +235,84 @@ export default function MockInterviewSession() {
       }
 
       setSessionConfig(session);
-      setIsSessionActive(true);
       setIsLoading(false);
-
-      // Add initial AI greeting to transcript
-      const greeting: TranscriptEntry = {
-        id: nextTranscriptId(),
-        speaker: t("mockInterviewSession.aiInterviewer"),
-        text: t("mockInterviewSession.welcomeMessage", {
-          position: session.position,
-          count: session.questions.length,
-        }),
-        time: "00:00",
-        isCandidate: false,
-      };
-      setTranscript([greeting]);
-
-      // Add first question after a delay
-      if (firstQuestionTimeoutRef.current) {
-        clearTimeout(firstQuestionTimeoutRef.current);
-      }
-      firstQuestionTimeoutRef.current = setTimeout(() => {
-        if (session && session.questions.length > 0) {
-          const firstQuestion: TranscriptEntry = {
-            id: nextTranscriptId(),
-            speaker: t("mockInterviewSession.aiInterviewer"),
-            text: session.questions[0].text,
-            time: "00:02",
-            isCandidate: false,
-          };
-          setTranscript((prev) => [...prev, firstQuestion]);
-        }
-        firstQuestionTimeoutRef.current = null;
-      }, 2000);
     };
-
     loadSession();
     return () => {
-      if (firstQuestionTimeoutRef.current) {
-        clearTimeout(firstQuestionTimeoutRef.current);
-        firstQuestionTimeoutRef.current = null;
-      }
+      cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- omit `t` to avoid max update depth (t reference changes each render)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, navigate]);
 
-  // Timer effect
+  // Start VAPI when session is ready and we have a key
+  const vapiStartedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !sessionConfig?.questions?.length ||
+      !hasVapiKey ||
+      vapiStartedRef.current ||
+      vapiStatus === "active" ||
+      vapiStatus === "connecting"
+    )
+      return;
+
+    vapiStartedRef.current = true;
+    const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID as string | undefined;
+    if (assistantId) {
+      startInterview(assistantId);
+    } else {
+      const config = buildMockSessionVapiConfig(
+        sessionConfig.position,
+        sessionConfig.questions,
+      );
+      startInterview(config);
+    }
+  }, [sessionConfig, hasVapiKey, vapiStatus, startInterview]);
+
+  // Timer
   useEffect(() => {
     if (!isSessionActive) return;
-
-    const timer = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
-    }, 1000);
-
+    const timer = setInterval(() => setElapsedTime((prev) => prev + 1), 1000);
     return () => clearInterval(timer);
   }, [isSessionActive]);
 
-  // Initialize Speech Recognition
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let interim = "";
-        let final = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            final += transcript;
-          } else {
-            interim += transcript;
-          }
-        }
-
-        if (final) {
-          setUserResponse((prev) => prev + " " + final);
-          setInterimTranscript("");
-        } else {
-          setInterimTranscript(interim);
-        }
-
-        // Update speaking state based on audio activity
-        setIsSpeaking(true);
-      };
-
-      recognition.onspeechend = () => {
-        setIsSpeaking(false);
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error("Speech recognition error:", event.error);
-        if (event.error !== "no-speech") {
-          setIsListening(false);
-        }
-      };
-
-      recognition.onend = () => {
-        // Restart if still supposed to be listening
-        if (isListening && recognitionRef.current) {
-          try {
-            recognitionRef.current.start();
-          } catch (e) {
-            // Ignore errors when restarting
-          }
-        }
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    // Initialize Speech Synthesis
-    if (window.speechSynthesis) {
-      synthRef.current = window.speechSynthesis;
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (synthRef.current) {
-        synthRef.current.cancel();
-      }
-    };
-  }, [isListening]);
-
-  // Speaking detection based on real audio analysis
-  useEffect(() => {
-    if (!isSessionActive || !stream) return;
-
-    const audioContext = new AudioContext();
-    const analyser = audioContext.createAnalyser();
-    const microphone = audioContext.createMediaStreamSource(stream);
-    microphone.connect(analyser);
-    analyser.fftSize = 256;
-
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-    const checkAudio = () => {
-      analyser.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-      setIsSpeaking(average > 20);
-    };
-
-    const interval = setInterval(checkAudio, 100);
-
-    return () => {
-      clearInterval(interval);
-      audioContext.close();
-    };
-  }, [isSessionActive, stream]);
-
-  // Simulate live metric updates
-  useEffect(() => {
-    if (!isSessionActive) return;
-
-    const metricsInterval = setInterval(() => {
-      setLiveMetrics((prev) => ({
-        confidence: Math.min(
-          100,
-          Math.max(50, prev.confidence + (Math.random() * 4 - 2)),
-        ),
-        clarity: Math.min(
-          100,
-          Math.max(50, prev.clarity + (Math.random() * 4 - 2)),
-        ),
-        pace: Math.min(100, Math.max(50, prev.pace + (Math.random() * 4 - 2))),
-        eyeContact: Math.min(
-          100,
-          Math.max(50, prev.eyeContact + (Math.random() * 4 - 2)),
-        ),
-        technicalAccuracy: Math.min(
-          100,
-          Math.max(50, prev.technicalAccuracy + (Math.random() * 4 - 2)),
-        ),
-        articulation: Math.min(
-          100,
-          Math.max(50, prev.articulation + (Math.random() * 4 - 2)),
-        ),
-      }));
-    }, 3000);
-
-    return () => clearInterval(metricsInterval);
-  }, [isSessionActive]);
-
-  // Attach stream to video element
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
+    if (videoRef.current && stream) videoRef.current.srcObject = stream;
   }, [stream]);
 
-  // Format time
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Add transcript entry - uses ref for elapsedTime to keep callback stable
-  const addToTranscript = useCallback(
-    (speaker: string, text: string, isCandidate: boolean) => {
-      const entry: TranscriptEntry = {
-        id: nextTranscriptId(),
-        speaker,
-        text,
-        time: formatTime(elapsedTimeRef.current),
-        isCandidate,
-      };
-      setTranscript((prev) => [...prev, entry]);
-    },
-    [], // Empty deps - uses ref for elapsedTime
-  );
-
-  // Text-to-Speech function
-  const speakText = useCallback(
-    (text: string) => {
-      if (!isTTSEnabled || !synthRef.current) return;
-
-      // Cancel any ongoing speech
-      synthRef.current.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-
-      // Try to use a professional-sounding voice
-      const voices = synthRef.current.getVoices();
-      const preferredVoice = voices.find(
-        (v) =>
-          v.name.includes("Google") ||
-          v.name.includes("Microsoft") ||
-          v.name.includes("Samantha"),
-      );
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-
-      utterance.onstart = () => setIsSpeakingTTS(true);
-      utterance.onend = () => setIsSpeakingTTS(false);
-      utterance.onerror = () => setIsSpeakingTTS(false);
-
-      synthRef.current.speak(utterance);
-    },
-    [isTTSEnabled],
-  );
-
-  // Start/Stop voice recognition
-  const toggleVoiceRecognition = useCallback(() => {
-    if (!recognitionRef.current) {
-      toast.error("Speech recognition not supported in this browser");
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      try {
-        responseStartTimeRef.current = Date.now();
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (error) {
-        console.error("Failed to start speech recognition:", error);
-      }
-    }
-  }, [isListening]);
-
-  // Handle user response submission with real API
-  const handleSubmitResponse = async () => {
-    const responseText = (userResponse + " " + interimTranscript).trim();
-    if (!responseText || !sessionConfig || !sessionId) return;
-
-    // Stop listening if active
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
-
-    // Calculate response time
-    const responseTime = responseStartTimeRef.current
-      ? (Date.now() - responseStartTimeRef.current) / 1000
-      : 0;
-
-    // Add user response to transcript
-    addToTranscript(t("mockInterviewSession.you"), responseText, true);
-
-    // Update speaking patterns
-    const words = responseText.split(" ").length;
-    setSpeakingPatterns((prev) => ({
-      ...prev,
-      totalWords: prev.totalWords + words,
-      avgWordsPerMinute: Math.round(
-        (prev.totalWords + words) / (elapsedTime / 60) || 0,
-      ),
-    }));
-
-    setUserResponse("");
-    setInterimTranscript("");
-    setIsAIProcessing(true);
-
-    try {
-      // Call real API for response processing
-      const response = await api.submitMockInterviewResponse(sessionId, {
-        questionIndex: currentQuestionIndex,
-        response: responseText,
-        responseTime,
-      });
-
-      if (response.success && response.data) {
-        const { aiResponse, aiAnalysis, tips, shouldMoveToNext, nextQuestion } =
-          response.data;
-
-        // Update live metrics from AI analysis
-        if (aiAnalysis?.metrics) {
-          setLiveMetrics((prev) => ({
-            confidence: aiAnalysis.metrics.confidence || prev.confidence,
-            clarity: aiAnalysis.metrics.clarity || prev.clarity,
-            pace: aiAnalysis.metrics.pace || prev.pace,
-            eyeContact: prev.eyeContact, // Keep simulated for now
-            technicalAccuracy:
-              aiAnalysis.metrics.technicalAccuracy || prev.technicalAccuracy,
-            articulation: prev.articulation, // Keep simulated for now
-          }));
-
-          // Update speaking patterns from analysis
-          setSpeakingPatterns((prev) => ({
-            ...prev,
-            fillerWords:
-              prev.fillerWords + (aiAnalysis.metrics.fillerWords || 0),
-            avgResponseTime: `${responseTime.toFixed(1)}s`,
-          }));
-        }
-
-        // Update real-time tips
-        if (tips && tips.length > 0) {
-          setRealTimeTips(tips);
-        }
-
-        // Add AI feedback to transcript
-        addToTranscript(
-          t("mockInterviewSession.aiInterviewer"),
-          aiResponse,
-          false,
-        );
-
-        // Speak the AI response
-        speakText(aiResponse);
-
-        // Auto-advance to next question if indicated
-        if (shouldMoveToNext && nextQuestion) {
-          setCurrentQuestionIndex((prev) => prev + 1);
-
-          // Add and speak next question after a delay
-          setTimeout(() => {
-            addToTranscript(
-              t("mockInterviewSession.aiInterviewer"),
-              nextQuestion.text,
-              false,
-            );
-            speakText(nextQuestion.text);
-          }, 2000);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to process response:", error);
-      // Fallback to local feedback
-      const fallbackFeedback = t("mockInterviewSession.aiFeedback1");
-      addToTranscript(
-        t("mockInterviewSession.aiInterviewer"),
-        fallbackFeedback,
-        false,
-      );
-    }
-
-    setIsAIProcessing(false);
-    responseStartTimeRef.current = Date.now(); // Reset for next response
-  };
-
-  // Handle next question
-  const handleNextQuestion = () => {
-    if (!sessionConfig) return;
-
-    if (currentQuestionIndex < sessionConfig.questions.length - 1) {
-      const nextIndex = currentQuestionIndex + 1;
-      setCurrentQuestionIndex(nextIndex);
-
-      // Add next question to transcript and speak it
-      setTimeout(() => {
-        const questionText = sessionConfig.questions[nextIndex].text;
-        addToTranscript(
-          t("mockInterviewSession.aiInterviewer"),
-          questionText,
-          false,
-        );
-        speakText(questionText);
-      }, 1000);
-    }
-  };
-
-  // Handle end session with API completion
-  const handleEndSession = async () => {
+  const handleEndSession = () => {
     if (!confirm(t("mockInterviewSession.confirmEndSession"))) return;
-
-    setIsSessionActive(false);
-    setIsAIProcessing(true);
-
-    // Stop any ongoing speech
-    if (synthRef.current) {
-      synthRef.current.cancel();
-    }
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-
-    try {
-      // Complete session via API
-      if (sessionId) {
-        const response = await api.completeMockInterviewSession(sessionId);
-
-        if (response.success && response.data) {
-          // Store complete results
-          const results = {
-            sessionId,
-            position: sessionConfig?.position,
-            duration: elapsedTime,
-            questionsAnswered: response.data.questionsAnswered,
-            totalQuestions: response.data.totalQuestions,
-            transcript,
-            metrics: response.data.metrics,
-            summary: response.data.summary,
-            speakingPatterns,
-            completedAt: response.data.completedAt,
-          };
-          localStorage.setItem("lastInterviewResults", JSON.stringify(results));
-        }
-      }
-    } catch (error) {
-      console.error("Failed to complete session:", error);
-      // Save local results as fallback
-      const results = {
-        sessionId,
-        position: sessionConfig?.position,
-        duration: elapsedTime,
-        questionsAnswered: currentQuestionIndex + 1,
-        totalQuestions: sessionConfig?.questions.length,
-        transcript,
-        metrics: liveMetrics,
-        speakingPatterns,
-        completedAt: new Date().toISOString(),
-      };
-      localStorage.setItem("lastInterviewResults", JSON.stringify(results));
-    }
-
-    localStorage.removeItem("currentInterviewSession");
-    setIsAIProcessing(false);
-    toast.success(t("mockInterviewSession.sessionCompleted"));
-    navigate(ROUTES.CANDIDATE_DASHBOARD);
+    stopInterview();
   };
 
-  // Toggle mic/video
   const toggleMic = () => {
-    setMicEnabled(!micEnabled);
-    if (stream) {
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = !micEnabled;
-      });
-    }
-    // Also toggle voice recognition with mic
-    if (micEnabled && isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    }
+    setMicEnabled((prev) => {
+      if (stream) {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = !prev;
+        });
+      }
+      return !prev;
+    });
   };
 
   const toggleVideo = () => {
-    setVideoEnabled(!videoEnabled);
-    if (stream) {
-      stream.getVideoTracks().forEach((track) => {
-        track.enabled = !videoEnabled;
-      });
-    }
+    setVideoEnabled((prev) => {
+      if (stream) {
+        stream.getVideoTracks().forEach((track) => {
+          track.enabled = !prev;
+        });
+      }
+      return !prev;
+    });
   };
 
-  // Toggle TTS
-  const toggleTTS = () => {
-    if (isTTSEnabled && synthRef.current) {
-      synthRef.current.cancel();
-    }
-    setIsTTSEnabled(!isTTSEnabled);
-  };
-
-  // Loading state
   if (isLoading || !sessionConfig) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
@@ -681,9 +326,31 @@ export default function MockInterviewSession() {
     );
   }
 
+  if (!hasVapiKey) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <p className="text-red-500 dark:text-red-400 font-medium mb-2">
+            Voice interview not configured
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+            Set VITE_VAPI_API_KEY in your .env to enable the voice interview.
+          </p>
+          <button
+            onClick={() => navigate(ROUTES.MOCK_INTERVIEW)}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const questions = sessionConfig.questions;
-  const currentQuestion = questions[currentQuestionIndex];
-  const maxDuration = sessionConfig.duration * 60; // Convert to seconds
+  const answeredCount = vapiMessages.filter((m) => m.role === "user").length;
+  const currentQuestionIndex = Math.min(answeredCount, questions.length - 1);
+  const maxDuration = sessionConfig.duration * 60;
 
   const metricLabels: Record<keyof LiveMetrics, string> = {
     confidence: t("mockInterviewSession.metricConfidence"),
@@ -694,6 +361,9 @@ export default function MockInterviewSession() {
     articulation: t("mockInterviewSession.metricArticulation"),
   };
 
+  const isSpeakingUser = isSpeaking === "user";
+  const isSpeakingAssistant = isSpeaking === "assistant";
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -702,11 +372,17 @@ export default function MockInterviewSession() {
           maxDuration={maxDuration}
           currentQuestionIndex={currentQuestionIndex}
           totalQuestions={questions.length}
-          isSpeaking={isSpeaking}
+          isSpeaking={isSpeakingUser || isSpeakingAssistant}
           recordingLabel={t("mockInterviewSession.recording")}
-          speakingLabel={t("mockInterviewSession.speaking")}
+          speakingLabel={
+            isSpeakingAssistant
+              ? t("mockInterviewSession.aiSpeaking") || "AI is speaking…"
+              : isSpeakingUser
+                ? t("mockInterviewSession.speaking")
+                : t("mockInterviewSession.speaking")
+          }
           questionOfLabel={t("mockInterviewSession.questionOf", {
-            current: currentQuestionIndex + 1,
+            current: Math.min(answeredCount + 1, questions.length),
             total: questions.length,
           })}
           formatTime={formatTime}
@@ -720,40 +396,31 @@ export default function MockInterviewSession() {
               streamError={!!streamError}
               videoEnabled={videoEnabled}
               micEnabled={micEnabled}
-              isTTSEnabled={isTTSEnabled}
-              isSpeakingTTS={isSpeakingTTS}
+              isTTSEnabled={true}
+              isSpeakingTTS={false}
               youLabel={t("mockInterviewSession.you")}
               cameraAccessDeniedLabel={t("mockInterviewSession.cameraAccessDenied")}
               onToggleMic={toggleMic}
               onToggleVideo={toggleVideo}
-              onToggleTTS={toggleTTS}
+              onToggleTTS={() => {}}
               onEndSession={handleEndSession}
             />
 
-            <MockSessionQuestionCard
-              question={currentQuestion}
-              userResponse={userResponse}
-              interimTranscript={interimTranscript}
-              isListening={isListening}
-              isAIProcessing={isAIProcessing}
-              micEnabled={micEnabled}
-              listeningPlaceholder={
-                t("mockInterviewSession.listening") || "Listening..."
-              }
-              typeResponsePlaceholder={t("mockInterviewSession.typeResponse")}
-              onUserResponseChange={setUserResponse}
-              onToggleVoiceRecognition={toggleVoiceRecognition}
-              onSubmitResponse={handleSubmitResponse}
-            />
-
-            <MockSessionNavigationButtons
-              currentQuestionIndex={currentQuestionIndex}
-              totalQuestions={questions.length}
-              nextQuestionLabel={t("mockInterviewSession.nextQuestion")}
-              completeInterviewLabel={t("mockInterviewSession.completeInterview")}
-              onNextQuestion={handleNextQuestion}
-              onEndSession={handleEndSession}
-            />
+            {/* Voice status — no text input; answer by talking */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <p className="text-center text-gray-700 dark:text-gray-300 font-medium">
+                {!isCallActive
+                  ? t("mockInterviewSession.connecting") || "Connecting to voice interview…"
+                  : isSpeakingAssistant
+                    ? t("mockInterviewSession.listenToQuestion") || "Listen to the question — then answer out loud."
+                    : isSpeakingUser
+                      ? t("mockInterviewSession.youAreSpeaking") || "You're speaking…"
+                      : t("mockInterviewSession.speakWhenReady") || "Speak your answer when ready."}
+              </p>
+              <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+                {t("mockInterviewSession.voiceOnlyHint") || "Voice only — no typing. The AI asks, you answer, then the next question."}
+              </p>
+            </div>
 
             <MockSessionSpeakingPatterns
               patterns={speakingPatterns}
