@@ -1,55 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Clock,
-  ChevronRight,
-  Sparkles,
-  BarChart3,
-  FileText,
-  AlertCircle,
-  Mic,
-  MicOff,
-  Video,
-  VideoOff,
-  Phone,
-  MessageSquare,
-  Send,
-  Loader2,
-  CheckCircle,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ROUTES } from "../router";
 import toast from "react-hot-toast";
 import { useMediaStream } from "../components/interview/MediaStreamHandler";
 import { useTranslation } from "../hooks/useTranslation";
 import api from "../services/api";
-
-interface Question {
-  id: number;
-  category: string;
-  difficulty: string;
-  text: string;
-  duration: number;
-}
-
-interface SessionConfig {
-  id: string;
-  position: string;
-  duration: number;
-  questionCount: number;
-  difficulty: string;
-  questions: Question[];
-  startedAt: string;
-}
-
-interface TranscriptEntry {
-  id: string;
-  speaker: string;
-  text: string;
-  time: string;
-  isCandidate: boolean;
-}
+import type {
+  SessionConfig,
+  TranscriptEntry,
+  LiveMetrics,
+} from "../components/interview/mockSessionTypes";
+import MockSessionHeader from "../components/interview/MockSessionHeader";
+import MockSessionVideoSection from "../components/interview/MockSessionVideoSection";
+import MockSessionQuestionCard from "../components/interview/MockSessionQuestionCard";
+import MockSessionNavigationButtons from "../components/interview/MockSessionNavigationButtons";
+import MockSessionSpeakingPatterns from "../components/interview/MockSessionSpeakingPatterns";
+import MockSessionSidebar from "../components/interview/MockSessionSidebar";
 
 export default function MockInterviewSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -716,454 +683,101 @@ export default function MockInterviewSession() {
 
   const questions = sessionConfig.questions;
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   const maxDuration = sessionConfig.duration * 60; // Convert to seconds
+
+  const metricLabels: Record<keyof LiveMetrics, string> = {
+    confidence: t("mockInterviewSession.metricConfidence"),
+    clarity: t("mockInterviewSession.metricClarity"),
+    pace: t("mockInterviewSession.metricPace"),
+    eyeContact: t("mockInterviewSession.metricEyeContact"),
+    technicalAccuracy: t("mockInterviewSession.metricTechnicalAccuracy"),
+    articulation: t("mockInterviewSession.metricArticulation"),
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-4 py-2 rounded-lg font-medium">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                <span>{t("mockInterviewSession.recording")}</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
-                <Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {formatTime(elapsedTime)}
-                </span>
-                <span className="text-gray-400 dark:text-gray-500">/</span>
-                <span className="text-gray-500 dark:text-gray-400">
-                  {formatTime(maxDuration)}
-                </span>
-              </div>
-              {isSpeaking && (
-                <div className="flex items-center space-x-2 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 px-4 py-2 rounded-lg font-medium">
-                  <div className="flex space-x-1">
-                    <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" />
-                    <div
-                      className="w-1 h-4 bg-green-500 rounded-full animate-pulse"
-                      style={{ animationDelay: "0.1s" }}
-                    />
-                    <div
-                      className="w-1 h-4 bg-green-500 rounded-full animate-pulse"
-                      style={{ animationDelay: "0.2s" }}
-                    />
-                  </div>
-                  <span>{t("mockInterviewSession.speaking")}</span>
-                </div>
-              )}
-            </div>
-            <div className="text-gray-500 dark:text-gray-400 font-medium">
-              {t("mockInterviewSession.questionOf", {
-                current: currentQuestionIndex + 1,
-                total: questions.length,
-              })}
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-3 shadow-inner">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all duration-500 shadow-lg"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
+        <MockSessionHeader
+          elapsedTime={elapsedTime}
+          maxDuration={maxDuration}
+          currentQuestionIndex={currentQuestionIndex}
+          totalQuestions={questions.length}
+          isSpeaking={isSpeaking}
+          recordingLabel={t("mockInterviewSession.recording")}
+          speakingLabel={t("mockInterviewSession.speaking")}
+          questionOfLabel={t("mockInterviewSession.questionOf", {
+            current: currentQuestionIndex + 1,
+            total: questions.length,
+          })}
+          formatTime={formatTime}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {/* Main content */}
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
-            {/* Video Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="relative aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden mb-4">
-                {streamLoading ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                  </div>
-                ) : streamError ? (
-                  <div className="absolute inset-0 flex items-center justify-center text-red-500 dark:text-red-400">
-                    <p>{t("mockInterviewSession.cameraAccessDenied")}</p>
-                  </div>
-                ) : (
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={`w-full h-full object-cover ${!videoEnabled ? "hidden" : ""}`}
-                  />
-                )}
-                {!videoEnabled && !streamLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-                    <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                      <span className="text-3xl text-gray-700 dark:text-white font-bold">
-                        {t("mockInterviewSession.you")}
-                      </span>
-                    </div>
-                  </div>
-                )}
+            <MockSessionVideoSection
+              videoRef={videoRef}
+              streamLoading={streamLoading}
+              streamError={!!streamError}
+              videoEnabled={videoEnabled}
+              micEnabled={micEnabled}
+              isTTSEnabled={isTTSEnabled}
+              isSpeakingTTS={isSpeakingTTS}
+              youLabel={t("mockInterviewSession.you")}
+              cameraAccessDeniedLabel={t("mockInterviewSession.cameraAccessDenied")}
+              onToggleMic={toggleMic}
+              onToggleVideo={toggleVideo}
+              onToggleTTS={toggleTTS}
+              onEndSession={handleEndSession}
+            />
 
-                {/* Participant label */}
-                <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 rounded-lg">
-                  <span className="text-white text-sm font-medium">
-                    {t("mockInterviewSession.you")}
-                  </span>
-                </div>
-              </div>
+            <MockSessionQuestionCard
+              question={currentQuestion}
+              userResponse={userResponse}
+              interimTranscript={interimTranscript}
+              isListening={isListening}
+              isAIProcessing={isAIProcessing}
+              micEnabled={micEnabled}
+              listeningPlaceholder={
+                t("mockInterviewSession.listening") || "Listening..."
+              }
+              typeResponsePlaceholder={t("mockInterviewSession.typeResponse")}
+              onUserResponseChange={setUserResponse}
+              onToggleVoiceRecognition={toggleVoiceRecognition}
+              onSubmitResponse={handleSubmitResponse}
+            />
 
-              {/* Control Bar */}
-              <div className="flex items-center justify-center space-x-4">
-                <button
-                  onClick={toggleMic}
-                  className={`p-4 rounded-full transition-all ${
-                    micEnabled
-                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                      : "bg-red-600 text-white hover:bg-red-700"
-                  }`}
-                  title={micEnabled ? "Mute microphone" : "Unmute microphone"}
-                >
-                  {micEnabled ? (
-                    <Mic className="w-6 h-6" />
-                  ) : (
-                    <MicOff className="w-6 h-6" />
-                  )}
-                </button>
-                <button
-                  onClick={toggleVideo}
-                  className={`p-4 rounded-full transition-all ${
-                    videoEnabled
-                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                      : "bg-red-600 text-white hover:bg-red-700"
-                  }`}
-                  title={videoEnabled ? "Turn off camera" : "Turn on camera"}
-                >
-                  {videoEnabled ? (
-                    <Video className="w-6 h-6" />
-                  ) : (
-                    <VideoOff className="w-6 h-6" />
-                  )}
-                </button>
-                <button
-                  onClick={toggleTTS}
-                  className={`p-4 rounded-full transition-all ${
-                    isTTSEnabled
-                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
-                      : "bg-orange-600 text-white hover:bg-orange-700"
-                  } ${isSpeakingTTS ? "ring-2 ring-blue-500 animate-pulse" : ""}`}
-                  title={isTTSEnabled ? "Mute AI voice" : "Unmute AI voice"}
-                >
-                  {isTTSEnabled ? (
-                    <Volume2 className="w-6 h-6" />
-                  ) : (
-                    <VolumeX className="w-6 h-6" />
-                  )}
-                </button>
-                <button
-                  onClick={handleEndSession}
-                  className="p-4 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all"
-                  title="End interview"
-                >
-                  <Phone className="w-6 h-6 rotate-[135deg]" />
-                </button>
-              </div>
-            </div>
+            <MockSessionNavigationButtons
+              currentQuestionIndex={currentQuestionIndex}
+              totalQuestions={questions.length}
+              nextQuestionLabel={t("mockInterviewSession.nextQuestion")}
+              completeInterviewLabel={t("mockInterviewSession.completeInterview")}
+              onNextQuestion={handleNextQuestion}
+              onEndSession={handleEndSession}
+            />
 
-            {/* Current Question */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm font-medium text-blue-400">
-                    {currentQuestion.category}
-                  </span>
-                </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  ~{currentQuestion.duration} min
-                </span>
-              </div>
-              <p className="text-lg text-gray-900 dark:text-white font-medium mb-6">
-                {currentQuestion.text}
-              </p>
-
-              {/* Response Input */}
-              <div className="space-y-3">
-                {/* Interim transcript display */}
-                {interimTranscript && (
-                  <div className="px-4 py-2 bg-gray-100/80 dark:bg-gray-700/50 rounded-lg border border-gray-300/50 dark:border-gray-600/50">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm italic">
-                      {interimTranscript}...
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex space-x-3">
-                  {/* Voice input button */}
-                  <button
-                    onClick={toggleVoiceRecognition}
-                    disabled={!micEnabled}
-                    className={`px-4 py-3 rounded-xl transition-all ${
-                      isListening
-                        ? "bg-red-600 text-white animate-pulse"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    } ${!micEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    title={isListening ? "Stop listening" : "Start voice input"}
-                  >
-                    {isListening ? (
-                      <MicOff className="w-5 h-5" />
-                    ) : (
-                      <Mic className="w-5 h-5" />
-                    )}
-                  </button>
-
-                  <input
-                    type="text"
-                    value={userResponse}
-                    onChange={(e) => setUserResponse(e.target.value)}
-                    onKeyPress={(e) =>
-                      e.key === "Enter" && handleSubmitResponse()
-                    }
-                    placeholder={
-                      isListening
-                        ? t("mockInterviewSession.listening") || "Listening..."
-                        : t("mockInterviewSession.typeResponse")
-                    }
-                    className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isAIProcessing}
-                  />
-                  <button
-                    onClick={handleSubmitResponse}
-                    disabled={
-                      (!userResponse.trim() && !interimTranscript) ||
-                      isAIProcessing
-                    }
-                    className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    {isAIProcessing ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Send className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Voice status indicator */}
-                {isListening && (
-                  <div className="flex items-center justify-center space-x-2 text-red-400 text-sm">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span>Recording your response...</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Next Question Button */}
-            {currentQuestionIndex < questions.length - 1 && (
-              <button
-                onClick={handleNextQuestion}
-                className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
-              >
-                <span>{t("mockInterviewSession.nextQuestion")}</span>
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            )}
-
-            {currentQuestionIndex === questions.length - 1 && (
-              <button
-                onClick={handleEndSession}
-                className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all"
-              >
-                <CheckCircle className="w-5 h-5" />
-                <span>{t("mockInterviewSession.completeInterview")}</span>
-              </button>
-            )}
-
-            {/* Speaking Patterns */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  {t("mockInterviewSession.speakingPatterns")}
-                </h3>
-              </div>
-              <div className="grid md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-400">
-                    {speakingPatterns.fillerWords}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                    {t("mockInterviewSession.fillerWords")}
-                  </p>
-                </div>
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-green-400">
-                    {speakingPatterns.avgResponseTime}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                    {t("mockInterviewSession.avgResponse")}
-                  </p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-400">
-                    {speakingPatterns.totalWords}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                    {t("mockInterviewSession.totalWords")}
-                  </p>
-                </div>
-                <div className="text-center p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-cyan-400">
-                    {speakingPatterns.avgWordsPerMinute}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                    {t("mockInterviewSession.wordsPerMinute")}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <MockSessionSpeakingPatterns
+              patterns={speakingPatterns}
+              title={t("mockInterviewSession.speakingPatterns")}
+              fillerWordsLabel={t("mockInterviewSession.fillerWords")}
+              avgResponseLabel={t("mockInterviewSession.avgResponse")}
+              totalWordsLabel={t("mockInterviewSession.totalWords")}
+              wordsPerMinuteLabel={t("mockInterviewSession.wordsPerMinute")}
+            />
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Live AI Analysis */}
-            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl shadow-lg p-6 text-white">
-              <div className="flex items-center space-x-2 mb-4">
-                <Sparkles className="w-5 h-5" />
-                <h3 className="font-semibold">
-                  {t("mockInterviewSession.liveAIAnalysis")}
-                </h3>
-              </div>
-              <div className="space-y-4">
-                {Object.entries(liveMetrics).map(([key, value]) => (
-                  <div key={key}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="capitalize">
-                        {t(
-                          `mockInterviewSession.metric${key.charAt(0).toUpperCase() + key.slice(1)}`,
-                        )}
-                      </span>
-                      <span>{Math.round(value)}%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                      <div
-                        className="bg-white h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${value}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Real-time Tips */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2 mb-3">
-                <AlertCircle className="w-4 h-4 text-orange-400" />
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {t("mockInterviewSession.realTimeTips")}
-                </h4>
-              </div>
-              <div className="space-y-2">
-                {realTimeTips.map((tip, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-lg border transition-all ${
-                      tip.type === "success"
-                        ? "bg-green-100 border-green-300 dark:bg-green-900/20 dark:border-green-800"
-                        : tip.type === "warning"
-                          ? "bg-orange-100 border-orange-300 dark:bg-orange-900/20 dark:border-orange-800"
-                          : "bg-blue-100 border-blue-300 dark:bg-blue-900/20 dark:border-blue-800"
-                    }`}
-                  >
-                    <p className="text-xs text-gray-700 dark:text-gray-300">
-                      {tip.message}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Question List */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2 mb-3">
-                <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {t("mockInterviewSession.questionList")}
-                </h4>
-              </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {questions.map((q, idx) => (
-                  <div
-                    key={q.id}
-                    className={`p-3 rounded-lg border transition-all ${
-                      idx === currentQuestionIndex
-                        ? "bg-blue-50 border-blue-300 ring-2 ring-blue-400 dark:bg-blue-900/30 dark:border-blue-700 dark:ring-blue-800"
-                        : idx < currentQuestionIndex
-                          ? "bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-800"
-                          : "bg-gray-100 border-gray-200 dark:bg-gray-700 dark:border-gray-600"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-gray-900 dark:text-white">
-                        Q{idx + 1}
-                      </span>
-                      <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-500 dark:text-gray-400">
-                        {q.category}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                      {q.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Transcript */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2 mb-3">
-                <MessageSquare className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {t("mockInterviewSession.liveTranscript")}
-                </h4>
-              </div>
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {transcript.length === 0 ? (
-                  <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">
-                    {t("mockInterviewSession.transcriptPlaceholder")}
-                  </p>
-                ) : (
-                  transcript.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className={`p-3 rounded-lg ${
-                        entry.isCandidate
-                          ? "bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-700"
-                          : "bg-gray-100 border border-gray-200 dark:bg-gray-700/60 dark:border-gray-600"
-                      }`}
-                    >
-                      <div className="flex justify-between text-xs mb-1">
-                        <span
-                          className={`font-semibold ${entry.isCandidate ? "text-blue-500 dark:text-blue-400" : "text-gray-600 dark:text-gray-300"}`}
-                        >
-                          {entry.speaker}
-                        </span>
-                        <span className="text-gray-400 dark:text-gray-500">
-                          {entry.time}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">
-                        {entry.text}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+          <MockSessionSidebar
+            liveMetrics={liveMetrics}
+            metricLabels={metricLabels}
+            realTimeTips={realTimeTips}
+            questions={questions}
+            currentQuestionIndex={currentQuestionIndex}
+            transcript={transcript}
+            liveAIAnalysisTitle={t("mockInterviewSession.liveAIAnalysis")}
+            realTimeTipsTitle={t("mockInterviewSession.realTimeTips")}
+            questionListTitle={t("mockInterviewSession.questionList")}
+            liveTranscriptTitle={t("mockInterviewSession.liveTranscript")}
+            transcriptPlaceholder={t("mockInterviewSession.transcriptPlaceholder")}
+          />
         </div>
       </div>
     </div>
