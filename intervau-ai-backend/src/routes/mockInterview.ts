@@ -540,6 +540,9 @@ router.post('/sessions/:sessionId/respond', async (req: AuthRequest, res: Respon
  * When body is provided, transcript and per-question answers are stored and pattern metrics are computed.
  */
 router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Response) => {
+  console.log(`\n🚀 [START] Completing session: ${req.params.sessionId}`);
+  console.log(`📦 Request body keys:`, Object.keys(req.body));
+  
   try {
     const { sessionId } = req.params;
     const userId = req.user?.id;
@@ -555,23 +558,46 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
       };
     };
 
+    console.log(`🔐 User ID: ${userId || 'Not authenticated'}`);
+
     if (!userId) {
+      console.log(`❌ Authentication failed: No user ID`);
       return res.status(401).json({
         success: false,
         message: 'User not authenticated',
       });
     }
 
+    console.log(`🔍 Finding session: ${sessionId}`);
     const session = await MockInterviewSession.findOne({ sessionId, userId });
 
     if (!session) {
+      console.log(`❌ Session not found: ${sessionId}`);
       return res.status(404).json({
         success: false,
         message: 'Session not found',
       });
     }
 
+    console.log(`📊 Session found:`, {
+      id: session._id,
+      status: session.status,
+      questionCount: session.questions.length,
+      transcriptCount: session.transcript?.length || 0
+    });
+
+    // Log existing transcript if any
+    if (session.transcript && session.transcript.length > 0) {
+      console.log(`📜 EXISTING TRANSCRIPT (${session.transcript.length} entries):`);
+      session.transcript.forEach((t, i) => {
+        console.log(`  [${i}] ${t.speaker.toUpperCase()}: ${t.text.substring(0, 100)}${t.text.length > 100 ? '...' : ''}`);
+      });
+    } else {
+      console.log(`📜 No existing transcript`);
+    }
+
     if (session.status === 'completed') {
+      console.log(`⚠️ Session already completed: ${sessionId}`);
       return res.status(400).json({
         success: false,
         message: 'Session is already completed',
@@ -581,47 +607,90 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     const startTime = session.startedAt || session.createdAt;
     const endTime = new Date();
     const sessionDurationMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+    console.log(`⏱️ Session duration: ${sessionDurationMinutes.toFixed(2)} minutes`);
 
     let questionsAnsweredCount = 0;
 
     // --- VAPI/voice flow: payload with transcript ---
     if (body?.transcript && Array.isArray(body.transcript) && body.transcript.length > 0) {
+      console.log(`\n🎙️ PROCESSING VOICE/TRANSCRIPT FLOW`);
+      console.log(`📝 RAW TRANSCRIPT PAYLOAD (${body.transcript.length} entries):`);
+      body.transcript.forEach((t, i) => {
+        console.log(`  [${i}] ${t.speaker.toUpperCase()} at ${t.timestamp}: "${t.text}"`);
+      });
+      
+      console.log(`📝 QA Pairs present: ${body.qaPairs?.length || 0}`);
+      if (body.qaPairs && body.qaPairs.length > 0) {
+        console.log(`📝 RAW QA PAIRS:`);
+        body.qaPairs.forEach((qa, i) => {
+          console.log(`  Q${i}: "${qa.question.substring(0, 50)}..."`);
+          console.log(`  A${i}: "${qa.answer.substring(0, 50)}..."`);
+        });
+      }
+      
       const transcriptPayload = body.transcript;
 
       // Derive answer groups from payload (merge consecutive candidate messages)
+      console.log(`\n🔄 DERIVING ANSWER GROUPS FROM TRANSCRIPT...`);
       const answerGroups: string[] = [];
       let currentAnswer: string[] = [];
+      
       for (let i = 0; i < transcriptPayload.length; i++) {
-        if (transcriptPayload[i].speaker === 'candidate') {
-          currentAnswer.push(transcriptPayload[i].text.trim());
+        const entry = transcriptPayload[i];
+        console.log(`  Processing [${i}]: ${entry.speaker} - "${entry.text.substring(0, 30)}..."`);
+        
+        if (entry.speaker === 'candidate') {
+          currentAnswer.push(entry.text.trim());
+          console.log(`    Added to current answer (now ${currentAnswer.length} parts)`);
         } else {
           if (currentAnswer.length > 0) {
-            answerGroups.push(currentAnswer.join(' ').trim());
+            const mergedAnswer = currentAnswer.join(' ').trim();
+            answerGroups.push(mergedAnswer);
+            console.log(`    ✅ Completed answer group ${answerGroups.length}: "${mergedAnswer.substring(0, 50)}..."`);
             currentAnswer = [];
           }
         }
       }
+      
       if (currentAnswer.length > 0) {
-        answerGroups.push(currentAnswer.join(' ').trim());
+        const mergedAnswer = currentAnswer.join(' ').trim();
+        answerGroups.push(mergedAnswer);
+        console.log(`    ✅ Final answer group ${answerGroups.length}: "${mergedAnswer.substring(0, 50)}..."`);
       }
+      
+      console.log(`✅ DERIVED ${answerGroups.length} ANSWER GROUPS:`);
+      answerGroups.forEach((ans, i) => {
+        console.log(`  Group ${i+1}: "${ans.substring(0, 100)}${ans.length > 100 ? '...' : ''}"`);
+      });
 
       // Build full transcript array so Mongoose persists all entries
-      const newTranscript = transcriptPayload.map((t) => ({
-        speaker: t.speaker,
-        text: t.text,
-        timestamp: new Date(t.timestamp),
-        questionIndex: undefined as number | undefined,
-      }));
+      console.log(`\n📋 BUILDING TRANSCRIPT ARRAY WITH QUESTION INDICES...`);
+      const newTranscript = transcriptPayload.map((t, idx) => {
+        console.log(`  Processing entry ${idx} for timestamp conversion`);
+        return {
+          speaker: t.speaker,
+          text: t.text,
+          timestamp: new Date(t.timestamp),
+          questionIndex: undefined as number | undefined,
+        };
+      });
 
       let qIndex = 0;
       for (let i = 0; i < newTranscript.length; i++) {
         if (newTranscript[i].speaker === 'candidate') {
           newTranscript[i].questionIndex = qIndex;
+          console.log(`  Entry ${i} (candidate) → questionIndex: ${qIndex}`);
           qIndex++;
         } else {
           newTranscript[i].questionIndex = qIndex < session.questions.length ? qIndex : Math.max(0, qIndex - 1);
+          console.log(`  Entry ${i} (ai) → questionIndex: ${newTranscript[i].questionIndex}`);
         }
       }
+      
+      console.log(`✅ FINAL TRANSCRIPT WITH INDICES:`);
+      newTranscript.forEach((t, i) => {
+        console.log(`  [${i}] ${t.speaker} (Q${t.questionIndex}): "${t.text.substring(0, 50)}..."`);
+      });
 
       session.transcript = newTranscript;
       session.markModified('transcript');
@@ -629,28 +698,43 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
       // Prefer qaPairs from frontend (by index); fallback to transcript-derived answer groups
       const durationSeconds = body.durationSeconds ?? sessionDurationMinutes * 60;
       const numQuestions = session.questions.length;
+      console.log(`\n📝 PREPARING ANSWERS FOR ANALYSIS (${numQuestions} questions)`);
+      
       const answersToUse =
         body.qaPairs && body.qaPairs.length > 0
           ? body.qaPairs.slice(0, numQuestions).map((qa) => qa.answer ?? '')
           : answerGroups.slice(0, numQuestions);
+      
       questionsAnsweredCount = answersToUse.length;
+      console.log(`📝 Using ${questionsAnsweredCount} answers for analysis:`);
+      answersToUse.forEach((ans, i) => {
+        console.log(`  Answer ${i+1}: "${ans.substring(0, 80)}${ans.length > 80 ? '...' : ''}"`);
+      });
 
       let totalWords = 0;
       let totalFillerWords = 0;
       let totalScore = 0;
       const responseTimePerQuestion = answersToUse.length > 0 ? durationSeconds / answersToUse.length : 0;
+      console.log(`\n⚙️ ANALYZING EACH ANSWER (response time per Q: ${responseTimePerQuestion.toFixed(2)}s)...`);
 
       answersToUse.forEach((answerText, index) => {
         const question = session.questions[index];
-        if (!question) return;
+        if (!question) {
+          console.log(`  ⚠️ Question ${index+1} not found, skipping`);
+          return;
+        }
 
+        console.log(`\n  --- Question ${index+1}: "${question.text.substring(0, 50)}..." ---`);
+        
         const normalizedAnswer = answerText.replace(/\(no answer provided\)/gi, '').trim() || answerText;
         question.answer = normalizedAnswer;
+        console.log(`  Normalized answer: "${normalizedAnswer.substring(0, 80)}..."`);
 
         const wordCount = normalizedAnswer.split(/\s+/).filter(Boolean).length;
         const fillerWords = countFillerWords(normalizedAnswer);
         totalWords += wordCount;
         totalFillerWords += fillerWords;
+        console.log(`  Word count: ${wordCount}, Filler words: ${fillerWords}`);
 
         const technicalScore = calculateTechnicalScore(normalizedAnswer, question.category || '');
         const confidence = Math.min(100, Math.max(40, 60 + (wordCount / 10) * 5 - fillerWords * 3));
@@ -658,9 +742,15 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         const pace = calculatePace(wordCount, responseTimePerQuestion);
         const score = Math.round((confidence + clarity + technicalScore + pace) / 4);
         totalScore += score;
+        
+        console.log(`  Scores - Tech: ${technicalScore}, Conf: ${confidence}, Clarity: ${clarity}, Pace: ${pace}`);
+        console.log(`  → Final score: ${score}`);
 
         const strengths = extractStrengths(normalizedAnswer, wordCount);
         const improvements = extractImprovements(fillerWords, wordCount, responseTimePerQuestion);
+        console.log(`  Strengths: ${strengths.join(', ') || 'None'}`);
+        console.log(`  Improvements: ${improvements.join(', ') || 'None'}`);
+        
         question.aiAnalysis = {
           score,
           feedback: wordCount > 0 ? 'Voice response recorded and analyzed.' : 'No answer provided.',
@@ -669,18 +759,16 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         };
       });
 
-      // Ensure every question has aiAnalysis (strengths/improvements arrays)
-      session.questions.forEach((q) => {
+      // Ensure every question has aiAnalysis
+      session.questions.forEach((q, i) => {
         if (!q.aiAnalysis) {
+          console.log(`  ⚠️ Question ${i+1} missing aiAnalysis, adding default`);
           q.aiAnalysis = {
             score: 0,
             feedback: 'No answer provided.',
             strengths: [],
             improvements: [],
           };
-        } else {
-          if (!Array.isArray(q.aiAnalysis.strengths)) q.aiAnalysis.strengths = [];
-          if (!Array.isArray(q.aiAnalysis.improvements)) q.aiAnalysis.improvements = [];
         }
       });
 
@@ -691,6 +779,13 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
       const totalWordsMetric = fp ? fp.totalWords : totalWords;
       const speakingPaceWPMMetric = fp ? fp.avgWordsPerMinute : (durationMinutes > 0 ? Math.round(totalWords / durationMinutes) : 0);
       const avgResponseTimeMetric = fp ? fp.avgResponseTimeSeconds : Math.round(responseTimePerQuestion * 10) / 10;
+
+      console.log(`\n📊 METRICS CALCULATED:`);
+      console.log(`  - Average Score: ${avgScore}`);
+      console.log(`  - Total Words: ${totalWordsMetric}`);
+      console.log(`  - Filler Words: ${fillerWordsMetric}`);
+      console.log(`  - Speaking Pace: ${speakingPaceWPMMetric} WPM`);
+      console.log(`  - Avg Response Time: ${avgResponseTimeMetric}s`);
 
       session.metrics = {
         overallScore: avgScore,
@@ -708,24 +803,51 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         resumeMatchPercentage: Math.min(100, avgScore + Math.floor(Math.random() * 5)),
       };
       session.markModified('questions');
+      console.log(`✅ Voice flow processing complete`);
+    } else {
+      console.log(`\n📝 PROCESSING TEXT FLOW (no transcript payload)`);
     }
 
     // --- If no payload: use existing transcript/answers (text flow) ---
     const answeredQuestions = session.questions.filter((q) => q.answer && q.aiAnalysis);
     const questionCount = Math.max(answeredQuestions.length, 1);
     const effectiveQuestionsAnswered = questionsAnsweredCount > 0 ? questionsAnsweredCount : answeredQuestions.length;
+    console.log(`\n📊 QUESTIONS ANSWERED: ${effectiveQuestionsAnswered}/${session.questions.length}`);
+    
+    if (answeredQuestions.length > 0) {
+      console.log(`📝 ANSWERED QUESTIONS DETAILS:`);
+      answeredQuestions.forEach((q, i) => {
+        console.log(`  Q${i+1}: Score: ${q.aiAnalysis?.score}, Answer: "${q.answer?.substring(0, 50)}..."`);
+      });
+    }
 
     if (!session.metrics) {
+      console.log(`\n📊 CALCULATING METRICS FROM EXISTING DATA...`);
       let totalScore = 0;
-      answeredQuestions.forEach((q) => {
-        if (q.aiAnalysis) totalScore += q.aiAnalysis.score || 0;
+      answeredQuestions.forEach((q, i) => {
+        if (q.aiAnalysis) {
+          totalScore += q.aiAnalysis.score || 0;
+          console.log(`  Q${i+1} score: ${q.aiAnalysis.score}`);
+        }
       });
       const avgScore = Math.round(totalScore / questionCount);
+      
       const candidateTranscripts = session.transcript.filter((t) => t.speaker === 'candidate');
+      console.log(`\n📜 CANDIDATE TRANSCRIPTS (${candidateTranscripts.length}):`);
+      candidateTranscripts.forEach((t, i) => {
+        console.log(`  [${i}] "${t.text.substring(0, 80)}..."`);
+      });
+      
       const allCandidateText = candidateTranscripts.map((t) => t.text).join(' ');
       const overallWordCount = allCandidateText.split(/\s+/).length;
       const overallFillerWords = countFillerWords(allCandidateText);
       const avgResponseTime = sessionDurationMinutes / questionCount;
+
+      console.log(`\n📊 TEXT FLOW METRICS:`);
+      console.log(`  - Average Score: ${avgScore}`);
+      console.log(`  - Total Words: ${overallWordCount}`);
+      console.log(`  - Filler Words: ${overallFillerWords}`);
+      console.log(`  - Avg Response Time: ${avgResponseTime.toFixed(2)} min`);
 
       session.metrics = {
         overallScore: avgScore || 75,
@@ -745,31 +867,52 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     }
 
     // Generate final summary using AI (OpenRouter)
+    console.log(`\n🤖 GENERATING AI SUMMARY...`);
     let summaryText = '';
     try {
       const transcriptForSummary = session.transcript.map((t) => ({
         speaker: t.speaker === 'ai' ? 'Interviewer' : 'Candidate',
         text: t.text,
       }));
+      
+      console.log(`📝 TRANSCRIPT FOR SUMMARY (${transcriptForSummary.length} entries):`);
+      transcriptForSummary.forEach((t, i) => {
+        console.log(`  [${i}] ${t.speaker}: "${t.text.substring(0, 80)}..."`);
+      });
+      
       if (transcriptForSummary.length > 0) {
+        console.log(`📝 Generating summary from ${transcriptForSummary.length} transcript entries`);
         summaryText = await generateInterviewSummary(
           'Candidate',
           session.position,
           transcriptForSummary,
           session.questions.map((q) => q.text)
         );
+        console.log(`✅ SUMMARY GENERATED (${summaryText.length} chars):`);
+        console.log(`  "${summaryText.substring(0, 200)}..."`);
+      } else {
+        console.log(`⚠️ No transcript available for summary generation`);
       }
     } catch (summaryError) {
-      console.error('Failed to generate summary:', summaryError);
+      console.error('❌ Failed to generate summary:', summaryError);
     }
+    
     if (!summaryText && session.metrics) {
+      console.log(`\n📝 USING FALLBACK SUMMARY`);
       summaryText = buildFallbackSummary(session.metrics, session.position, effectiveQuestionsAnswered, session.questions.length);
+      console.log(`  "${summaryText.substring(0, 200)}..."`);
     }
     if (!summaryText) {
       summaryText = 'Interview summary could not be generated. Please review the transcript for details.';
     }
 
+    console.log(`\n📋 PARSING SUMMARY MARKDOWN...`);
     const parsed = parseSummaryMarkdown(summaryText);
+    console.log(`  Strengths: ${parsed.strengths?.length || 0}`);
+    console.log(`  Areas for Improvement: ${parsed.areasForImprovement?.length || 0}`);
+    console.log(`  Recommendations: ${parsed.recommendations?.length || 0}`);
+    console.log(`  Key Insights: ${parsed.keyInsights?.length || 0}`);
+    
     session.summary = {
       text: summaryText,
       strengths: parsed.strengths ?? [],
@@ -781,10 +924,23 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     session.status = 'completed';
     session.completedAt = new Date();
 
+    console.log(`\n💾 SAVING SESSION TO DATABASE...`);
     await session.save();
 
-    console.log(`✅ Mock interview session completed: ${sessionId}`);
+    console.log(`\n✅✅ MOCK INTERVIEW SESSION COMPLETED SUCCESSFULLY: ${sessionId}`);
+    console.log(`📊 FINAL METRICS:`, JSON.stringify({
+      overallScore: session.metrics?.overallScore,
+      overallRating: session.metrics?.overallRating,
+      confidence: session.metrics?.confidence,
+      clarity: session.metrics?.clarity,
+      technicalAccuracy: session.metrics?.technicalAccuracy,
+      fillerWords: session.metrics?.fillerWords,
+      totalWordsSpoken: session.metrics?.totalWordsSpoken,
+      questionsAnswered: effectiveQuestionsAnswered,
+      totalQuestions: session.questions.length
+    }, null, 2));
 
+    console.log(`\n📤 SENDING RESPONSE...`);
     res.status(200).json({
       success: true,
       data: {
@@ -798,8 +954,13 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         totalQuestions: session.questions.length,
       },
     });
+    
+    console.log(`✅ Response sent successfully`);
   } catch (error) {
-    console.error('❌ Error completing session:', error);
+    console.error('\n❌❌ ERROR COMPLETING SESSION:', error);
+    if (error instanceof Error) {
+      console.error('Stack trace:', error.stack);
+    }
     res.status(500).json({
       success: false,
       message: error instanceof Error ? error.message : 'Failed to complete session',
