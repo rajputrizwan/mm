@@ -16,6 +16,17 @@ interface InterviewQuestion {
   difficulty: string;
 }
 
+interface RoleContext {
+  targetJobPosition?: string;
+  targetJobDescription?: string;
+}
+
+interface RoleSignals {
+  requiredSkills: Set<string>;
+  relevantCategories: Set<string>;
+  normalizedRoleText: string;
+}
+
 // Comprehensive skill keywords database
 const SKILL_KEYWORDS = {
   Frontend: [
@@ -191,12 +202,13 @@ const COMMON_SKILL_GAPS = [
 /**
  * Extract skills from resume text using pattern matching
  */
-export function extractSkills(text: string): Skill[] {
+export function extractSkills(text: string, roleContext?: RoleContext): Skill[] {
   const foundSkills: Skill[] = [];
   const normalizedText = normalizeResumeText(text);
   const textLower = normalizedText.toLowerCase();
   const seenSkills = new Set<string>();
   const lines = normalizedText.split('\n').map(line => line.trim());
+  const roleSignals = buildRoleSignals(roleContext);
 
   for (const [category, skills] of Object.entries(SKILL_KEYWORDS)) {
     for (const skill of skills) {
@@ -208,7 +220,8 @@ export function extractSkills(text: string): Skill[] {
       if (matches.length > 0 && !seenSkills.has(skillLower)) {
         seenSkills.add(skillLower);
 
-        const level = calculateSkillLevel(normalizedText, lines, skill, matches.length);
+        let level = calculateSkillLevel(normalizedText, lines, skill, matches.length);
+        level = applyRoleAdjustment(level, skill, category, roleSignals);
 
         foundSkills.push({
           name: skill,
@@ -341,60 +354,185 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function buildRoleSignals(roleContext?: RoleContext): RoleSignals | null {
+  if (!roleContext) return null;
+
+  const normalizedRoleText = normalizeResumeText(
+    `${roleContext.targetJobPosition || ''}\n${roleContext.targetJobDescription || ''}`
+  ).toLowerCase();
+
+  if (!normalizedRoleText || normalizedRoleText.length < 3) {
+    return null;
+  }
+
+  const requiredSkills = new Set<string>();
+  const relevantCategories = new Set<string>();
+
+  for (const [category, skills] of Object.entries(SKILL_KEYWORDS)) {
+    for (const skill of skills) {
+      const regex = buildSkillRegex(skill);
+      if (regex.test(normalizedRoleText)) {
+        requiredSkills.add(skill.toLowerCase());
+        relevantCategories.add(category);
+      }
+    }
+  }
+
+  const roleTextWithSpaces = ` ${normalizedRoleText} `;
+  for (const category of Object.keys(SKILL_KEYWORDS)) {
+    const categoryLower = category.toLowerCase();
+    if (
+      roleTextWithSpaces.includes(` ${categoryLower} `) ||
+      normalizedRoleText.includes(categoryLower)
+    ) {
+      relevantCategories.add(category);
+    }
+  }
+
+  return {
+    requiredSkills,
+    relevantCategories,
+    normalizedRoleText,
+  };
+}
+
+function applyRoleAdjustment(
+  baseLevel: number,
+  skill: string,
+  category: string,
+  roleSignals: RoleSignals | null
+): number {
+  if (!roleSignals) return baseLevel;
+
+  const skillKey = skill.toLowerCase();
+  let adjusted = baseLevel;
+
+  if (roleSignals.requiredSkills.has(skillKey)) {
+    adjusted += 12;
+  } else if (roleSignals.relevantCategories.has(category)) {
+    adjusted += 6;
+  } else if (roleSignals.requiredSkills.size > 0) {
+    adjusted -= 7;
+  }
+
+  return clamp(adjusted, 25, 98);
+}
+
 /**
  * Identify skill gaps by comparing extracted skills with common requirements
  */
-export function identifySkillGaps(extractedSkills: Skill[]): SkillGap[] {
+export function identifySkillGaps(extractedSkills: Skill[], roleContext?: RoleContext): SkillGap[] {
   const extractedSkillNames = new Set(extractedSkills.map(s => s.name.toLowerCase()));
+  const roleSignals = buildRoleSignals(roleContext);
 
   const gaps: SkillGap[] = [];
   const categoryCoverage = new Set(extractedSkills.map(s => s.category));
 
-  // Check for common missing skills
+  // 1) Role-required missing skills should be top priority.
+  if (roleSignals?.requiredSkills && roleSignals.requiredSkills.size > 0) {
+    for (const skill of roleSignals.requiredSkills) {
+      if (!extractedSkillNames.has(skill)) {
+        gaps.unshift({
+          skill: toDisplaySkillName(skill),
+          importance: 'High',
+          recommendation: `This skill appears in your target role requirements. Build at least one project showcasing ${toDisplaySkillName(skill)}.`,
+        });
+      }
+    }
+  }
+
+  // 2) Low-confidence extracted skills become improvement insights.
+  const lowConfidenceSkills = extractedSkills
+    .filter(s => (s.level || 0) < 50)
+    .sort((a, b) => (a.level || 0) - (b.level || 0))
+    .slice(0, 3);
+
+  for (const skill of lowConfidenceSkills) {
+    gaps.push({
+      skill: `${skill.name} Depth`,
+      importance: 'Medium',
+      recommendation: `Your profile suggests basic exposure to ${skill.name}. Build 1-2 practical projects and document decisions to strengthen this area.`,
+    });
+  }
+
+  // 3) Category coverage gaps, with role-aware bias when available.
+  const targetCategories = roleSignals?.relevantCategories?.size
+    ? Array.from(roleSignals.relevantCategories)
+    : ['Backend', 'Database', 'Cloud', 'DevOps'];
+
+  for (const category of targetCategories) {
+    if (!categoryCoverage.has(category)) {
+      gaps.push({
+        skill: `${category} Exposure`,
+        importance: roleSignals?.relevantCategories?.has(category) ? 'High' : 'Medium',
+        recommendation: `Strengthen ${category.toLowerCase()} capability with hands-on tasks aligned to production scenarios.`,
+      });
+    }
+  }
+
+  // 4) Fill remaining slots with foundational gaps if needed.
   for (const gap of COMMON_SKILL_GAPS) {
     if (!extractedSkillNames.has(gap.skill.toLowerCase())) {
       gaps.push(gap);
     }
   }
 
-  // Category-aware gaps.
-  if (!categoryCoverage.has('DevOps')) {
-    gaps.push({
-      skill: 'DevOps Fundamentals',
-      importance: 'Medium',
-      recommendation: 'Practice CI/CD workflows, containerization, and deployment monitoring.',
-    });
-  }
-
-  if (!categoryCoverage.has('Cloud')) {
-    gaps.push({
-      skill: 'Cloud Platforms',
-      importance: 'Medium',
-      recommendation: 'Build and deploy a small project on AWS, Azure, or GCP.',
-    });
-  }
-
   // Limit to top 5 gaps
-  return gaps.slice(0, 5);
+  return dedupeGaps(gaps).slice(0, 5);
 }
 
 /**
  * Generate personalized interview questions based on extracted skills
  */
-export function generateInterviewQuestions(skills: Skill[]): InterviewQuestion[] {
+export function generateInterviewQuestions(
+  skills: Skill[],
+  roleContext?: RoleContext
+): InterviewQuestion[] {
   const questions: InterviewQuestion[] = [];
+  const roleTitle = roleContext?.targetJobPosition?.trim();
+  const roleSignals = buildRoleSignals(roleContext);
 
   // Technical questions based on skills
   const technicalSkills = skills
     .filter(s => s.category !== 'Soft Skills')
     .sort((a, b) => (b.level || 0) - (a.level || 0));
 
-  for (const skill of technicalSkills.slice(0, 5)) {
+  const templates = [
+    (skill: string) =>
+      `Can you walk through a real production scenario where you used ${skill} and explain your key trade-offs?`,
+    (skill: string) =>
+      `What is a complex bug or failure you handled with ${skill}, and how did you isolate the root cause?`,
+    (skill: string) =>
+      `How would you design and validate a scalable implementation that heavily relies on ${skill}?`,
+    (skill: string) =>
+      `Describe a performance or reliability improvement you delivered using ${skill}. What metrics improved?`,
+  ];
+
+  for (const [index, skill] of technicalSkills.slice(0, 5).entries()) {
+    const templateQuestion = templates[index % templates.length](skill.name);
     questions.push({
-      question: `Can you explain a challenging problem you solved using ${skill.name}?`,
+      question: roleTitle
+        ? `For a ${roleTitle} role: ${templateQuestion}`
+        : templateQuestion,
       category: skill.category,
       difficulty: skill.level && skill.level > 80 ? 'Advanced' : 'Intermediate',
     });
+  }
+
+  // Add one targeted conceptual question for a missing required role skill (if any).
+  if (roleSignals?.requiredSkills?.size) {
+    const missingRequired = Array.from(roleSignals.requiredSkills).find(
+      skill => !skills.some(existing => existing.name.toLowerCase() === skill)
+    );
+
+    if (missingRequired) {
+      const displaySkill = toDisplaySkillName(missingRequired);
+      questions.push({
+        question: `This role requires ${displaySkill}. Explain how you would approach learning and delivering a first production feature using it within two weeks.`,
+        category: 'Role Readiness',
+        difficulty: 'Intermediate',
+      });
+    }
   }
 
   // Add system design question if senior
@@ -430,8 +568,9 @@ export function generateInterviewQuestions(skills: Skill[]): InterviewQuestion[]
 /**
  * Calculate overall match score based on skills
  */
-export function calculateMatchScore(skills: Skill[]): number {
+export function calculateMatchScore(skills: Skill[], roleContext?: RoleContext): number {
   if (skills.length === 0) return 0;
+  const roleSignals = buildRoleSignals(roleContext);
 
   const avgLevel = skills.reduce((sum, skill) => sum + (skill.level || 45), 0) / skills.length;
 
@@ -446,6 +585,36 @@ export function calculateMatchScore(skills: Skill[]): number {
       .slice(0, 8)
       .reduce((sum, s) => sum + (s.level || 45), 0) / Math.min(8, skills.length);
 
-  const score = avgLevel * 0.55 + topSkillsAvg * 0.3 + categoryCoverage * 100 * 0.15;
-  return clamp(Math.round(score), 0, 99);
+  const baseScore = avgLevel * 0.55 + topSkillsAvg * 0.3 + categoryCoverage * 100 * 0.15;
+
+  if (!roleSignals || roleSignals.requiredSkills.size === 0) {
+    return clamp(Math.round(baseScore), 0, 99);
+  }
+
+  const matchedRequiredSkills = skills.filter(skill =>
+    roleSignals.requiredSkills.has(skill.name.toLowerCase())
+  ).length;
+  const roleFitRatio = matchedRequiredSkills / roleSignals.requiredSkills.size;
+  const roleFitScore = roleFitRatio * 100;
+
+  const blendedScore = baseScore * 0.6 + roleFitScore * 0.4;
+  return clamp(Math.round(blendedScore), 0, 99);
+}
+
+function toDisplaySkillName(skill: string): string {
+  for (const skills of Object.values(SKILL_KEYWORDS)) {
+    const match = skills.find(item => item.toLowerCase() === skill.toLowerCase());
+    if (match) return match;
+  }
+  return skill;
+}
+
+function dedupeGaps(gaps: SkillGap[]): SkillGap[] {
+  const seen = new Set<string>();
+  return gaps.filter(gap => {
+    const key = gap.skill.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

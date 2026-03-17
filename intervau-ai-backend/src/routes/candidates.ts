@@ -42,6 +42,13 @@ router.post('/analyze-resume', upload.single('resume'), CandidateController.anal
 router.get('/resume-analysis', CandidateController.getResumeAnalysis);
 
 /**
+ * POST /api/candidates/resume-analysis/regenerate
+ * Recompute recommendations and questions from saved analysis (Candidate only)
+ * MUST come before /:id route to avoid conflicts
+ */
+router.post('/resume-analysis/regenerate', CandidateController.regenerateResumeAnalysis);
+
+/**
  * DELETE /api/candidates/resume-analysis
  * Delete the authenticated user's saved resume analysis (Candidate only)
  * MUST come before /:id route to avoid conflicts

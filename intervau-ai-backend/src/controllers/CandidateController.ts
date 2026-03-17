@@ -194,18 +194,16 @@ export class CandidateController {
       // Calculate summary statistics
       const stats = {
         totalCount: enrichedApplications.length,
-        qualifiedCount: enrichedApplications.filter(
-          (app: any) => app.status === 'Qualified'
-        ).length,
-        interviewingCount: enrichedApplications.filter(
-          (app: any) => app.status === 'In Interview'
-        ).length,
+        qualifiedCount: enrichedApplications.filter((app: any) => app.status === 'Qualified')
+          .length,
+        interviewingCount: enrichedApplications.filter((app: any) => app.status === 'In Interview')
+          .length,
         averageScore:
           enrichedApplications.length > 0
             ? Math.round(
-              enrichedApplications.reduce((sum: number, app: any) => sum + app.ai_score, 0) /
-              enrichedApplications.length
-            )
+                enrichedApplications.reduce((sum: number, app: any) => sum + app.ai_score, 0) /
+                  enrichedApplications.length
+              )
             : 0,
       };
 
@@ -239,9 +237,22 @@ export class CandidateController {
       }
 
       filePath = file.path;
+      const targetJobPosition = String((req.body?.targetJobPosition || '') as string).trim();
+      const targetJobDescription = String((req.body?.targetJobDescription || '') as string).trim();
+      const roleContext = {
+        targetJobPosition: targetJobPosition || undefined,
+        targetJobDescription: targetJobDescription || undefined,
+      };
+
       console.log('[Resume Analysis] Starting analysis for file:', file.originalname);
       console.log('[Resume Analysis] File size:', file.size, 'bytes');
       console.log('[Resume Analysis] MIME type:', file.mimetype);
+      if (targetJobPosition || targetJobDescription) {
+        console.log('[Resume Analysis] Role context received:', {
+          targetJobPosition,
+          hasDescription: Boolean(targetJobDescription),
+        });
+      }
 
       const fs = require('fs');
 
@@ -263,7 +274,8 @@ export class CandidateController {
 
         return res.status(500).json({
           success: false,
-          message: 'Failed to extract text from resume. The file may be corrupted or in an unsupported format.',
+          message:
+            'Failed to extract text from resume. The file may be corrupted or in an unsupported format.',
           error: process.env.NODE_ENV === 'development' ? extractError.message : undefined,
         });
       }
@@ -279,7 +291,8 @@ export class CandidateController {
 
         return res.status(400).json({
           success: false,
-          message: 'Could not extract sufficient text from resume. Please ensure the file contains readable text and is not a scanned image.',
+          message:
+            'Could not extract sufficient text from resume. Please ensure the file contains readable text and is not a scanned image.',
         });
       }
 
@@ -288,7 +301,7 @@ export class CandidateController {
       try {
         const { extractSkills } = require('../utils/skillExtractor');
         console.log('[Resume Analysis] Extracting skills...');
-        extractedSkills = extractSkills(text);
+        extractedSkills = extractSkills(text, roleContext);
         console.log('[Resume Analysis] Skills extracted:', extractedSkills.length);
       } catch (skillError: any) {
         console.error('[Resume Analysis] Skill extraction failed:', skillError);
@@ -310,7 +323,7 @@ export class CandidateController {
       try {
         const { identifySkillGaps } = require('../utils/skillExtractor');
         console.log('[Resume Analysis] Identifying skill gaps...');
-        skillGaps = identifySkillGaps(extractedSkills);
+        skillGaps = identifySkillGaps(extractedSkills, roleContext);
         console.log('[Resume Analysis] Skill gaps identified:', skillGaps.length);
       } catch (gapError: any) {
         console.error('[Resume Analysis] Skill gap analysis failed:', gapError);
@@ -323,7 +336,7 @@ export class CandidateController {
       try {
         const { generateInterviewQuestions } = require('../utils/skillExtractor');
         console.log('[Resume Analysis] Generating interview questions...');
-        suggestedQuestions = generateInterviewQuestions(extractedSkills);
+        suggestedQuestions = generateInterviewQuestions(extractedSkills, roleContext);
         console.log('[Resume Analysis] Questions generated:', suggestedQuestions.length);
       } catch (questionError: any) {
         console.error('[Resume Analysis] Question generation failed:', questionError);
@@ -336,7 +349,7 @@ export class CandidateController {
       try {
         const { calculateMatchScore } = require('../utils/skillExtractor');
         console.log('[Resume Analysis] Calculating match score...');
-        matchScore = calculateMatchScore(extractedSkills);
+        matchScore = calculateMatchScore(extractedSkills, roleContext);
         console.log('[Resume Analysis] Match score:', matchScore);
       } catch (scoreError: any) {
         console.error('[Resume Analysis] Match score calculation failed:', scoreError);
@@ -357,6 +370,8 @@ export class CandidateController {
               $set: {
                 userId,
                 fileName: file.originalname,
+                targetJobPosition: roleContext.targetJobPosition,
+                targetJobDescription: roleContext.targetJobDescription,
                 matchScore,
                 extractedSkills,
                 skillGaps,
@@ -372,7 +387,7 @@ export class CandidateController {
             { userId },
             {
               $set: {
-                skills: extractedSkills.map((s) => s.name),
+                skills: extractedSkills.map(s => s.name),
                 'resume.uploadedAt': new Date(),
               },
             },
@@ -403,6 +418,8 @@ export class CandidateController {
           matchScore,
           analyzedAt: new Date().toISOString(),
           fileName: file.originalname,
+          targetJobPosition: roleContext.targetJobPosition,
+          targetJobDescription: roleContext.targetJobDescription,
         },
       });
     } catch (error) {
@@ -585,11 +602,13 @@ export class CandidateController {
 
       // Get resume analysis from localStorage or recent analysis
       // For now, we'll create basic skill objects from the skills array
-      const skillsWithLevels = candidate.skills.slice(0, 5).map((skillName: string, index: number) => ({
-        name: skillName,
-        level: 85 - index * 5, // Decreasing levels for demo
-        category: 'Technical',
-      }));
+      const skillsWithLevels = candidate.skills
+        .slice(0, 5)
+        .map((skillName: string, index: number) => ({
+          name: skillName,
+          level: 85 - index * 5, // Decreasing levels for demo
+          category: 'Technical',
+        }));
 
       res.status(200).json({
         success: true,
@@ -638,6 +657,8 @@ export class CandidateController {
           matchScore: analysis.matchScore,
           analyzedAt: analysis.analyzedAt.toISOString(),
           fileName: analysis.fileName,
+          targetJobPosition: analysis.targetJobPosition,
+          targetJobDescription: analysis.targetJobDescription,
         },
       });
     } catch (error) {
@@ -645,6 +666,84 @@ export class CandidateController {
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch resume analysis.',
+      });
+    }
+  }
+
+  /**
+   * POST /api/candidates/resume-analysis/regenerate
+   * Regenerate skill gaps/questions/match score from saved extracted skills.
+   */
+  static async regenerateResumeAnalysis(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+      }
+
+      const analysis = await ResumeAnalysis.findOne({ userId });
+      if (!analysis) {
+        return res.status(404).json({
+          success: false,
+          message: 'No resume analysis found for this user.',
+        });
+      }
+
+      const targetJobPosition = String(
+        (req.body?.targetJobPosition ?? analysis.targetJobPosition ?? '') as string
+      ).trim();
+      const targetJobDescription = String(
+        (req.body?.targetJobDescription ?? analysis.targetJobDescription ?? '') as string
+      ).trim();
+
+      const roleContext = {
+        targetJobPosition: targetJobPosition || undefined,
+        targetJobDescription: targetJobDescription || undefined,
+      };
+
+      const extractedSkills = analysis.extractedSkills || [];
+
+      const {
+        identifySkillGaps,
+        generateInterviewQuestions,
+        calculateMatchScore,
+      } = require('../utils/skillExtractor');
+
+      const skillGaps = identifySkillGaps(extractedSkills, roleContext) || [];
+      const suggestedQuestions = generateInterviewQuestions(extractedSkills, roleContext) || [];
+      const matchScore = calculateMatchScore(extractedSkills, roleContext) || 0;
+
+      analysis.skillGaps = skillGaps;
+      analysis.suggestedQuestions = suggestedQuestions;
+      analysis.matchScore = matchScore;
+      analysis.targetJobPosition = roleContext.targetJobPosition;
+      analysis.targetJobDescription = roleContext.targetJobDescription;
+      analysis.analyzedAt = new Date();
+
+      await analysis.save();
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          extractedSkills: analysis.extractedSkills,
+          skillGaps: analysis.skillGaps,
+          suggestedQuestions: analysis.suggestedQuestions,
+          matchScore: analysis.matchScore,
+          analyzedAt: analysis.analyzedAt.toISOString(),
+          fileName: analysis.fileName,
+          targetJobPosition: analysis.targetJobPosition,
+          targetJobDescription: analysis.targetJobDescription,
+        },
+      });
+    } catch (error) {
+      console.error('Error regenerating resume analysis:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to regenerate resume analysis.',
       });
     }
   }

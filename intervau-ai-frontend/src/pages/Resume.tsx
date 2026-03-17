@@ -27,6 +27,9 @@ export default function Resume() {
     useState<ResumeAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [targetJobPosition, setTargetJobPosition] = useState("");
+  const [targetJobDescription, setTargetJobDescription] = useState("");
 
   // Load saved analysis: try DB first, fall back to localStorage only on network failure
   useEffect(() => {
@@ -39,6 +42,10 @@ export default function Resume() {
         if (response.success && response.data) {
           // Server has a resume for this user — load it and sync cache
           setAnalysisResult(response.data as any);
+          setTargetJobPosition((response.data as any).targetJobPosition || "");
+          setTargetJobDescription(
+            (response.data as any).targetJobDescription || "",
+          );
           localStorage.setItem("resumeAnalysis", JSON.stringify(response.data));
         } else {
           // Server confirmed this user has NO resume — clear any stale cache
@@ -64,95 +71,101 @@ export default function Resume() {
   }, []);
 
   // Handle file drop/selection
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0) return;
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (acceptedFiles.length === 0) return;
 
-    const file = acceptedFiles[0];
+      const file = acceptedFiles[0];
 
-    // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError("File size must be less than 10 MB.");
-      toast.error("File size must be less than 10 MB.");
-      return;
-    }
-
-    setError(null);
-    setAnalyzing(true);
-    setUploadProgress(0);
-
-    // Simulate progress for better UX
-    const progressInterval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 200);
-
-    try {
-      const response = await api.analyzeResume(file);
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      if (response.success && response.data) {
-        setAnalysisResult(response.data);
-        // Save to localStorage
-        localStorage.setItem("resumeAnalysis", JSON.stringify(response.data));
-        toast.success("Resume analyzed successfully.");
-        // Persistent bell-panel notification with skill count
-        const skillCount = response.data.extractedSkills?.length ?? 0;
-        addNotification(
-          `Your resume was analysed — ${skillCount} skill${skillCount !== 1 ? 's' : ''} extracted.`,
-          "success",
-          "Resume analysed",
-        );
-      } else {
-        throw new Error(response.message || "Analysis failed.");
+      // Validate file size (10MB max)
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setError("File size must be less than 10 MB.");
+        toast.error("File size must be less than 10 MB.");
+        return;
       }
-    } catch (err: any) {
-      clearInterval(progressInterval);
+
+      setError(null);
+      setAnalyzing(true);
       setUploadProgress(0);
-      console.error("Resume analysis error:", err);
 
-      // Handle 401 Unauthorized - Session Expired
-      if (
-        err.message?.includes("401") ||
-        err.message?.toLowerCase().includes("unauthorized") ||
-        err.message?.toLowerCase().includes("session")
-      ) {
-        setShowSessionExpiredModal(true);
-        setError("Your session has expired. Please sign in again.");
-        toast.error("Session expired. Please sign in again.");
-        return;
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      try {
+        const response = await api.analyzeResume(file, {
+          targetJobPosition,
+          targetJobDescription,
+        });
+
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+
+        if (response.success && response.data) {
+          setAnalysisResult(response.data);
+          // Save to localStorage
+          localStorage.setItem("resumeAnalysis", JSON.stringify(response.data));
+          toast.success("Resume analyzed successfully.");
+          // Persistent bell-panel notification with skill count
+          const skillCount = response.data.extractedSkills?.length ?? 0;
+          addNotification(
+            `Your resume was analysed — ${skillCount} skill${skillCount !== 1 ? "s" : ""} extracted.`,
+            "success",
+            "Resume analysed",
+          );
+        } else {
+          throw new Error(response.message || "Analysis failed.");
+        }
+      } catch (err: any) {
+        clearInterval(progressInterval);
+        setUploadProgress(0);
+        console.error("Resume analysis error:", err);
+
+        // Handle 401 Unauthorized - Session Expired
+        if (
+          err.message?.includes("401") ||
+          err.message?.toLowerCase().includes("unauthorized") ||
+          err.message?.toLowerCase().includes("session")
+        ) {
+          setShowSessionExpiredModal(true);
+          setError("Your session has expired. Please sign in again.");
+          toast.error("Session expired. Please sign in again.");
+          return;
+        }
+
+        // Handle 500 Server Error - Parsing issues
+        if (
+          err.message?.includes("500") ||
+          err.message?.toLowerCase().includes("parse") ||
+          err.message?.toLowerCase().includes("server error")
+        ) {
+          const userFriendlyMessage =
+            "Server error: Unable to parse resume. Please try a different file format.";
+          setError(userFriendlyMessage);
+          toast.error(userFriendlyMessage);
+          return;
+        }
+
+        // Handle other errors
+        const errorMessage =
+          err.message || "Unable to analyze the resume. Please try again.";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setAnalyzing(false);
+        setTimeout(() => setUploadProgress(0), 1000);
       }
-
-      // Handle 500 Server Error - Parsing issues
-      if (
-        err.message?.includes("500") ||
-        err.message?.toLowerCase().includes("parse") ||
-        err.message?.toLowerCase().includes("server error")
-      ) {
-        const userFriendlyMessage =
-          "Server error: Unable to parse resume. Please try a different file format.";
-        setError(userFriendlyMessage);
-        toast.error(userFriendlyMessage);
-        return;
-      }
-
-      // Handle other errors
-      const errorMessage =
-        err.message || "Unable to analyze the resume. Please try again.";
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setAnalyzing(false);
-      setTimeout(() => setUploadProgress(0), 1000);
-    }
-  }, []);
+    },
+    [addNotification, targetJobDescription, targetJobPosition],
+  );
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } =
     useDropzone({
@@ -171,6 +184,8 @@ export default function Resume() {
     setAnalysisResult(null);
     setError(null);
     setUploadProgress(0);
+    setTargetJobPosition("");
+    setTargetJobDescription("");
     localStorage.removeItem("resumeAnalysis");
     // Also clear from DB
     try {
@@ -188,6 +203,59 @@ export default function Resume() {
   const handleSessionExpiredClose = () => {
     setShowSessionExpiredModal(false);
     navigate("/login");
+  };
+
+  const handleRegenerateInsights = async () => {
+    setError(null);
+    setRegenerating(true);
+
+    try {
+      const response = await api.regenerateResumeAnalysis({
+        targetJobPosition,
+        targetJobDescription,
+      });
+
+      if (!response.success || !response.data) {
+        const msg =
+          response.message ||
+          response.error ||
+          "Unable to regenerate insights.";
+
+        if (
+          String(msg).includes("401") ||
+          String(msg).toLowerCase().includes("unauthorized") ||
+          response.statusCode === 401
+        ) {
+          setShowSessionExpiredModal(true);
+          setError("Your session has expired. Please sign in again.");
+          toast.error("Session expired. Please sign in again.");
+          return;
+        }
+
+        setError(msg);
+        toast.error(msg);
+        return;
+      }
+
+      setAnalysisResult(response.data as ResumeAnalysisResult);
+      setTargetJobPosition((response.data as any).targetJobPosition || "");
+      setTargetJobDescription(
+        (response.data as any).targetJobDescription || "",
+      );
+      localStorage.setItem("resumeAnalysis", JSON.stringify(response.data));
+      toast.success("Insights regenerated successfully.");
+      addNotification(
+        "Resume insights were regenerated.",
+        "success",
+        "Resume insights updated",
+      );
+    } catch (err: any) {
+      const msg = err?.message || "Unable to regenerate insights.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   // Display file rejection errors
@@ -258,10 +326,11 @@ export default function Resume() {
 
           <div
             {...getRootProps()}
-            className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-12 border-2 border-dashed transition-all cursor-pointer ${isDragActive
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-105"
-              : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
-              } ${error ? "border-red-500" : ""}`}
+            className={`bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-12 border-2 border-dashed transition-all cursor-pointer ${
+              isDragActive
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-105"
+                : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
+            } ${error ? "border-red-500" : ""}`}
           >
             <input {...getInputProps()} />
             <div className="text-center">
@@ -313,6 +382,42 @@ export default function Resume() {
                   </span>
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="mt-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Optional role targeting
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Add a target role so scoring aligns with that job instead of
+              generic strength.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Target job title
+                </label>
+                <input
+                  type="text"
+                  value={targetJobPosition}
+                  onChange={(e) => setTargetJobPosition(e.target.value)}
+                  placeholder="e.g. Senior Full Stack Developer"
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Target job description
+                </label>
+                <textarea
+                  value={targetJobDescription}
+                  onChange={(e) => setTargetJobDescription(e.target.value)}
+                  rows={4}
+                  placeholder="Paste role requirements to get role-specific skill percentages and match score"
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -380,6 +485,60 @@ export default function Resume() {
           </button>
         </div>
 
+        <div className="mb-6 bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+            Regenerate insights
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Update target role details and regenerate match score, skill gaps,
+            and suggested questions.
+          </p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Target job title
+              </label>
+              <input
+                type="text"
+                value={targetJobPosition}
+                onChange={(e) => setTargetJobPosition(e.target.value)}
+                placeholder="e.g. Frontend Developer"
+                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Target job description
+              </label>
+              <textarea
+                value={targetJobDescription}
+                onChange={(e) => setTargetJobDescription(e.target.value)}
+                rows={3}
+                placeholder="Paste role requirements"
+                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <button
+              onClick={handleRegenerateInsights}
+              disabled={regenerating}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+            >
+              {regenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {regenerating ? "Regenerating..." : "Re-generate insights"}
+            </button>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Last updated{" "}
+              {new Date(analysisResult.analyzedAt).toLocaleString()}
+            </p>
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-800">
             <FileText className="w-8 h-8 text-blue-400 mb-3" />
@@ -421,7 +580,9 @@ export default function Resume() {
               {analysisResult.matchScore}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              For target positions
+              {analysisResult.targetJobPosition
+                ? `For ${analysisResult.targetJobPosition}`
+                : "For target positions"}
             </p>
           </div>
         </div>

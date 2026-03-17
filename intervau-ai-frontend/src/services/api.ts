@@ -148,12 +148,26 @@ export const api = {
   // Resume Analysis persistence
   getResumeAnalysis: () =>
     request<{
-      extractedSkills: Array<{ name: string; category: string; level?: number }>;
-      skillGaps: Array<{ skill: string; importance: string; recommendation: string }>;
-      suggestedQuestions: Array<{ question: string; category: string; difficulty: string }>;
+      extractedSkills: Array<{
+        name: string;
+        category: string;
+        level?: number;
+      }>;
+      skillGaps: Array<{
+        skill: string;
+        importance: string;
+        recommendation: string;
+      }>;
+      suggestedQuestions: Array<{
+        question: string;
+        category: string;
+        difficulty: string;
+      }>;
       matchScore: number;
       analyzedAt: string;
       fileName: string;
+      targetJobPosition?: string;
+      targetJobDescription?: string;
     }>("/candidates/resume-analysis", { method: "GET" }),
 
   deleteResumeAnalysis: () =>
@@ -201,10 +215,25 @@ export const api = {
   }) => request("/candidates/applications", { params: filters }),
 
   // Analyze resume with file upload
-  analyzeResume: async (file: File) => {
+  analyzeResume: async (
+    file: File,
+    roleContext?: { targetJobPosition?: string; targetJobDescription?: string },
+  ) => {
     try {
       const formData = new FormData();
       formData.append("resume", file);
+      if (roleContext?.targetJobPosition?.trim()) {
+        formData.append(
+          "targetJobPosition",
+          roleContext.targetJobPosition.trim(),
+        );
+      }
+      if (roleContext?.targetJobDescription?.trim()) {
+        formData.append(
+          "targetJobDescription",
+          roleContext.targetJobDescription.trim(),
+        );
+      }
 
       const token = getAuthToken();
 
@@ -278,6 +307,39 @@ export const api = {
     }
   },
 
+  regenerateResumeAnalysis: (roleContext?: {
+    targetJobPosition?: string;
+    targetJobDescription?: string;
+  }) =>
+    request<{
+      extractedSkills: Array<{
+        name: string;
+        category: string;
+        level?: number;
+      }>;
+      skillGaps: Array<{
+        skill: string;
+        importance: string;
+        recommendation: string;
+      }>;
+      suggestedQuestions: Array<{
+        question: string;
+        category: string;
+        difficulty: string;
+      }>;
+      matchScore: number;
+      analyzedAt: string;
+      fileName: string;
+      targetJobPosition?: string;
+      targetJobDescription?: string;
+    }>("/candidates/resume-analysis/regenerate", {
+      method: "POST",
+      body: {
+        targetJobPosition: roleContext?.targetJobPosition,
+        targetJobDescription: roleContext?.targetJobDescription,
+      },
+    }),
+
   updateCandidate: (id: string, data: any) =>
     request(`/candidates/${id}`, { method: "PUT", body: data }),
 
@@ -345,7 +407,6 @@ export const api = {
         error: error.message,
       }));
   },
-
 
   // Profile Management
   updateProfile: (data: any) =>
