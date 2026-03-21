@@ -1,12 +1,16 @@
 import { Router } from 'express';
 import { InterviewTemplateController } from '../controllers/InterviewTemplateController';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 // Public routes (no authentication required)
 router.get('/public', InterviewTemplateController.getPublicTemplates);
-router.post('/generate-questions', InterviewTemplateController.generateQuestions);
+router.post(
+  '/generate-questions',
+  optionalAuthMiddleware,
+  InterviewTemplateController.generateQuestions
+);
 
 // Protected routes (require authentication)
 router.use(authMiddleware);

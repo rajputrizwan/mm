@@ -1,54 +1,61 @@
 import { Request, Response } from 'express';
 import { InterviewTemplate } from '../models/InterviewTemplate';
+import { ResumeAnalysis } from '../models/ResumeAnalysis';
+import { AuthRequest } from '../middleware/auth';
 
 const buildFallbackQuestions = (
   jobPosition: string,
+  jobDescription: string,
   interviewModes: string[] | string,
   questionCount: number,
-  difficultyLevel?: string
+  difficultyLevel?: string,
+  resumeSkills: string[] = []
 ) => {
   const modes = Array.isArray(interviewModes) ? interviewModes : [interviewModes || 'general'];
+  const keyResponsibilities = extractJobKeywords(jobDescription);
+  const primarySkill = resumeSkills[0] || keyResponsibilities[0] || jobPosition;
+  const secondarySkill = resumeSkills[1] || keyResponsibilities[1] || 'your core toolkit';
 
   const fallbackPool = [
     {
-      text: `Walk me through your most technically challenging project as a ${jobPosition} and how you overcame the key obstacles.`,
-      expectedAnswer: `The candidate should describe a specific project with clear context, explain the technical challenges in detail, outline the approach taken to solve them, and quantify the impact or outcome.`,
+      text: `Walk me through a project where you used ${primarySkill} in a ${jobPosition} context to solve a challenge that is similar to this role's requirements.`,
+      expectedAnswer: `The candidate should describe a specific project with clear context, explain the technical challenge, detail why ${primarySkill} was chosen, and quantify the result with metrics.`,
     },
     {
-      text: `How do you stay up-to-date with the latest trends and best practices relevant to your role as a ${jobPosition}?`,
-      expectedAnswer: `A strong answer covers specific resources (blogs, courses, conferences), examples of recently learned skills, and how the candidate applies new knowledge practically.`,
+      text: `This role expects strong execution in ${secondarySkill}. How do you keep your ${secondarySkill} skills current and production-ready?`,
+      expectedAnswer: `A strong answer names concrete learning sources, recent concepts adopted, and practical examples where the candidate applied the new knowledge in production or projects.`,
     },
     {
-      text: `Describe a situation where you had to make a critical technical decision with limited time or information. What was your process?`,
-      expectedAnswer: `The candidate should describe a real scenario, explain the decision-making framework used, what trade-offs were considered, and what the outcome was.`,
+      text: `Describe a technical decision you made under pressure that directly impacted one of these responsibilities: ${keyResponsibilities.slice(0, 2).join(', ') || 'delivery, quality'}.`,
+      expectedAnswer: `The candidate should provide a real scenario, explain alternatives and trade-offs, justify the final decision, and describe post-decision outcomes.`,
     },
     {
-      text: `How do you approach code quality, testing, and ensuring long-term maintainability in your projects?`,
-      expectedAnswer: `Look for mentions of unit/integration testing, code reviews, documentation, design patterns, and CI/CD practices.`,
+      text: `How would you ensure maintainability and testability for systems in this ${jobPosition} role given the job description priorities?`,
+      expectedAnswer: `Look for practical mention of coding standards, automated tests, code reviews, observability, and CI/CD gates tied to the responsibilities in the job description.`,
     },
     {
-      text: `Tell me about a time you had a disagreement with a teammate or stakeholder. How did you resolve it?`,
-      expectedAnswer: `A good response demonstrates active listening, empathy, use of data or logic to frame arguments, and a collaborative resolution. The candidate should show they can disagree professionally.`,
+      text: `Tell me about a disagreement with a teammate or stakeholder while delivering work related to ${keyResponsibilities[0] || 'this role'}. How did you resolve it?`,
+      expectedAnswer: `A good response demonstrates active listening, structured communication, and a collaborative resolution while maintaining delivery quality.`,
     },
     {
-      text: `How do you prioritize competing tasks and features when working under tight deadlines?`,
-      expectedAnswer: `Look for a structured approach: stakeholder alignment, impact vs. effort analysis, clear communication about trade-offs, and examples of successfully managed prioritization.`,
+      text: `Given this role's scope, how do you prioritize competing work across ${keyResponsibilities.slice(0, 3).join(', ') || 'delivery, quality, communication'}?`,
+      expectedAnswer: `Look for impact-based prioritization, clear trade-off reasoning, stakeholder alignment, and examples of balancing speed with quality.`,
     },
     {
-      text: `Explain a time when you had to quickly ramp up on an unfamiliar technology or codebase. How did you approach it?`,
-      expectedAnswer: `Strong answers include a structured learning plan, seeking documentation/code examples, pair programming or mentoring, and quick wins to validate understanding.`,
+      text: `Describe how you ramped up quickly on an unfamiliar stack element relevant to this role, such as ${secondarySkill}.`,
+      expectedAnswer: `Strong answers include a structured learning plan, practical experimentation, collaboration with teammates, and proof of business impact after ramp-up.`,
     },
     {
-      text: `What does your ideal development or work process look like from requirement gathering to delivery?`,
-      expectedAnswer: `The candidate should discuss requirement clarification, planning/estimation, iterative development, testing, feedback loops, and deployment — with real examples.`,
+      text: `What process would you follow from requirement intake to release for a feature in this ${jobPosition} role?`,
+      expectedAnswer: `The candidate should discuss requirements clarification, solution design, risk handling, testing strategy, rollout planning, and communication with stakeholders.`,
     },
     {
-      text: `Describe a situation where your work had a measurable business impact. How did you quantify and communicate that impact?`,
-      expectedAnswer: `Look for specific metrics (performance gains, cost savings, reduced errors, user growth), clear understanding of business context, and effective communication with non-technical stakeholders.`,
+      text: `Describe a project where your work with ${primarySkill} delivered measurable business impact relevant to this role's objectives.`,
+      expectedAnswer: `Look for measurable impact (performance, reliability, conversion, cost, velocity), an explanation of technical choices, and clear communication of outcomes.`,
     },
     {
-      text: `What are the biggest technical challenges you anticipate in a ${jobPosition} role at a growing company, and how would you address them?`,
-      expectedAnswer: `The candidate should demonstrate forward thinking: scalability, team communication, tech debt management, knowledge sharing, and proactive problem-solving.`,
+      text: `What major technical risks do you anticipate for this ${jobPosition} role based on the job description, and how would you mitigate them?`,
+      expectedAnswer: `The candidate should show forward thinking around scalability, reliability, collaboration, and risk mitigation with concrete and realistic plans.`,
     },
   ];
 
@@ -64,6 +71,95 @@ const buildFallbackQuestions = (
   });
 
   return questions;
+};
+
+const STOP_WORDS = new Set([
+  'the',
+  'and',
+  'for',
+  'with',
+  'this',
+  'that',
+  'from',
+  'your',
+  'will',
+  'have',
+  'has',
+  'our',
+  'are',
+  'you',
+  'but',
+  'not',
+  'job',
+  'role',
+  'work',
+  'team',
+  'years',
+  'experience',
+]);
+
+const extractJobKeywords = (jobDescription: string, limit = 6): string[] => {
+  if (!jobDescription || typeof jobDescription !== 'string') return [];
+
+  const tokens = jobDescription
+    .toLowerCase()
+    .replace(/[^a-z0-9+#.\-\s]/g, ' ')
+    .split(/\s+/)
+    .filter(token => token.length > 2 && !STOP_WORDS.has(token));
+
+  const frequencies = new Map<string, number>();
+  for (const token of tokens) {
+    frequencies.set(token, (frequencies.get(token) || 0) + 1);
+  }
+
+  return [...frequencies.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([token]) => token);
+};
+
+const buildResumePromptContext = (analysis: any) => {
+  if (!analysis) {
+    return {
+      contextBlock: '',
+      resumeRules: '',
+      resumeSkillNames: [] as string[],
+    };
+  }
+
+  const resumeSkillNames: string[] = Array.isArray(analysis.extractedSkills)
+    ? analysis.extractedSkills
+        .slice()
+        .sort((a: any, b: any) => (b.level || 0) - (a.level || 0))
+        .slice(0, 10)
+        .map((s: any) => s.name)
+        .filter(Boolean)
+    : [];
+
+  const gapNames: string[] = Array.isArray(analysis.skillGaps)
+    ? analysis.skillGaps
+        .slice(0, 5)
+        .map((g: any) => g.skill)
+        .filter(Boolean)
+    : [];
+
+  const contextBlock = `\nCandidate Resume Context:
+- Match Score Against Target Role: ${analysis.matchScore ?? 'N/A'}%
+- Resume Skills (top): ${resumeSkillNames.join(', ') || 'Not available'}
+- Skill Gaps: ${gapNames.join(', ') || 'Not available'}
+- Resume Target Job Position: ${analysis.targetJobPosition || 'Not provided'}
+- Resume Target Job Description: ${analysis.targetJobDescription || 'Not provided'}\n`;
+
+  const resumeRules = `
+10. At least 40% of questions must explicitly reference one or more of these resume skills where relevant: ${resumeSkillNames.join(', ') || 'candidate skills'}.
+11. Include at least one question that probes a likely skill gap: ${gapNames.join(', ') || 'N/A'}.
+12. If resume and JD overlap on a skill, prefer scenario-based questions using that shared skill context.`;
+
+  return {
+    contextBlock,
+    resumeRules,
+    resumeSkillNames,
+  };
 };
 
 const sanitizeJsonString = (input: string) => {
@@ -299,7 +395,7 @@ export class InterviewTemplateController {
   }
 
   // Generate interview questions using OpenRouter AI with improved prompt
-  static async generateQuestions(req: Request, res: Response) {
+  static async generateQuestions(req: AuthRequest, res: Response) {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(7);
 
@@ -323,6 +419,16 @@ export class InterviewTemplateController {
         questionCount,
         userId: (req as any).user?.id,
       });
+
+      const userId = req.user?.id;
+      const resumeAnalysis = userId
+        ? await ResumeAnalysis.findOne({ userId }).select(
+            'matchScore extractedSkills skillGaps targetJobPosition targetJobDescription'
+          )
+        : null;
+      const { contextBlock, resumeRules, resumeSkillNames } = buildResumePromptContext(
+        resumeAnalysis?.toObject?.() || null
+      );
 
       // Validate required fields
       if (!jobPosition || !jobDescription || !interviewModes || interviewModes.length === 0) {
@@ -350,9 +456,11 @@ export class InterviewTemplateController {
         );
         const fallbackQuestions = buildFallbackQuestions(
           jobPosition,
+          jobDescription,
           interviewModes,
           questionCount,
-          difficultyLevel
+          difficultyLevel,
+          resumeSkillNames
         );
         return res.status(200).json({
           success: true,
@@ -379,6 +487,7 @@ Job Description: ${jobDescription}
 Interview Duration: ${duration}
 Interview Focus: ${typeString}
 Difficulty Level: ${difficultyLevel || 'mid'} (junior = entry level, mid = 2-5 years experience, senior = 5+ years)
+${contextBlock}
 
 IMPORTANT RULES:
 1. Questions MUST be specific to the "${jobPosition}" role and the job description provided — not generic.
@@ -390,6 +499,7 @@ IMPORTANT RULES:
 7. The expectedAnswer should be 2-4 sentences outlining what a strong answer would include.
 8. Do NOT use markdown formatting inside JSON string values (no **, *, #, backticks).
 9. Return ONLY a valid JSON array. No preamble, no explanation, no trailing text.
+${resumeRules}
 
 Return exactly ${questionCount} questions as a JSON array:
 [
@@ -443,9 +553,11 @@ Generate the questions now:`;
         console.warn(`[${requestId}] ⚠️ OpenRouter failed. Using fallback questions.`);
         const fallbackQuestions = buildFallbackQuestions(
           jobPosition,
+          jobDescription,
           interviewModes,
           questionCount,
-          difficultyLevel
+          difficultyLevel,
+          resumeSkillNames
         );
         return res.status(200).json({
           success: true,
