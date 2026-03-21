@@ -68,6 +68,8 @@ export const ROUTES = {
   MOCK_INTERVIEW_SESSION:
     "/candidate/interviews/mock-interviews/session/:sessionId",
   INTERVIEW_HISTORY: "/candidate/interview-history",
+  INTERVIEW_HISTORY_V2: "/candidate/interview-history/v2",
+  INTERVIEW_HISTORY_V2_SESSION: "/candidate/interview-history/v2/:sessionId",
   INTERVIEW_REPORT: "/candidate/interview-report/:reportId",
   CANDIDATE_PROFILE_SETTINGS: "/candidate/profile-settings",
 
@@ -122,4 +124,6 @@ export const routeHelpers = {
   interviewSummary: (summaryId: string) => `/interview-summary/${summaryId}`,
   candidateReview: (candidateId: string) =>
     `/hr/candidate-review/${candidateId}`,
+  interviewHistoryV2Session: (sessionId: string) =>
+    `/candidate/interview-history/v2/${sessionId}`,
 };

@@ -53,8 +53,9 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// Routes
+// Routes (mount more specific paths first so /api/interviews/mock-interviews/* is not caught by /api/interviews)
 app.use('/api/auth', authRoutes);
+app.use('/api/interviews/mock-interviews', mockInterviewRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/positions', positionRoutes);
@@ -64,7 +65,6 @@ app.use('/api/search', searchRoutes);
 app.use('/api/interview-templates', interviewTemplateRoutes);
 app.use('/api/interview-session', interviewSessionRoutes);
 app.use('/api/interview-feedback', interviewFeedbackRoutes);
-app.use('/api/interviews/mock-interviews', mockInterviewRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
   res.json({

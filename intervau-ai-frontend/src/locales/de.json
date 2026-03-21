@@ -560,6 +560,13 @@
     "aiFeedback2": "Ausgezeichnete Erklärung! Weiter zur nächsten Frage.",
     "aiFeedback3": "Vielen Dank für diese Antwort. Fahren wir fort.",
     "aiFeedback4": "Guter Punkt. Könnten Sie etwas mehr ausführen?",
-    "aiFeedback5": "Sehr gut! Ihr technisches Wissen ist deutlich erkennbar."
+    "aiFeedback5": "Sehr gut! Ihr technisches Wissen ist deutlich erkennbar.",
+    "connecting": "Verbindung zum Sprachinterview wird hergestellt…",
+    "listenToQuestion": "Hören Sie die Frage an — antworten Sie dann laut.",
+    "youAreSpeaking": "Sie sprechen…",
+    "speakWhenReady": "Sprechen Sie Ihre Antwort, wenn Sie bereit sind.",
+    "voiceOnlyHint": "Nur Sprache — kein Tippen. Die KI stellt Fragen, Sie antworten, dann die nächste Frage.",
+    "voiceStarted": "Sprachinterview gestartet — sprechen Sie, wenn die KI fragt.",
+    "aiSpeaking": "Die KI spricht…"
   }
 }

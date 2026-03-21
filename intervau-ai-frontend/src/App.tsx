@@ -32,6 +32,7 @@ import MockInterviewReady from "./pages/MockInterviewReady";
 import MockInterviewSession from "./pages/MockInterviewSession";
 import MockInterviewErrorBoundary from "./components/interview/MockInterviewErrorBoundary";
 import InterviewHistory from "./pages/InterviewHistory";
+import InterviewHistoryV2 from "./pages/InterviewHistoryV2";
 import InterviewReport from "./pages/InterviewReport";
 import ProfileSettings from "./pages/ProfileSettings";
 import DeviceManagement from "./pages/DeviceManagement";
@@ -244,6 +245,26 @@ function AppRoutes() {
           <ProtectedRoute roles={["candidate"]}>
             <AuthenticatedLayout>
               <InterviewHistory />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.INTERVIEW_HISTORY_V2}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <InterviewHistoryV2 />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.INTERVIEW_HISTORY_V2_SESSION}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <InterviewHistoryV2 />
             </AuthenticatedLayout>
           </ProtectedRoute>
         }
