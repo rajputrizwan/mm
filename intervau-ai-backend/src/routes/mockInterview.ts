@@ -501,7 +501,7 @@ router.post('/sessions/:sessionId/respond', async (req: AuthRequest, res: Respon
       aiAnalysis = {
         score: Math.round((baseConfidence + clarity + technicalScore) / 3),
         feedback: aiResponse.content,
-        strengths: extractStrengths(candidateResponse, wordCount),
+        strengths: extractStrengths(candidateResponse, wordCount, currentQuestion.category),
         improvements: extractImprovements(fillerWords, wordCount, responseTimeSeconds),
         metrics: {
           confidence: Math.round(baseConfidence),
@@ -849,7 +849,7 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         );
         console.log(`  → Final score: ${score}`);
 
-        const strengths = extractStrengths(normalizedAnswer, wordCount);
+        const strengths = extractStrengths(normalizedAnswer, wordCount, question.category);
         const improvements = extractImprovements(fillerWords, wordCount, responseTimePerQuestion);
         console.log(`  Strengths: ${strengths.join(', ') || 'None'}`);
         console.log(`  Improvements: ${improvements.join(', ') || 'None'}`);
@@ -1047,17 +1047,23 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     if (session.metrics) {
       structured = enrichSummaryStructured(session, structured, session.metrics);
     }
-    console.log(`  Strengths: ${structured.strengths?.length || 0}`);
-    console.log(`  Areas for Improvement: ${structured.areasForImprovement?.length || 0}`);
-    console.log(`  Recommendations: ${structured.recommendations?.length || 0}`);
-    console.log(`  Key Insights: ${structured.keyInsights?.length || 0}`);
+    const summaryArraysSanitized: SummaryStructured = {
+      strengths: (structured.strengths ?? []).filter(s => !isSummaryBulletJunk(s)),
+      areasForImprovement: (structured.areasForImprovement ?? []).filter(s => !isSummaryBulletJunk(s)),
+      recommendations: (structured.recommendations ?? []).filter(s => !isSummaryBulletJunk(s)),
+      keyInsights: (structured.keyInsights ?? []).filter(s => !isSummaryBulletJunk(s)),
+    };
+    console.log(`  Strengths: ${summaryArraysSanitized.strengths.length}`);
+    console.log(`  Areas for Improvement: ${summaryArraysSanitized.areasForImprovement.length}`);
+    console.log(`  Recommendations: ${summaryArraysSanitized.recommendations.length}`);
+    console.log(`  Key Insights: ${summaryArraysSanitized.keyInsights.length}`);
 
     session.summary = {
       text: summaryText,
-      strengths: structured.strengths ?? [],
-      areasForImprovement: structured.areasForImprovement ?? [],
-      recommendations: structured.recommendations ?? [],
-      keyInsights: structured.keyInsights ?? [],
+      strengths: summaryArraysSanitized.strengths,
+      areasForImprovement: summaryArraysSanitized.areasForImprovement,
+      recommendations: summaryArraysSanitized.recommendations,
+      keyInsights: summaryArraysSanitized.keyInsights,
     };
     session.markModified('summary');
     session.status = 'completed';
@@ -1132,9 +1138,42 @@ type SummaryStructured = {
   keyInsights: string[];
 };
 
+/** Remove ASCII/Unicode asterisk-like chars and invisible space (models / PDFs sometimes use U+FF0A etc.). */
+function stripSummaryMarkdownNoise(s: string): string {
+  return s
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[*＊‧·∗⁎⁕✱✲✳❄]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Drop fragments from broken markdown parsing (e.g. "s:**" from a truncated "**Strengths**:" line).
+ */
+function isSummaryBulletJunk(s: string): boolean {
+  const raw = stripSummaryMarkdownNoise(s);
+  if (!raw) return true;
+  const rawCompact = raw.replace(/\s/g, '');
+  // Truncated "**Strengths**:" → "s:**" or "s:" (ASCII or full-width asterisks stripped)
+  if (/^s[\s.:_*·‧]*$/i.test(rawCompact) || /^s:?\*?$/i.test(rawCompact)) return true;
+
+  const t = raw;
+  if (t.length < 2) return true;
+  if (/^s:?$/i.test(t) || /^s:$/i.test(t)) return true;
+  // Section-title fragments mistaken for bullets
+  if (/^(key\s+)?strengths?:?\s*$/i.test(t)) return true;
+  if (/^key\s*$/i.test(t)) return true;
+  if (/^areas?\s*(for\s+improvement)?\s*:?\s*$/i.test(t)) return true;
+  if (/^recommendations?:?\s*$/i.test(t)) return true;
+  if (/^insights?:?\s*$/i.test(t)) return true;
+  if (/^[:*\-_.•]+$/.test(t)) return true;
+  if (/^#{1,3}$/.test(t)) return true;
+  return false;
+}
+
 function pushUniqueNormalized(arr: string[], item: string, seen: Set<string>) {
   const t = item.replace(/\s+/g, ' ').trim();
-  if (!t) return;
+  if (!t || isSummaryBulletJunk(t)) return;
   const k = t.toLowerCase();
   if (seen.has(k)) return;
   seen.add(k);
@@ -1222,7 +1261,23 @@ function enrichSummaryStructured(
     seenR
   );
 
-  return out;
+  return {
+    strengths: out.strengths.filter(s => !isSummaryBulletJunk(s)),
+    areasForImprovement: out.areasForImprovement.filter(s => !isSummaryBulletJunk(s)),
+    recommendations: out.recommendations.filter(s => !isSummaryBulletJunk(s)),
+    keyInsights: out.keyInsights.filter(s => !isSummaryBulletJunk(s)),
+  };
+}
+
+function simpleStringHash(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) h = (Math.imul(31, h) + input.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function pickVariant<T>(variants: readonly T[], seed: number): T {
+  if (variants.length === 0) throw new Error('pickVariant: empty');
+  return variants[seed % variants.length];
 }
 
 /** Build a fallback summary from metrics when AI summary fails */
@@ -1237,104 +1292,173 @@ function buildFallbackSummary(
     metrics.overallRating ?? (score >= 85 ? 'Excellent' : score >= 70 ? 'Good' : 'Average');
   const recommendation =
     metrics.recommendation ?? (score >= 70 ? 'Move to Next Round' : 'Practice and retry');
+  const seed = simpleStringHash(
+    `${position}|${score}|${metrics.totalWordsSpoken ?? 0}|${metrics.fillerWords ?? 0}|${metrics.confidence ?? 0}|${questionsAnswered}`
+  );
+
   const strengths: string[] = [];
   const improvements: string[] = [];
   const recs: string[] = [];
-  if ((metrics.totalWordsSpoken ?? 0) > 100) strengths.push('Provided detailed responses');
-  if ((metrics.fillerWords ?? 0) === 0) strengths.push('No filler words detected');
-  if ((metrics.confidence ?? 0) >= 70) strengths.push('Good confidence level');
-  if ((metrics.fillerWords ?? 0) > 2) improvements.push('Reduce filler words (um, uh, like)');
+  if ((metrics.totalWordsSpoken ?? 0) > 100) {
+    strengths.push(
+      pickVariant(
+        [
+          'Answers had useful depth overall',
+          'You shared substantive detail across questions',
+          'Responses went beyond one-line answers in several places',
+        ],
+        seed
+      )
+    );
+  }
+  if ((metrics.fillerWords ?? 0) === 0) {
+    strengths.push(
+      pickVariant(
+        [
+          'Very few filler words while speaking',
+          'Clean delivery with little hesitation phrasing',
+          'Speech stayed focused without heavy um/uh usage',
+        ],
+        seed + 1
+      )
+    );
+  }
+  if ((metrics.confidence ?? 0) >= 70) {
+    strengths.push(
+      pickVariant(
+        [
+          'Steady confidence came through in delivery',
+          'Tone and pacing suggested self-assurance',
+          'You sounded composed while answering',
+        ],
+        seed + 2
+      )
+    );
+  }
+  if ((metrics.fillerWords ?? 0) > 2)
+    improvements.push('Reduce filler words (um, uh, like) between ideas');
   if ((metrics.totalWordsSpoken ?? 0) < 50 && questionsAnswered > 0)
-    improvements.push('Elaborate more on answers with examples and outcomes');
+    improvements.push('Add examples with context, actions, and measurable outcomes');
   if ((metrics.technicalAccuracy ?? 0) < 70)
-    improvements.push('Deepen technical specificity (tools, constraints, validation)');
-  if (strengths.length === 0) strengths.push('Completed the interview');
-  if (improvements.length === 0) improvements.push('Continue building depth and structure in answers');
+    improvements.push('Name specific tools, trade-offs, and how you validated decisions');
+  if (strengths.length === 0)
+    strengths.push(
+      pickVariant(
+        [
+          'You completed the full mock interview',
+          'You stayed in the conversation through every question',
+          'You finished the practice session end-to-end',
+        ],
+        seed + 3
+      )
+    );
+  if (improvements.length === 0) {
+    improvements.push(
+      pickVariant(
+        [
+          'Keep building structure: situation, what you did, and result',
+          'Practice one STAR-style story per common question type',
+          'Rehearse tying each answer back to the role’s core skills',
+        ],
+        seed + 4
+      )
+    );
+  }
   recs.push(recommendation);
-  if (score < 75) recs.push('Revisit job description keywords and rehearse 2–3 stories that map to them');
-  recs.push('Review per-question feedback on your results page for targeted practice');
-  return `## Mock Interview Summary – ${position}\n\n**Overall Score:** ${score}/100\n**Rating:** ${rating}\n\n**Key Strengths:**\n${strengths.map(s => `- ${s}`).join('\n')}\n\n**Areas for Improvement:**\n${improvements.map(i => `- ${i}`).join('\n')}\n\n**Recommendations:**\n${recs.map(r => `- ${r}`).join('\n')}\n\nQuestions answered: ${questionsAnswered}/${totalQuestions}. Response time avg: ${metrics.averageResponseTime?.toFixed(1) ?? '—'}s. Words spoken: ${metrics.totalWordsSpoken ?? 0}.`;
+  if (score < 75)
+    recs.push('Map 2–3 stories to keywords in the job description and rehearse them aloud');
+  recs.push('Use per-question feedback below to choose your next practice focus');
+  return `## Mock Interview Summary – ${position}\n\n**Overall Score:** ${score}/100\n**Rating:** ${rating}\n\n**Recommendation:** ${recommendation}\n\n**Key Strengths:**\n${strengths.map(s => `- ${s}`).join('\n')}\n\n**Areas for Improvement:**\n${improvements.map(i => `- ${i}`).join('\n')}\n\n**Recommendations:**\n${recs.map(r => `- ${r}`).join('\n')}\n\nQuestions answered: ${questionsAnswered}/${totalQuestions}. Response time avg: ${metrics.averageResponseTime?.toFixed(1) ?? '—'}s. Words spoken: ${metrics.totalWordsSpoken ?? 0}.`;
 }
 
-/** Parse summary markdown into structured fields (headers like **Key Strengths:** + bullet lines). */
-function parseSummaryMarkdown(markdown: string): SummaryStructured {
-  const result: SummaryStructured = {
-    strengths: [],
-    areasForImprovement: [],
-    recommendations: [],
-    keyInsights: [],
-  };
+/** Next markdown section header like **Key Strengths:** (any order in document). */
+const SUMMARY_NEXT_SECTION_HDR =
+  /\r?\n\s*\*{0,2}\s*(?:Key\s+Strengths|Areas?\s+for\s+Improvement|Recommendation|Recommendations?|Key\s+Insights)\s*\*{0,2}\s*:/i;
 
-  type Bucket = keyof SummaryStructured;
-  let bucket: Bucket | null = null;
-
-  const setBucketFromTitle = (title: string): boolean => {
-    const x = title.replace(/\*+/g, '').trim().toLowerCase();
-    if (/^key strengths/.test(x)) {
-      bucket = 'strengths';
-      return true;
-    }
-    if (/^areas?\s+for\s+improvement/.test(x) || /^improvements?$/.test(x)) {
-      bucket = 'areasForImprovement';
-      return true;
-    }
-    if (/^recommendations?$/.test(x) || /^final recommendation/.test(x)) {
-      bucket = 'recommendations';
-      return true;
-    }
-    if (/^key insights/.test(x) || /^communication quality/.test(x)) {
-      bucket = 'keyInsights';
-      return true;
-    }
-    return false;
-  };
-
-  const lines = markdown.split(/\n/);
-  for (const raw of lines) {
+function extractBulletListAfterHeader(markdown: string, headerRegex: RegExp): string[] {
+  const m = markdown.match(headerRegex);
+  if (!m || m.index === undefined) return [];
+  const tail = markdown.slice(m.index + m[0].length);
+  const nextSame = tail.search(SUMMARY_NEXT_SECTION_HDR);
+  const qLine = tail.search(/\r?\n\s*Questions answered\b/i);
+  let end = tail.length;
+  if (nextSame >= 0) end = Math.min(end, nextSame);
+  if (qLine >= 0) end = Math.min(end, qLine);
+  const body = tail.slice(0, end);
+  const items: string[] = [];
+  for (const raw of body.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
-
-    const inlineRec = line.match(/^\*{0,2}Recommendation\*{0,2}:\s*(.+)$/i);
-    if (inlineRec) {
-      result.recommendations.push(inlineRec[1].trim());
-      continue;
-    }
-
-    const boldOnly = line.match(/^\*{1,2}([^*]+)\*{1,2}:\s*(.*)$/);
-    if (boldOnly) {
-      const title = boldOnly[1].trim();
-      const rest = boldOnly[2].trim();
-      if (/overall score|rating$/i.test(title)) {
-        bucket = null;
-        continue;
-      }
-      if (setBucketFromTitle(title)) {
-        if (rest && /^[-*•]/.test(rest)) {
-          const t = rest.replace(/^[-*•]\s+/, '').trim();
-          if (t) result[bucket!].push(t);
-        } else if (rest && bucket === 'recommendations') {
-          result.recommendations.push(rest);
-        }
-        continue;
-      }
-      bucket = null;
-      continue;
-    }
-
-    const hash = line.match(/^#{1,3}\s+(.+)/);
-    if (hash) {
-      if (setBucketFromTitle(hash[1])) continue;
-      bucket = null;
-      continue;
-    }
-
-    if (bucket && /^[-*•]/.test(line)) {
-      const text = line.replace(/^[-*•]\s+/, '').trim();
-      if (text && !/^\*\*[^*]+\*\*$/.test(text)) result[bucket].push(text);
+    const bm = line.match(/^\s*[-*•–—]\s+(.+)$/);
+    if (bm) {
+      const item = stripSummaryMarkdownNoise(bm[1].trim());
+      if (item && !isSummaryBulletJunk(item)) items.push(item);
     }
   }
+  return items;
+}
 
-  return result;
+/** `**Recommendation:** Practice and retry` on its own line (before or after other sections). */
+function extractInlineRecommendationLine(markdown: string): string | null {
+  const m = markdown.match(
+    /(?:^|\r?\n)\s*\*{0,2}\s*Recommendation\s*\*{0,2}\s*:\s*([^\r\n]+)/i
+  );
+  if (!m) return null;
+  const v = stripSummaryMarkdownNoise(m[1].trim());
+  if (!v || isSummaryBulletJunk(v)) return null;
+  return v;
+}
+
+function dedupeSummaryLines(lines: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const x of lines) {
+    const k = x.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(x.replace(/\s+/g, ' ').trim());
+  }
+  return out;
+}
+
+/**
+ * Parse AI / fallback summary markdown into structured arrays.
+ * Section-based extraction (not line state machine) so bullets are not lost when **Recommendation:**
+ * appears before **Key Strengths:**, or when dash bullets differ (– vs -).
+ */
+function parseSummaryMarkdown(markdown: string): SummaryStructured {
+  const strengths = extractBulletListAfterHeader(
+    markdown,
+    /(?:^|\r?\n)\s*\*{0,2}\s*Key\s+Strengths\s*\*{0,2}\s*:/i
+  );
+  const areasForImprovement = extractBulletListAfterHeader(
+    markdown,
+    /(?:^|\r?\n)\s*\*{0,2}\s*Areas?\s+for\s+Improvement\s*\*{0,2}\s*:/i
+  );
+  let recommendations = extractBulletListAfterHeader(
+    markdown,
+    /(?:^|\r?\n)\s*\*{0,2}\s*Recommendations?\s*\*{0,2}\s*:/i
+  );
+  const keyInsights = extractBulletListAfterHeader(
+    markdown,
+    /(?:^|\r?\n)\s*\*{0,2}\s*Key\s+Insights\s*\*{0,2}\s*:/i
+  );
+
+  const inlineRec = extractInlineRecommendationLine(markdown);
+  if (inlineRec) {
+    const lower = inlineRec.toLowerCase();
+    recommendations = [
+      inlineRec,
+      ...recommendations.filter(r => r.toLowerCase() !== lower),
+    ];
+  }
+
+  return {
+    strengths: dedupeSummaryLines(strengths).filter(s => !isSummaryBulletJunk(s)),
+    areasForImprovement: dedupeSummaryLines(areasForImprovement).filter(s => !isSummaryBulletJunk(s)),
+    recommendations: dedupeSummaryLines(recommendations).filter(s => !isSummaryBulletJunk(s)),
+    keyInsights: dedupeSummaryLines(keyInsights).filter(s => !isSummaryBulletJunk(s)),
+  };
 }
 
 // Helper functions for response analysis
@@ -1412,26 +1536,50 @@ function calculateTechnicalScore(response: string, category: string): number {
   return Math.min(100, baseScore + keywordScore);
 }
 
-function extractStrengths(response: string, wordCount: number): string[] {
+function extractStrengths(response: string, wordCount: number, category?: string): string[] {
   const strengths: string[] = [];
+  const lower = response.toLowerCase();
+  const cat = (category ?? '').toLowerCase();
 
   if (wordCount > 50) strengths.push('Provided detailed response');
   if (wordCount > 100) strengths.push('Comprehensive explanation');
-  if (response.includes('example') || response.includes('instance')) {
+  if (/\d+\s*%|\d+\s+percent/i.test(response)) {
+    strengths.push('Cited measurable impact (numbers or percentages)');
+  }
+  if (/\b(api|apis|docker|firebase|database|react|typescript|kubernetes|microservices?)\b/i.test(response)) {
+    strengths.push('Referenced concrete tools or technologies');
+  }
+  if (lower.includes('example') || lower.includes('instance')) {
     strengths.push('Used concrete examples');
   }
   if (
-    response.includes('result') ||
-    response.includes('outcome') ||
-    response.includes('achieved')
+    lower.includes('result') ||
+    lower.includes('outcome') ||
+    lower.includes('achieved') ||
+    lower.includes('reduced') ||
+    lower.includes('improved')
   ) {
-    strengths.push('Focused on results');
+    strengths.push('Focused on results or impact');
   }
-  if (response.includes('team') || response.includes('collaborated')) {
+  if (lower.includes('team') || lower.includes('collaborat')) {
     strengths.push('Demonstrated teamwork');
   }
+  if (cat.includes('technical') && /\b(test|deploy|scal|perform|security|auth)\b/i.test(lower)) {
+    strengths.push('Addressed technical depth (quality, scale, or delivery)');
+  }
+  if (cat.includes('behavioral') && /\b(stakeholder|communicat|led|mentor)\b/i.test(lower)) {
+    strengths.push('Highlighted collaboration or communication');
+  }
 
-  return strengths.length > 0 ? strengths : ['Responded to the question'];
+  const seen = new Set<string>();
+  const uniq = strengths.filter(s => {
+    const k = s.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  return uniq.length > 0 ? uniq : ['Responded to the question'];
 }
 
 function extractImprovements(

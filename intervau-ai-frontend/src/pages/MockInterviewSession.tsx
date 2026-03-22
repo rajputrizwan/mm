@@ -56,9 +56,10 @@ const MOCK_INTERVIEW_END_PHRASE = "This concludes your mock interview session.";
 
 const MOCK_INTERVIEW_END_CALL_PHRASE_NORM = MOCK_INTERVIEW_END_PHRASE.replace(/\.$/, "");
 
+/** Prefer no LLM endCall so we can run /complete and use `say()` for scored debrief before hangup. */
 const mockInterviewAssistantOverrides: Record<string, unknown> = {
-  "tools:append": [{ type: "endCall" }],
   endCallPhrases: [MOCK_INTERVIEW_END_CALL_PHRASE_NORM],
+  model: { tools: [] },
 };
 
 /**
@@ -83,12 +84,12 @@ Your job:
 - Ask the remaining interview questions ONE at a time (Question 2, then 3, …).
 - Keep your turn short: ask the question, then stay silent so the candidate can answer.
 - Do NOT repeat a question unless they ask. Do NOT give long feedback between questions — just move to the next.
-- After the last question and their answer: (1) Thank them briefly for completing the mock interview. (2) Add one short encouraging remark about their practice (one sentence). (3) Say exactly this as your final sentence: "${MOCK_INTERVIEW_END_PHRASE}" (4) Immediately call the endCall tool in the same turn to hang up — do NOT tell the candidate to hang up, press end, or end the call themselves.
+- After the last question and their answer: thank them briefly in one or two short sentences (e.g. thanks for your answers). Do NOT say "${MOCK_INTERVIEW_END_PHRASE}" — the app will read their score and feedback aloud, then end the call. Do NOT use any end-call or hang-up tool. Do NOT ask the candidate to hang up.
 
 Questions to ask (in order):
 ${numberedQuestions}
 
-Flow: Opening already delivered Q1 → wait for answer → brief ack → Ask Q2 → … → after last answer, closing remarks + exact final sentence + endCall tool.`;
+Flow: Opening already delivered Q1 → wait for answer → brief ack → Ask Q2 → … → after last answer, short thanks only → stop speaking.`;
 
   return {
     transcriber: {
@@ -102,7 +103,6 @@ Flow: Opening already delivered Q1 → wait for answer → brief ack → Ask Q2 
       messages: [{ role: "system", content: systemPrompt }],
       temperature: 0.5,
       maxTokens: 220,
-      tools: [{ type: "endCall" }],
     },
     voice: {
       provider: "11labs",
@@ -195,6 +195,28 @@ function mergeUserUtterancesByAssistantBoundary(messages: VapiMessage[]): string
   return groups;
 }
 
+/**
+ * User answers flushed when the assistant speaks next (same semantics as Q&A pairing).
+ * Does not count the trailing user buffer — avoids treating an in-progress answer as complete.
+ * Raw `user` message count is wrong: Vapi splits one spoken answer into many finals.
+ */
+function countCompletedMergedAnswerGroups(messages: VapiMessage[]): number {
+  const buffer: string[] = [];
+  let completed = 0;
+  for (const msg of messages) {
+    if (msg.role === "user") {
+      const t = msg.content.trim();
+      if (t) buffer.push(t);
+    } else if (msg.role === "assistant") {
+      if (buffer.length > 0) {
+        completed += 1;
+        buffer.length = 0;
+      }
+    }
+  }
+  return completed;
+}
+
 /** Map N answer groups to M session questions (pad short; merge tail if too many groups). */
 function alignAnswerGroupsToQuestionCount(
   groups: string[],
@@ -249,6 +271,95 @@ function vapiMessagesToTranscript(msgs: VapiMessage[]): TranscriptEntry[] {
   }));
 }
 
+/** Natural-language script for Vapi `say()` — mirrors modal highlights, ends with hangup phrase. */
+function buildVoiceDebriefScript(
+  position: string,
+  data: MockInterviewCompletePayload,
+): string {
+  const m = data.metrics;
+  const s = data.summaryStructured;
+  const parts: string[] = [];
+  parts.push(`Thanks for completing your mock interview for the ${position} role.`);
+  parts.push(
+    `Your overall score is ${m.overallScore} out of 100${m.overallRating ? `, rated ${m.overallRating}` : ""}.`,
+  );
+  const strengths = (s?.strengths ?? []).filter(Boolean).slice(0, 2);
+  if (strengths.length) parts.push(`Strengths we noted: ${strengths.join(". ")}.`);
+  const improve = (s?.areasForImprovement ?? []).filter(Boolean).slice(0, 2);
+  if (improve.length) parts.push(`Areas to work on: ${improve.join(". ")}.`);
+  const recs = (s?.recommendations ?? []).filter(Boolean).slice(0, 2);
+  if (recs.length) parts.push(`Recommendations: ${recs.join(" ")}`);
+  if (parts.length <= 2) {
+    parts.push("Open the summary on your screen for full feedback.");
+  }
+  parts.push(MOCK_INTERVIEW_END_PHRASE);
+  let text = parts.join(" ");
+  if (text.length > 1200) {
+    text = `${text.slice(0, 1150).trim()}… ${MOCK_INTERVIEW_END_PHRASE}`;
+  }
+  return text;
+}
+
+async function submitMockInterviewCompletionToServer(
+  sessionId: string,
+  config: SessionConfig,
+  rawMessages: VapiMessage[],
+  durationSeconds: number,
+): Promise<
+  | { ok: true; results: Record<string, unknown>; serverData: MockInterviewCompletePayload }
+  | { ok: false }
+> {
+  const qaPairs = buildQAPairsForMockSession(config.questions, rawMessages);
+  const transcriptForApi = rawMessages.map((msg) => ({
+    speaker: msg.role === "assistant" ? ("ai" as const) : ("candidate" as const),
+    text: msg.content,
+    timestamp: msg.timestamp,
+  }));
+  const speakingPatterns = computeSpeakingPatternsFromMessages(rawMessages, durationSeconds);
+
+  const results: Record<string, unknown> = {
+    sessionId,
+    position: config.position,
+    duration: durationSeconds,
+    questionsAnswered: qaPairs.filter(
+      (qa) =>
+        qa.answer.trim().length > 0 && !/^\(no answer provided\)$/i.test(qa.answer.trim()),
+    ).length,
+    totalQuestions: config.questions.length,
+    transcript: vapiMessagesToTranscript(rawMessages),
+    qaPairs,
+    completedAt: new Date().toISOString(),
+  };
+
+  try {
+    const res = await api.completeMockInterviewSession(sessionId, {
+      transcript: transcriptForApi,
+      qaPairs,
+      durationSeconds,
+      speakingPatterns: {
+        fillerWords: speakingPatterns.fillerWords,
+        avgResponseTimeSeconds: Math.round(speakingPatterns.avgResponseTimeSeconds * 10) / 10,
+        totalWords: speakingPatterns.totalWords,
+        avgWordsPerMinute: speakingPatterns.avgWordsPerMinute,
+      },
+    });
+    if (res.success && res.data) {
+      return {
+        ok: true,
+        results,
+        serverData: {
+          metrics: res.data.metrics,
+          summaryStructured: res.data.summaryStructured,
+          questionInsights: res.data.questionInsights,
+        },
+      };
+    }
+  } catch (e) {
+    console.error("submitMockInterviewCompletionToServer:", e);
+  }
+  return { ok: false };
+}
+
 export default function MockInterviewSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -294,65 +405,59 @@ export default function MockInterviewSession() {
   sessionConfigRef.current = sessionConfig;
   elapsedTimeRef.current = elapsedTime;
 
+  /** Set when /complete ran during an active call, right before Vapi `say()` debrief — avoids duplicate API on call-end. */
+  const pendingVoiceDebriefModalRef = useRef<{
+    results: Record<string, unknown>;
+    serverData: MockInterviewCompletePayload;
+  } | null>(null);
+  const voiceDebriefStartedRef = useRef(false);
+  const vapiMessagesRef = useRef<VapiMessage[]>([]);
+  const isCallActiveRef = useRef(false);
+  const debriefIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleCallEnd = async (
     _heuristicQAPairs: { question: string; answer: string }[],
     rawMessages: VapiMessage[],
   ) => {
     setIsSessionActive(false);
+
+    const pending = pendingVoiceDebriefModalRef.current;
+    if (pending) {
+      pendingVoiceDebriefModalRef.current = null;
+      voiceDebriefStartedRef.current = false;
+      setCompletionModal(pending);
+      return;
+    }
+
     const config = sessionConfigRef.current;
     const durationSeconds = elapsedTimeRef.current;
-    const qaPairs = buildQAPairsForMockSession(config?.questions ?? [], rawMessages);
+    const qaPairsFallback = buildQAPairsForMockSession(config?.questions ?? [], rawMessages);
 
-    // Build transcript in backend format for storage and pattern metrics
-    const transcriptForApi = rawMessages.map((msg) => ({
-      speaker: msg.role === "assistant" ? ("ai" as const) : ("candidate" as const),
-      text: msg.content,
-      timestamp: msg.timestamp,
-    }));
-
-    const speakingPatterns = computeSpeakingPatternsFromMessages(rawMessages, durationSeconds);
-
-    const results = {
+    const results: Record<string, unknown> = {
       sessionId,
       position: config?.position,
       duration: durationSeconds,
-      questionsAnswered: qaPairs.filter(
+      questionsAnswered: qaPairsFallback.filter(
         (qa) =>
           qa.answer.trim().length > 0 &&
           !/^\(no answer provided\)$/i.test(qa.answer.trim()),
       ).length,
       totalQuestions: config?.questions.length ?? 0,
       transcript: vapiMessagesToTranscript(rawMessages),
-      qaPairs,
+      qaPairs: qaPairsFallback,
       completedAt: new Date().toISOString(),
     };
 
-    if (sessionId) {
-      try {
-        const res = await api.completeMockInterviewSession(sessionId, {
-          transcript: transcriptForApi,
-          qaPairs,
-          durationSeconds,
-          speakingPatterns: {
-            fillerWords: speakingPatterns.fillerWords,
-            avgResponseTimeSeconds: Math.round(speakingPatterns.avgResponseTimeSeconds * 10) / 10,
-            totalWords: speakingPatterns.totalWords,
-            avgWordsPerMinute: speakingPatterns.avgWordsPerMinute,
-          },
-        });
-        if (res.success && res.data) {
-          setCompletionModal({
-            results,
-            serverData: {
-              metrics: res.data.metrics,
-              summaryStructured: res.data.summaryStructured,
-              questionInsights: res.data.questionInsights,
-            },
-          });
-          return;
-        }
-      } catch (e) {
-        console.error("Failed to complete session:", e);
+    if (sessionId && config) {
+      const out = await submitMockInterviewCompletionToServer(
+        sessionId,
+        config,
+        rawMessages,
+        durationSeconds,
+      );
+      if (out.ok) {
+        setCompletionModal({ results: out.results, serverData: out.serverData });
+        return;
       }
     }
 
@@ -385,9 +490,12 @@ export default function MockInterviewSession() {
     messages: vapiMessages,
     startInterview,
     stopInterview,
+    say,
   } = useVapiInterview({
     publicKey: vapiPublicKey || "",
     onCallStart: () => {
+      voiceDebriefStartedRef.current = false;
+      pendingVoiceDebriefModalRef.current = null;
       setIsSessionActive(true);
       toast.success(t("mockInterviewSession.voiceStarted") || "Voice interview started — speak when the AI asks.");
     },
@@ -396,32 +504,77 @@ export default function MockInterviewSession() {
     onError: (err) => toast.error(`Voice: ${err.message}`),
   });
 
-  /** Reset when a new call connects; Vapi should end via endCall tool / endCallPhrases — this is a fallback. */
-  const autoHangupScheduledRef = useRef(false);
   useEffect(() => {
-    if (isCallActive) autoHangupScheduledRef.current = false;
-  }, [isCallActive]);
+    vapiMessagesRef.current = vapiMessages;
+  }, [vapiMessages]);
 
   useEffect(() => {
-    if (!isCallActive || autoHangupScheduledRef.current) return;
-    let lastUser = -1;
-    for (let j = vapiMessages.length - 1; j >= 0; j--) {
-      if (vapiMessages[j].role === "user") {
-        lastUser = j;
-        break;
+    isCallActiveRef.current = isCallActive;
+  }, [isCallActive]);
+
+  /**
+   * After all questions are answered and the assistant finishes talking, call /complete while the
+   * call is still up, then Vapi speaks the debrief and hangs up (`say(..., true)`).
+   */
+  useEffect(() => {
+    if (!isCallActive || voiceDebriefStartedRef.current) {
+      if (debriefIdleTimerRef.current) {
+        clearTimeout(debriefIdleTimerRef.current);
+        debriefIdleTimerRef.current = null;
       }
+      return;
     }
-    const tail = lastUser >= 0 ? vapiMessages.slice(lastUser + 1) : vapiMessages;
-    const assistantText = tail
-      .filter((m) => m.role === "assistant")
-      .map((m) => m.content)
-      .join(" ")
-      .toLowerCase();
-    const needle = MOCK_INTERVIEW_END_CALL_PHRASE_NORM.toLowerCase();
-    if (!assistantText.includes(needle)) return;
-    autoHangupScheduledRef.current = true;
-    window.setTimeout(() => stopInterview(), 3500);
-  }, [vapiMessages, isCallActive, stopInterview]);
+
+    const cfg = sessionConfigRef.current;
+    const qLen = cfg?.questions?.length ?? 0;
+    if (!sessionId || !cfg || qLen === 0) return;
+
+    const msgs = vapiMessages;
+    const completedAnswers = countCompletedMergedAnswerGroups(msgs);
+    if (completedAnswers < qLen) return;
+
+    const last = msgs[msgs.length - 1];
+    if (!last || last.role !== "assistant") return;
+
+    if (debriefIdleTimerRef.current) clearTimeout(debriefIdleTimerRef.current);
+    debriefIdleTimerRef.current = setTimeout(async () => {
+      debriefIdleTimerRef.current = null;
+      if (!isCallActiveRef.current || voiceDebriefStartedRef.current) return;
+      if (!sessionId) return;
+      const latestCfg = sessionConfigRef.current;
+      if (!latestCfg) return;
+      const latest = vapiMessagesRef.current;
+      if (countCompletedMergedAnswerGroups(latest) < qLen) return;
+
+      voiceDebriefStartedRef.current = true;
+      const out = await submitMockInterviewCompletionToServer(
+        sessionId,
+        latestCfg,
+        latest,
+        elapsedTimeRef.current,
+      );
+
+      if (!out.ok) {
+        voiceDebriefStartedRef.current = false;
+        stopInterview();
+        return;
+      }
+
+      pendingVoiceDebriefModalRef.current = {
+        results: out.results,
+        serverData: out.serverData,
+      };
+      const script = buildVoiceDebriefScript(latestCfg.position, out.serverData);
+      say(script, true);
+    }, 4000);
+
+    return () => {
+      if (debriefIdleTimerRef.current) {
+        clearTimeout(debriefIdleTimerRef.current);
+        debriefIdleTimerRef.current = null;
+      }
+    };
+  }, [vapiMessages, isCallActive, sessionId, say, stopInterview]);
 
   const { stream, isLoading: streamLoading, error: streamError } = useMediaStream({
     audioEnabled: micEnabled,
@@ -629,8 +782,8 @@ export default function MockInterviewSession() {
   }
 
   const questions = sessionConfig.questions;
-  const answeredCount = vapiMessages.filter((m) => m.role === "user").length;
-  const currentQuestionIndex = Math.min(answeredCount, questions.length - 1);
+  const completedAnswerGroups = countCompletedMergedAnswerGroups(vapiMessages);
+  const currentQuestionIndex = Math.min(completedAnswerGroups, questions.length - 1);
   const maxDuration = sessionConfig.duration * 60;
 
   const metricLabels: Record<keyof LiveMetrics, string> = {
@@ -663,7 +816,7 @@ export default function MockInterviewSession() {
                 : t("mockInterviewSession.speaking")
           }
           questionOfLabel={t("mockInterviewSession.questionOf", {
-            current: Math.min(answeredCount + 1, questions.length),
+            current: Math.min(completedAnswerGroups + 1, questions.length),
             total: questions.length,
           })}
           formatTime={formatTime}
@@ -743,12 +896,12 @@ export default function MockInterviewSession() {
                   id="mock-completion-title"
                   className="text-xl font-semibold text-gray-900 dark:text-white"
                 >
-                  {t("mockInterviewSession.feedbackTitle") || "Your interview feedback"}
+                  {t("mockInterviewSession.feedbackTitle")}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   {completionModal.results.position as string}
                   {" · "}
-                  {t("mockInterviewSession.scoreLabel") || "Score"}{" "}
+                  {t("mockInterviewSession.scoreLabel")}{" "}
                   <span className="font-medium text-gray-800 dark:text-gray-200">
                     {completionModal.serverData.metrics.overallScore}/100
                   </span>
@@ -768,7 +921,7 @@ export default function MockInterviewSession() {
                     {improve.length > 0 && (
                       <section>
                         <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200 uppercase tracking-wide mb-2">
-                          {t("mockInterviewSession.improveAreasTitle") || "Where to improve"}
+                          {t("mockInterviewSession.improveAreasTitle")}
                         </h3>
                         <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1.5">
                           {improve.map((item, i) => (
@@ -781,7 +934,7 @@ export default function MockInterviewSession() {
                     {recs.length > 0 && (
                       <section>
                         <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 uppercase tracking-wide mb-2">
-                          {t("mockInterviewSession.recommendationsTitle") || "Recommendations"}
+                          {t("mockInterviewSession.recommendationsTitle")}
                         </h3>
                         <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1.5">
                           {recs.map((item, i) => (
@@ -794,7 +947,7 @@ export default function MockInterviewSession() {
                     {strengths.length > 0 && (
                       <section>
                         <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 uppercase tracking-wide mb-2">
-                          {t("mockInterviewSession.strengthsTitle") || "Strengths"}
+                          {t("mockInterviewSession.strengthsTitle")}
                         </h3>
                         <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1.5">
                           {strengths.map((item, i) => (
@@ -813,7 +966,7 @@ export default function MockInterviewSession() {
                 ) && (
                   <section>
                     <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide mb-2">
-                      {t("mockInterviewSession.bySectionTitle") || "By question type"}
+                      {t("mockInterviewSession.bySectionTitle")}
                     </h3>
                     <div className="space-y-3">
                       {completionModal.serverData.questionInsights.map((q) => (
@@ -833,7 +986,7 @@ export default function MockInterviewSession() {
                           {q.improvements.length > 0 && (
                             <p className="text-amber-800 dark:text-amber-200/90 text-xs mt-1">
                               <span className="font-medium">
-                                {t("mockInterviewSession.improveLabel") || "Improve:"}{" "}
+                                {t("mockInterviewSession.improveLabel")}{" "}
                               </span>
                               {q.improvements.join(" · ")}
                             </p>
@@ -841,7 +994,7 @@ export default function MockInterviewSession() {
                           {q.strengths.length > 0 && (
                             <p className="text-green-800 dark:text-green-200/90 text-xs mt-1">
                               <span className="font-medium">
-                                {t("mockInterviewSession.strengthLabel") || "Good:"}{" "}
+                                {t("mockInterviewSession.strengthLabel")}{" "}
                               </span>
                               {q.strengths.join(" · ")}
                             </p>
@@ -857,7 +1010,7 @@ export default function MockInterviewSession() {
                 onClick={dismissCompletionModal}
                 className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
               >
-                {t("mockInterviewSession.continueToDashboard") || "Continue to dashboard"}
+                {t("mockInterviewSession.continueToDashboard")}
               </button>
             </div>
           </div>

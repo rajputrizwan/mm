@@ -170,6 +170,14 @@ export function useVapiInterview({
     vapiRef.current?.stop();
   }, []);
 
+  /**
+   * Speak arbitrary text with the assistant voice (Live Call Control).
+   * If `endCallAfterSpoken` is true, the call ends after the phrase is read.
+   */
+  const say = useCallback((message: string, endCallAfterSpoken?: boolean) => {
+    vapiRef.current?.say(message, endCallAfterSpoken);
+  }, []);
+
   return {
     /** Current call lifecycle status */
     status,
@@ -181,6 +189,7 @@ export function useVapiInterview({
     messages,
     startInterview,
     stopInterview,
+    say,
   };
 }
 

@@ -44,18 +44,26 @@ function formatTimestamp(iso: string | undefined) {
   });
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Age of session in milliseconds (0 if invalid date). */
+function getSessionAgeMs(iso: string | { $date?: string } | undefined): number {
+  const str = typeof iso === "string" ? iso : iso?.$date;
+  if (!str) return Infinity;
+  const created = new Date(str);
+  if (Number.isNaN(created.getTime())) return Infinity;
+  return new Date().getTime() - created.getTime();
+}
+
 function getCreatedCategory(iso: string | { $date?: string } | undefined) {
   const str = typeof iso === "string" ? iso : iso?.$date;
   if (!str) return "Unknown";
 
-  const created = new Date(str);
-  const now = new Date();
-  const diffMs = now.getTime() - created.getTime();
-  const oneDay = 24 * 60 * 60 * 1000;
+  const diffMs = getSessionAgeMs(iso);
 
-  if (diffMs < oneDay) return "Today";
-  if (diffMs < 7 * oneDay) return "This Week";
-  if (diffMs < 30 * oneDay) return "This Month";
+  if (diffMs < MS_PER_DAY) return "Today";
+  if (diffMs < 7 * MS_PER_DAY) return "This Week";
+  if (diffMs < 30 * MS_PER_DAY) return "This Month";
   return "Earlier";
 }
 
@@ -116,7 +124,7 @@ function inferOverallScore(session: MockInterviewSessionDetail) {
 }
 
 function inferStrengths(session: MockInterviewSessionDetail) {
-  if (session.summary?.strengths?.length) return session.summary.strengths;
+  if (session.summary?.strengths?.length) return session.summary.strengths?.filter(s => s !== "s:**");
 
   const all = session.questions.flatMap((q) => q.aiAnalysis?.strengths || []);
   return Array.from(new Set(all.map((x) => x.trim()).filter(Boolean))).slice(
@@ -470,12 +478,13 @@ export default function InterviewHistory() {
     return list.filter((session) => {
       const matchesType = filterType === "all" || filterType === "mock";
 
-      const createdCategory = getCreatedCategory(session.createdAt);
+      // Rolling windows (not mutually exclusive labels): week includes today, month includes week + today.
+      const ageMs = getSessionAgeMs(session.createdAt);
       const matchesCreated =
         createdFilter === "all" ||
-        (createdFilter === "today" && createdCategory === "Today") ||
-        (createdFilter === "week" && createdCategory === "This Week") ||
-        (createdFilter === "month" && createdCategory === "This Month");
+        (createdFilter === "today" && ageMs >= 0 && ageMs < MS_PER_DAY) ||
+        (createdFilter === "week" && ageMs >= 0 && ageMs < 7 * MS_PER_DAY) ||
+        (createdFilter === "month" && ageMs >= 0 && ageMs < 30 * MS_PER_DAY);
 
       const q = searchTerm.trim().toLowerCase();
       const matchesSearch =

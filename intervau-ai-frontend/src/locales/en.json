@@ -567,6 +567,15 @@
     "speakWhenReady": "Speak your answer when ready.",
     "voiceOnlyHint": "Voice only — no typing. The AI asks, you answer, then the next question.",
     "voiceStarted": "Voice interview started — speak when the AI asks.",
-    "aiSpeaking": "AI is speaking…"
+    "aiSpeaking": "AI is speaking…",
+    "feedbackTitle": "Your interview feedback",
+    "scoreLabel": "Score",
+    "improveAreasTitle": "Where to improve",
+    "recommendationsTitle": "Recommendations",
+    "strengthsTitle": "Strengths",
+    "bySectionTitle": "By question type",
+    "improveLabel": "Improve:",
+    "strengthLabel": "Good:",
+    "continueToDashboard": "Continue to dashboard"
   }
 }

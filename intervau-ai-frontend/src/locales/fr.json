@@ -567,6 +567,15 @@
     "speakWhenReady": "Dites votre réponse quand vous êtes prêt.",
     "voiceOnlyHint": "Vocal uniquement — pas de saisie. L'IA pose les questions, vous répondez, puis la suivante.",
     "voiceStarted": "Entretien vocal démarré — parlez quand l'IA vous le demande.",
-    "aiSpeaking": "L'IA parle…"
+    "aiSpeaking": "L'IA parle…",
+    "feedbackTitle": "Retour sur votre entretien",
+    "scoreLabel": "Note",
+    "improveAreasTitle": "Points à améliorer",
+    "recommendationsTitle": "Recommandations",
+    "strengthsTitle": "Points forts",
+    "bySectionTitle": "Par type de question",
+    "improveLabel": "À améliorer :",
+    "strengthLabel": "Points positifs :",
+    "continueToDashboard": "Continuer vers le tableau de bord"
   }
 }

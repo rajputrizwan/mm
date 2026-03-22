@@ -567,6 +567,15 @@
     "speakWhenReady": "Fale sua resposta quando estiver pronto.",
     "voiceOnlyHint": "Somente voz — sem digitar. A IA pergunta, você responde, depois a próxima pergunta.",
     "voiceStarted": "Entrevista por voz iniciada — fale quando a IA perguntar.",
-    "aiSpeaking": "A IA está falando…"
+    "aiSpeaking": "A IA está falando…",
+    "feedbackTitle": "Seu feedback da entrevista",
+    "scoreLabel": "Pontuação",
+    "improveAreasTitle": "Onde melhorar",
+    "recommendationsTitle": "Recomendações",
+    "strengthsTitle": "Pontos fortes",
+    "bySectionTitle": "Por tipo de pergunta",
+    "improveLabel": "Melhorar:",
+    "strengthLabel": "Bom:",
+    "continueToDashboard": "Continuar para o painel"
   }
 }

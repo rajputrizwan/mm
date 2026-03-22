@@ -567,6 +567,15 @@
     "speakWhenReady": "Sprechen Sie Ihre Antwort, wenn Sie bereit sind.",
     "voiceOnlyHint": "Nur Sprache — kein Tippen. Die KI stellt Fragen, Sie antworten, dann die nächste Frage.",
     "voiceStarted": "Sprachinterview gestartet — sprechen Sie, wenn die KI fragt.",
-    "aiSpeaking": "Die KI spricht…"
+    "aiSpeaking": "Die KI spricht…",
+    "feedbackTitle": "Ihr Interview-Feedback",
+    "scoreLabel": "Punktzahl",
+    "improveAreasTitle": "Verbesserungsmöglichkeiten",
+    "recommendationsTitle": "Empfehlungen",
+    "strengthsTitle": "Stärken",
+    "bySectionTitle": "Nach Fragetyp",
+    "improveLabel": "Verbessern:",
+    "strengthLabel": "Gut:",
+    "continueToDashboard": "Weiter zum Dashboard"
   }
 }
