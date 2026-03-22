@@ -1,6 +1,9 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { config } from '../config/environment';
+
+const accessTokenExpiresIn = config.jwtExpiresIn as SignOptions['expiresIn'];
+const refreshTokenExpiresIn = config.jwtRefreshExpiresIn as SignOptions['expiresIn'];
 
 /**
  * Auth utility functions for token management and security
@@ -11,7 +14,7 @@ export class AuthUtils {
    */
   static generateAccessToken(userId: string, email: string, role: string): string {
     return jwt.sign({ id: userId, email, role }, config.jwtSecret as string, {
-      expiresIn: config.jwtExpiresIn,
+      expiresIn: accessTokenExpiresIn,
     });
   }
 
@@ -20,7 +23,7 @@ export class AuthUtils {
    */
   static generateRefreshToken(userId: string, email: string): string {
     return jwt.sign({ id: userId, email }, config.jwtRefreshSecret as string, {
-      expiresIn: config.jwtRefreshExpiresIn,
+      expiresIn: refreshTokenExpiresIn,
     });
   }
 

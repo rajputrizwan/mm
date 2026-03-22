@@ -583,11 +583,34 @@ export class CandidateController {
         });
       }
 
-      // Get candidate profile
+      // Prefer persisted resume analysis so dashboard scores match Resume tab.
+      const analysis = await ResumeAnalysis.findOne({ userId }).select(
+        'extractedSkills analyzedAt'
+      );
+
+      if (analysis?.extractedSkills?.length) {
+        const skillsWithLevels = analysis.extractedSkills
+          .filter(skill => skill && typeof skill.name === 'string' && skill.name.trim().length > 0)
+          .map(skill => ({
+            name: skill.name,
+            level: typeof skill.level === 'number' ? skill.level : 45,
+            category: skill.category || 'Technical',
+          }))
+          .sort((a, b) => b.level - a.level || a.name.localeCompare(b.name))
+          .slice(0, 5);
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            skills: skillsWithLevels,
+          },
+        });
+      }
+
+      // Fallback for users who have profile skills but no saved resume analysis yet.
       const candidate = await Candidate.findOne({ userId }).select('skills');
 
       if (!candidate || !candidate.skills || candidate.skills.length === 0) {
-        // Return default skills if none found
         return res.status(200).json({
           success: true,
           data: {
@@ -600,15 +623,11 @@ export class CandidateController {
         });
       }
 
-      // Get resume analysis from localStorage or recent analysis
-      // For now, we'll create basic skill objects from the skills array
-      const skillsWithLevels = candidate.skills
-        .slice(0, 5)
-        .map((skillName: string, index: number) => ({
-          name: skillName,
-          level: 85 - index * 5, // Decreasing levels for demo
-          category: 'Technical',
-        }));
+      const skillsWithLevels = candidate.skills.slice(0, 5).map((skillName: string) => ({
+        name: skillName,
+        level: 45,
+        category: 'Technical',
+      }));
 
       res.status(200).json({
         success: true,
