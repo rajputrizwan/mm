@@ -44,6 +44,21 @@ function formatTimestamp(iso: string | undefined) {
   });
 }
 
+function getCreatedCategory(iso: string | { $date?: string } | undefined) {
+  const str = typeof iso === "string" ? iso : iso?.$date;
+  if (!str) return "Unknown";
+
+  const created = new Date(str);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const oneDay = 24 * 60 * 60 * 1000;
+
+  if (diffMs < oneDay) return "Today";
+  if (diffMs < 7 * oneDay) return "This Week";
+  if (diffMs < 30 * oneDay) return "This Month";
+  return "Earlier";
+}
+
 function scoreColor(score: number) {
   if (score >= 85) return "text-green-600 dark:text-green-400";
   if (score >= 70) return "text-blue-600 dark:text-blue-400";
@@ -136,12 +151,258 @@ function inferRecommendations(session: MockInterviewSessionDetail) {
   ];
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function fileSafeSlug(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+function createInterviewReportHtml({
+  session,
+  overallScore,
+  aiAnalysisScore,
+  resumeMatchScore,
+  rating,
+  strengths,
+  improvements,
+  recommendations,
+}: {
+  session: MockInterviewSessionDetail;
+  overallScore: number;
+  aiAnalysisScore: number;
+  resumeMatchScore: number;
+  rating: string;
+  strengths: string[];
+  improvements: string[];
+  recommendations: string[];
+}) {
+  const scoreColor =
+    overallScore >= 85
+      ? "#1f7a3d"
+      : overallScore >= 70
+        ? "#155e75"
+        : overallScore >= 55
+          ? "#b45309"
+          : "#b91c1c";
+
+  const questionsHtml = session.questions.length
+    ? session.questions
+        .map((q, idx) => {
+          const score = q.aiAnalysis?.score ?? 0;
+          const feedback =
+            q.aiAnalysis?.feedback || "No AI feedback available.";
+          const answer = q.answer || "No answer captured.";
+          const strengthsHtml = (q.aiAnalysis?.strengths || [])
+            .map((item) => `<li>${escapeHtml(item)}</li>`)
+            .join("");
+          const improvementsHtml = (q.aiAnalysis?.improvements || [])
+            .map((item) => `<li>${escapeHtml(item)}</li>`)
+            .join("");
+
+          return `
+          <section class="card qa-card">
+            <div class="row between center">
+              <h3>Question ${idx + 1}</h3>
+              <span class="pill">Score: ${score}%</span>
+            </div>
+            <p class="label">Category: ${escapeHtml(q.category)} • Difficulty: ${escapeHtml(q.difficulty)}</p>
+            <div class="block">
+              <h4>Question</h4>
+              <p>${escapeHtml(q.text)}</p>
+            </div>
+            <div class="block">
+              <h4>Candidate Answer</h4>
+              <p>${escapeHtml(answer)}</p>
+            </div>
+            <div class="block">
+              <h4>AI Feedback</h4>
+              <p>${escapeHtml(feedback)}</p>
+            </div>
+            <div class="grid-2">
+              <div class="subcard">
+                <h4>Strengths</h4>
+                <ul>${strengthsHtml || "<li>No strengths captured.</li>"}</ul>
+              </div>
+              <div class="subcard">
+                <h4>Improvements</h4>
+                <ul>${improvementsHtml || "<li>No improvements captured.</li>"}</ul>
+              </div>
+            </div>
+          </section>`;
+        })
+        .join("")
+    : '<section class="card"><p>No question-level data available.</p></section>';
+
+  const transcriptHtml = session.transcript?.length
+    ? session.transcript
+        .map(
+          (t) => `
+          <div class="transcript-row">
+            <div class="row between center">
+              <strong>${t.speaker === "ai" ? "Interviewer" : "Candidate"}</strong>
+              <span>${escapeHtml(formatTimestamp(t.timestamp))}</span>
+            </div>
+            <p>${escapeHtml(t.text)}</p>
+          </div>`,
+        )
+        .join("")
+    : "<p>No transcript available.</p>";
+
+  const strengthsList = strengths
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+  const improvementsList = improvements
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+  const recommendationsList = recommendations
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interview Report - ${escapeHtml(session.position)}</title>
+  <style>
+    :root {
+      --bg: #eef5ff;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #dbeafe;
+      --primary: #1d4ed8;
+      --accent: #0891b2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(120deg, #eff6ff 0%, #ecfeff 100%);
+      color: var(--text);
+      line-height: 1.45;
+      padding: 28px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .hero {
+      background: linear-gradient(135deg, #1d4ed8, #0891b2);
+      color: white;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 18px 35px rgba(2, 6, 23, 0.14);
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 30px; }
+    .hero p { margin: 0; color: #dbeafe; }
+    .meta { margin-top: 12px; font-size: 14px; color: #e0f2fe; }
+    .grid-4 {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .stat {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .stat .value { font-size: 24px; font-weight: 700; color: ${scoreColor}; background: #fff; border-radius: 10px; padding: 3px 8px; display: inline-block; }
+    .stat .label { color: #e0f2fe; font-size: 13px; margin-top: 8px; }
+    .section-title { margin: 26px 0 10px; font-size: 22px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(2, 6, 23, 0.06);
+    }
+    h3, h4 { margin: 0 0 8px; }
+    p { margin: 0; color: var(--muted); }
+    ul { margin: 0; padding-left: 18px; color: var(--muted); }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+      font-weight: 600;
+    }
+    .qa-card { margin-top: 12px; }
+    .row { display: flex; }
+    .between { justify-content: space-between; }
+    .center { align-items: center; }
+    .label { font-size: 12px; color: #64748b; margin-bottom: 12px; }
+    .block { margin-bottom: 12px; }
+    .block p { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; color: #0f172a; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .subcard { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; }
+    .transcript-row { border-bottom: 1px dashed #cbd5e1; padding: 10px 0; }
+    .footer { margin-top: 24px; text-align: right; font-size: 12px; color: #64748b; }
+    @media (max-width: 920px) {
+      .grid-4, .cards, .grid-2 { grid-template-columns: 1fr; }
+      body { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <h1>${escapeHtml(session.position)} Interview Report</h1>
+      <p>Comprehensive interview summary with analytics, answers, and recommendations</p>
+      <div class="meta">
+        Session ID: ${escapeHtml(session.sessionId)} • Created: ${escapeHtml(formatDate(session.createdAt, true))} • Completed: ${escapeHtml(formatDate(session.completedAt || session.createdAt, true))}
+      </div>
+      <div class="grid-4">
+        <div class="stat"><div class="value">${overallScore}%</div><div class="label">Overall Score</div></div>
+        <div class="stat"><div class="value">${aiAnalysisScore}%</div><div class="label">AI Analysis</div></div>
+        <div class="stat"><div class="value">${resumeMatchScore}%</div><div class="label">Resume Match</div></div>
+        <div class="stat"><div class="value">${escapeHtml(rating)}</div><div class="label">Rating</div></div>
+      </div>
+    </header>
+
+    <h2 class="section-title">Summary</h2>
+    <div class="cards">
+      <section class="card"><h3>Strengths</h3><ul>${strengthsList || "<li>No strengths available.</li>"}</ul></section>
+      <section class="card"><h3>Areas for Improvement</h3><ul>${improvementsList || "<li>No improvements available.</li>"}</ul></section>
+      <section class="card"><h3>Recommendations</h3><ul>${recommendationsList || "<li>No recommendations available.</li>"}</ul></section>
+    </div>
+
+    <h2 class="section-title">Question Analysis</h2>
+    ${questionsHtml}
+
+    <h2 class="section-title">Transcript</h2>
+    <section class="card">${transcriptHtml}</section>
+
+    <div class="footer">Generated on ${escapeHtml(formatDate(new Date().toISOString(), true))}</div>
+  </div>
+</body>
+</html>`;
+}
+
 export default function InterviewHistory() {
   const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId: string }>();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "mock" | "live">("all");
+  const [filterType, setFilterType] = useState<"all" | "mock">("all");
+  const [createdFilter, setCreatedFilter] = useState<
+    "all" | "today" | "week" | "month"
+  >("all");
 
   const [list, setList] = useState<MockInterviewSessionDetail[]>([]);
   const [pagination, setPagination] = useState({
@@ -153,8 +414,14 @@ export default function InterviewHistory() {
 
   const [detail, setDetail] = useState<MockInterviewSessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [actionStatus, setActionStatus] = useState<{
+    type: "success" | "error" | "info";
+    text: string;
+  } | null>(null);
   const [detailTab, setDetailTab] = useState<
-    "overview" | "metrics" | "transcript"
+    "overview" | "metrics" | "responses" | "transcript"
   >("overview");
 
   const isDetailView = Boolean(sessionId);
@@ -172,28 +439,43 @@ export default function InterviewHistory() {
     }
 
     setLoading(true);
-    api.getCompletedMockInterviewHistory({ limit: 20, page: 1 }).then((res) => {
-      setLoading(false);
-      if (res.success && res.data) {
-        setList(res.data.sessions || []);
-        setPagination(
-          res.data.pagination || {
-            total: 0,
-            page: 1,
-            limit: 20,
-            totalPages: 0,
-          },
-        );
-      } else {
-        setList([]);
-      }
-    });
-  }, [isDetailView, sessionId]);
+    api
+      .getCompletedMockInterviewHistory({ limit: 20, page: pagination.page })
+      .then((res) => {
+        setLoading(false);
+        if (res.success && res.data) {
+          setList(res.data.sessions || []);
+          setPagination(
+            res.data.pagination || {
+              total: 0,
+              page: 1,
+              limit: 20,
+              totalPages: 0,
+            },
+          );
+        } else {
+          setList([]);
+        }
+      });
+  }, [isDetailView, sessionId, pagination.page]);
+
+  useEffect(() => {
+    if (!actionStatus) return;
+
+    const timeout = setTimeout(() => setActionStatus(null), 3500);
+    return () => clearTimeout(timeout);
+  }, [actionStatus]);
 
   const filteredSessions = useMemo(() => {
     return list.filter((session) => {
-      const matchesType =
-        filterType === "all" || (filterType === "mock" ? true : false);
+      const matchesType = filterType === "all" || filterType === "mock";
+
+      const createdCategory = getCreatedCategory(session.createdAt);
+      const matchesCreated =
+        createdFilter === "all" ||
+        (createdFilter === "today" && createdCategory === "Today") ||
+        (createdFilter === "week" && createdCategory === "This Week") ||
+        (createdFilter === "month" && createdCategory === "This Month");
 
       const q = searchTerm.trim().toLowerCase();
       const matchesSearch =
@@ -201,9 +483,9 @@ export default function InterviewHistory() {
         session.position.toLowerCase().includes(q) ||
         session.sessionId.toLowerCase().includes(q);
 
-      return matchesType && matchesSearch;
+      return matchesType && matchesCreated && matchesSearch;
     });
-  }, [list, filterType, searchTerm]);
+  }, [list, filterType, createdFilter, searchTerm]);
 
   const totalDuration = useMemo(
     () =>
@@ -229,15 +511,130 @@ export default function InterviewHistory() {
     if (!isDetailView || !detail) return;
 
     const url = `${window.location.origin}${routeHelpers.interviewHistorySession(detail.sessionId)}`;
+    const shareTitle = `${detail.position} interview report`;
+    const shareText = `Interview result for ${detail.position} (${inferOverallScore(detail)}%).`;
+
+    setIsSharing(true);
     try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      // Intentionally silent fallback for browsers without clipboard support.
+      if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url,
+        });
+        setActionStatus({ type: "success", text: "Share panel opened." });
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        setActionStatus({
+          type: "success",
+          text: "Share link copied to clipboard.",
+        });
+        return;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = url;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+
+      if (copied) {
+        setActionStatus({
+          type: "success",
+          text: "Share link copied to clipboard.",
+        });
+      } else {
+        setActionStatus({
+          type: "error",
+          text: "Unable to copy link. Please copy the URL manually.",
+        });
+      }
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
+        setActionStatus({ type: "info", text: "Share cancelled." });
+      } else {
+        setActionStatus({
+          type: "error",
+          text: "Share failed. Please try again.",
+        });
+      }
+    } finally {
+      setIsSharing(false);
     }
   };
 
   const handleDownload = () => {
-    window.print();
+    if (!detail) return;
+
+    setIsDownloading(true);
+    try {
+      const m = detail.metrics;
+      const overallScore = inferOverallScore(detail);
+      const aiAnalysisScore =
+        m?.aiAnalysisPercentage ?? Math.min(100, overallScore + 5);
+      const resumeMatchScore =
+        m?.resumeMatchPercentage ?? Math.max(0, Math.min(100, overallScore));
+      const rating =
+        m?.overallRating ||
+        (overallScore >= 85
+          ? "Excellent"
+          : overallScore >= 70
+            ? "Good"
+            : overallScore >= 55
+              ? "Average"
+              : "Needs Improvement");
+
+      const reportHtml = createInterviewReportHtml({
+        session: detail,
+        overallScore,
+        aiAnalysisScore,
+        resumeMatchScore,
+        rating,
+        strengths: inferStrengths(detail),
+        improvements: inferImprovements(detail),
+        recommendations: inferRecommendations(detail),
+      });
+
+      const fileName = `interview-report-${fileSafeSlug(detail.position || "session")}-${new Date()
+        .toISOString()
+        .slice(0, 10)}.html`;
+
+      const blob = new Blob([reportHtml], {
+        type: "text/html;charset=utf-8",
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+
+      setActionStatus({
+        type: "success",
+        text: "Interview report downloaded successfully.",
+      });
+    } catch {
+      setActionStatus({
+        type: "error",
+        text: "Download failed. Please try again.",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    if (nextPage < 1 || nextPage > (pagination.totalPages || 1)) return;
+    setPagination((prev) => ({ ...prev, page: nextPage }));
   };
 
   if (loading && isDetailView && !detail) {
@@ -311,20 +708,48 @@ export default function InterviewHistory() {
             <div className="flex items-center space-x-3">
               <button
                 onClick={handleShare}
+                disabled={isSharing}
                 className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <Share2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Share</span>
+                {isSharing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {isSharing ? "Sharing..." : "Share"}
+                </span>
               </button>
               <button
                 onClick={handleDownload}
+                disabled={isDownloading}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
               >
-                <Download className="w-4 h-4" />
-                <span className="text-sm font-medium">Download</span>
+                {isDownloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {isDownloading ? "Downloading..." : "Download Report"}
+                </span>
               </button>
             </div>
           </div>
+
+          {actionStatus ? (
+            <div
+              className={`mb-4 rounded-lg border px-4 py-3 text-sm font-medium ${
+                actionStatus.type === "success"
+                  ? "bg-green-50 border-green-200 text-green-700"
+                  : actionStatus.type === "error"
+                    ? "bg-red-50 border-red-200 text-red-700"
+                    : "bg-blue-50 border-blue-200 text-blue-700"
+              }`}
+            >
+              {actionStatus.text}
+            </div>
+          ) : null}
 
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
@@ -343,6 +768,8 @@ export default function InterviewHistory() {
                       <span>
                         {formatDate(detail.completedAt || detail.createdAt)}
                       </span>
+                      <span>•</span>
+                      <span>Created: {formatDate(detail.createdAt, true)}</span>
                       <span>•</span>
                       <span>{detail.duration} minutes</span>
                     </div>
@@ -402,21 +829,21 @@ export default function InterviewHistory() {
 
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <div className="flex border-b border-gray-200 dark:border-gray-700">
-                  {(["overview", "metrics", "transcript"] as const).map(
-                    (tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setDetailTab(tab)}
-                        className={`px-6 py-4 font-medium transition-colors capitalize ${
-                          detailTab === tab
-                            ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    ),
-                  )}
+                  {(
+                    ["overview", "metrics", "responses", "transcript"] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setDetailTab(tab)}
+                      className={`px-6 py-4 font-medium transition-colors capitalize ${
+                        detailTab === tab
+                          ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="p-8">
@@ -563,6 +990,122 @@ export default function InterviewHistory() {
                           </ul>
                         </div>
                       ) : null}
+                    </div>
+                  )}
+
+                  {detailTab === "responses" && (
+                    <div className="space-y-5">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                        Question-by-Question Analysis
+                      </h3>
+
+                      {detail.questions.length ? (
+                        detail.questions.map((question, index) => {
+                          const questionScore = question.aiAnalysis?.score ?? 0;
+
+                          return (
+                            <div
+                              key={question.id ?? index}
+                              className="p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                                <h4 className="font-bold text-gray-900 dark:text-white">
+                                  Question {index + 1}
+                                </h4>
+                                <span
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${scoreBadgeColor(questionScore)}`}
+                                >
+                                  {questionScore}%
+                                </span>
+                              </div>
+
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                                {question.category} • {question.difficulty}
+                              </p>
+
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                    Question
+                                  </p>
+                                  <p className="text-sm text-gray-800 dark:text-gray-200">
+                                    {question.text}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                    Your Answer
+                                  </p>
+                                  <p className="text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700/60 rounded-lg border border-gray-200 dark:border-gray-600 p-3">
+                                    {question.answer ||
+                                      "No answer recorded for this question."}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                    AI Feedback
+                                  </p>
+                                  <p className="text-sm text-gray-800 dark:text-gray-200">
+                                    {question.aiAnalysis?.feedback ||
+                                      "No AI feedback available."}
+                                  </p>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-3">
+                                  <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-300 mb-1">
+                                      Strengths
+                                    </p>
+                                    {(question.aiAnalysis?.strengths || [])
+                                      .slice(0, 4)
+                                      .map((item, i) => (
+                                        <p
+                                          key={`${question.id}-s-${i}`}
+                                          className="text-xs text-green-800 dark:text-green-200"
+                                        >
+                                          • {item}
+                                        </p>
+                                      ))}
+                                    {!question.aiAnalysis?.strengths?.length ? (
+                                      <p className="text-xs text-green-800 dark:text-green-200">
+                                        No strengths captured.
+                                      </p>
+                                    ) : null}
+                                  </div>
+
+                                  <div className="rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300 mb-1">
+                                      Improvements
+                                    </p>
+                                    {(question.aiAnalysis?.improvements || [])
+                                      .slice(0, 4)
+                                      .map((item, i) => (
+                                        <p
+                                          key={`${question.id}-i-${i}`}
+                                          className="text-xs text-orange-800 dark:text-orange-200"
+                                        >
+                                          • {item}
+                                        </p>
+                                      ))}
+                                    {!question.aiAnalysis?.improvements
+                                      ?.length ? (
+                                      <p className="text-xs text-orange-800 dark:text-orange-200">
+                                        No improvement points captured.
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-gray-500 dark:text-gray-400">
+                          No question analysis available.
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -725,7 +1268,7 @@ export default function InterviewHistory() {
               </div>
 
               <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
-                {(["all", "mock", "live"] as const).map((type) => (
+                {(["all", "mock"] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
@@ -736,6 +1279,29 @@ export default function InterviewHistory() {
                     }`}
                   >
                     {type}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-lg p-1 w-full md:w-auto overflow-x-auto">
+                {(
+                  [
+                    { key: "all", label: "Created: All" },
+                    { key: "today", label: "Today" },
+                    { key: "week", label: "This Week" },
+                    { key: "month", label: "This Month" },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => setCreatedFilter(item.key)}
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap ${
+                      createdFilter === item.key
+                        ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-gray-600"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                    }`}
+                  >
+                    {item.label}
                   </button>
                 ))}
               </div>
@@ -752,25 +1318,25 @@ export default function InterviewHistory() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <th className="text-left py-2.5 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         Name / role
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <th className="text-left py-2.5 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         Type
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        Date
+                      <th className="text-left py-2.5 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                        Interview Date
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <th className="text-left py-2.5 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         Duration
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <th className="text-left py-2.5 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         Score
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <th className="text-left py-2.5 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         Status
                       </th>
-                      <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <th className="text-center py-2.5 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                         Action
                       </th>
                     </tr>
@@ -784,45 +1350,58 @@ export default function InterviewHistory() {
                           key={session.sessionId}
                           className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                         >
-                          <td className="py-4 px-4">
+                          <td className="py-3 px-3">
                             <div>
                               <p className="font-semibold text-gray-900 dark:text-white">
                                 Interview Candidate
                               </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[220px]">
+                              <p className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[220px]">
                                 {session.position}
                               </p>
                             </div>
                           </td>
-                          <td className="py-4 px-4">
+                          <td className="py-3 px-3">
                             <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
                               <span>MOCK</span>
                             </span>
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                              <Calendar className="w-4 h-4" />
-                              <span>
-                                {formatDate(
-                                  session.completedAt || session.createdAt,
-                                )}
+                          <td className="py-3 px-3">
+                            <div className="space-y-1.5 min-w-[170px]">
+                              <div className="flex items-center space-x-1.5 text-gray-600 dark:text-gray-400">
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                  {formatDate(
+                                    session.completedAt || session.createdAt,
+                                    true,
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                  {getCreatedCategory(session.createdAt)}
+                                </span>
+                                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                  Created {formatDate(session.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center space-x-1.5 text-gray-600 dark:text-gray-400">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span className="text-sm">
+                                {session.duration} min
                               </span>
                             </div>
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                              <Clock className="w-4 h-4" />
-                              <span>{session.duration} min</span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
+                          <td className="py-3 px-3">
                             <span
                               className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${scoreBadgeColor(score)}`}
                             >
                               {score}%
                             </span>
                           </td>
-                          <td className="py-4 px-4">
+                          <td className="py-3 px-3">
                             <span
                               className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold border ${statusBadge(
                                 session.status,
@@ -832,7 +1411,7 @@ export default function InterviewHistory() {
                               <span>{session.status}</span>
                             </span>
                           </td>
-                          <td className="py-4 px-4 text-center">
+                          <td className="py-3 px-3 text-center">
                             <button
                               onClick={() =>
                                 navigate(
@@ -862,9 +1441,29 @@ export default function InterviewHistory() {
             )}
 
             {pagination.totalPages > 1 && (
-              <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                Page {pagination.page} of {pagination.totalPages} (
-                {pagination.total} total)
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400">
+                <p>
+                  Page {pagination.page} of {pagination.totalPages} (
+                  {pagination.total} total)
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={loading || pagination.page <= 1}
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={
+                      loading || pagination.page >= pagination.totalPages
+                    }
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -882,7 +1481,7 @@ export default function InterviewHistory() {
               {filteredSessions.length}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Across all types
+              Across mock sessions
             </p>
           </div>
 
