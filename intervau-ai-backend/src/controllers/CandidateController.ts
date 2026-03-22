@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Candidate } from '../models/Candidate';
 import { ResumeAnalysis } from '../models/ResumeAnalysis';
+import MockInterviewSession from '../models/MockInterviewSession';
 
 export class CandidateController {
   static async create(req: Request, res: Response) {
@@ -466,61 +467,66 @@ export class CandidateController {
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-      // Get all completed interviews
-      const allInterviews = await Interview.find({
-        candidateId: userId,
-        status: 'completed',
-      });
+      // Combine classic interviews and AI mock sessions so dashboard cards reflect real usage.
+      const [completedInterviews, completedMockSessions] = await Promise.all([
+        Interview.find({
+          candidateId: userId,
+          status: 'completed',
+        })
+          .select('score duration createdAt')
+          .lean(),
+        MockInterviewSession.find({
+          userId,
+          status: 'completed',
+        })
+          .select('metrics.overallScore duration createdAt completedAt')
+          .lean(),
+      ]);
 
-      // Get this week's interviews
-      const weekInterviews = await Interview.find({
-        candidateId: userId,
-        status: 'completed',
-        createdAt: { $gte: sevenDaysAgo },
-      });
+      const timeline = [
+        ...completedInterviews.map((item: any) => ({
+          score: Number(item.score) || 0,
+          duration: Number(item.duration) || 0,
+          occurredAt: new Date(item.createdAt),
+        })),
+        ...completedMockSessions.map((item: any) => ({
+          score: Number(item?.metrics?.overallScore) || 0,
+          duration: Number(item.duration) || 0,
+          occurredAt: new Date(item.completedAt || item.createdAt),
+        })),
+      ].filter(item => !Number.isNaN(item.occurredAt.getTime()));
 
-      // Get last 30 days interviews for current period avg
-      const currentPeriodInterviews = await Interview.find({
-        candidateId: userId,
-        status: 'completed',
-        createdAt: { $gte: thirtyDaysAgo },
-      });
+      const weekItems = timeline.filter(item => item.occurredAt >= sevenDaysAgo);
+      const currentPeriodItems = timeline.filter(item => item.occurredAt >= thirtyDaysAgo);
+      const previousPeriodItems = timeline.filter(
+        item => item.occurredAt >= sixtyDaysAgo && item.occurredAt < thirtyDaysAgo
+      );
 
-      // Get previous 30 days (31-60 days ago) for comparison
-      const previousPeriodInterviews = await Interview.find({
-        candidateId: userId,
-        status: 'completed',
-        createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo },
-      });
-
-      // Calculate average scores
-      const calculateAvg = (interviews: any[]) => {
-        if (interviews.length === 0) return 0;
-        const sum = interviews.reduce((acc, i) => acc + (i.score || 0), 0);
-        return Math.round(sum / interviews.length);
+      const calculateAvg = (items: Array<{ score: number }>) => {
+        if (items.length === 0) return 0;
+        const sum = items.reduce((acc, i) => acc + i.score, 0);
+        return Math.round(sum / items.length);
       };
 
-      const avgScore = calculateAvg(allInterviews);
-      const currentPeriodAvg = calculateAvg(currentPeriodInterviews);
-      const previousPeriodAvg = calculateAvg(previousPeriodInterviews);
+      const avgScore = calculateAvg(timeline);
+      const currentPeriodAvg = calculateAvg(currentPeriodItems);
+      const previousPeriodAvg = calculateAvg(previousPeriodItems);
 
-      // Calculate improvement rate
       const improvementRate =
         previousPeriodAvg > 0
           ? Math.round(((currentPeriodAvg - previousPeriodAvg) / previousPeriodAvg) * 100)
           : 0;
 
-      // Calculate hours practiced (sum of durations in hours)
-      const totalMinutes = allInterviews.reduce((acc, i) => acc + (i.duration || 0), 0);
-      const weekMinutes = weekInterviews.reduce((acc, i) => acc + (i.duration || 0), 0);
+      const totalMinutes = timeline.reduce((acc, i) => acc + i.duration, 0);
+      const weekMinutes = weekItems.reduce((acc, i) => acc + i.duration, 0);
       const hoursPracticed = totalMinutes / 60;
       const weekHoursPracticed = weekMinutes / 60;
 
       res.status(200).json({
         success: true,
         data: {
-          totalInterviews: allInterviews.length,
-          weekInterviews: weekInterviews.length,
+          totalInterviews: timeline.length,
+          weekInterviews: weekItems.length,
           avgScore,
           lastPeriodAvgScore: previousPeriodAvg,
           hoursPracticed: parseFloat(hoursPracticed.toFixed(1)),
@@ -549,18 +555,51 @@ export class CandidateController {
         });
       }
 
-      const interviews = await Interview.find({
-        candidateId: userId,
-        status: 'completed',
-      })
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .populate('jobPositionId', 'title');
+      const [interviews, mockSessions] = await Promise.all([
+        Interview.find({
+          candidateId: userId,
+          status: 'completed',
+        })
+          .sort({ createdAt: -1 })
+          .limit(6)
+          .populate('jobPositionId', 'title')
+          .lean(),
+        MockInterviewSession.find({
+          userId,
+          status: 'completed',
+        })
+          .sort({ completedAt: -1, createdAt: -1 })
+          .limit(6)
+          .select('position duration metrics.overallScore createdAt completedAt')
+          .lean(),
+      ]);
+
+      const normalizedInterviews = interviews.map((item: any) => ({
+        _id: item._id,
+        jobPositionId: item.jobPositionId || { title: 'Interview Session' },
+        score: Number(item.score) || 0,
+        duration: Number(item.duration) || 0,
+        createdAt: item.createdAt,
+      }));
+
+      const normalizedMockSessions = mockSessions.map((item: any) => ({
+        _id: item._id,
+        jobPositionId: {
+          title: item.position || 'Mock Interview Session',
+        },
+        score: Number(item?.metrics?.overallScore) || 0,
+        duration: Number(item.duration) || 0,
+        createdAt: item.completedAt || item.createdAt,
+      }));
+
+      const mergedRecent = [...normalizedInterviews, ...normalizedMockSessions]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 3);
 
       res.status(200).json({
         success: true,
         data: {
-          interviews,
+          interviews: mergedRecent,
         },
       });
     } catch (error) {

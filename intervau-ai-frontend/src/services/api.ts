@@ -638,15 +638,30 @@ export const api = {
     }),
 
   getMockInterviewSession: (sessionId: string) =>
-    request<MockInterviewSessionDetail>(`/interviews/mock-interviews/sessions/${sessionId}`),
+    request<MockInterviewSessionDetail>(
+      `/interviews/mock-interviews/sessions/${sessionId}`,
+    ),
 
-  /** v2: Completed mock interview history (full session documents). Uses GET /sessions?status=completed&full=true. */
-  getMockInterviewHistoryV2: (params?: { limit?: number; page?: number }) =>
+  /** Completed mock interview history (full session documents). Uses GET /sessions?status=completed&full=true. */
+  getCompletedMockInterviewHistory: (params?: {
+    limit?: number;
+    page?: number;
+  }) =>
     request<{
       sessions: MockInterviewSessionDetail[];
-      pagination: { total: number; page: number; limit: number; totalPages: number };
+      pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
     }>("/interviews/mock-interviews/sessions", {
-      params: { status: "completed", full: "true", limit: params?.limit ?? 20, page: params?.page ?? 1 },
+      params: {
+        status: "completed",
+        full: "true",
+        limit: params?.limit ?? 20,
+        page: params?.page ?? 1,
+      },
     }),
 
   updateMockInterviewSystemCheck: (sessionId: string, passed: boolean) =>
