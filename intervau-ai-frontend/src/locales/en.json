@@ -576,6 +576,7 @@
     "bySectionTitle": "By question type",
     "improveLabel": "Improve:",
     "strengthLabel": "Good:",
+    "voiceProcessingDebrief": "One moment please — I'm processing your answers and preparing your feedback.",
     "continueToDashboard": "Continue to dashboard"
   }
 }

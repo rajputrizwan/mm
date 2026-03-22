@@ -51,6 +51,28 @@ type MockInterviewCompletePayload = {
   }>;
 };
 
+/**
+ * After the assistant finishes following the last answer, wait this long before calling /complete,
+ * plus any extra time needed so the candidate's last final transcript is not too recent (avoids
+ * cutting off someone who is still being transcribed).
+ */
+const DEBRIEF_AFTER_ASSISTANT_BASE_MS = 6000;
+const MIN_SILENCE_AFTER_LAST_USER_MS = 4000;
+const DEBRIEF_SCHEDULE_MAX_MS = 15000;
+
+/**
+ * Delay before running /complete: base quiet period + extra if the last user chunk was recent.
+ */
+function getDebriefScheduleDelayMs(messages: VapiMessage[]): number {
+  let lastUserMs = 0;
+  for (const m of messages) {
+    if (m.role === "user") lastUserMs = new Date(m.timestamp).getTime();
+  }
+  const sinceLastUser = lastUserMs > 0 ? Date.now() - lastUserMs : Number.POSITIVE_INFINITY;
+  const needUserSilence = Math.max(0, MIN_SILENCE_AFTER_LAST_USER_MS - sinceLastUser);
+  return Math.min(DEBRIEF_AFTER_ASSISTANT_BASE_MS + needUserSilence, DEBRIEF_SCHEDULE_MAX_MS);
+}
+
 /** Spoken last; Vapi hangs up when this is detected (case-insensitive) or when the model uses the endCall tool. */
 const MOCK_INTERVIEW_END_PHRASE = "This concludes your mock interview session.";
 
@@ -193,6 +215,17 @@ function mergeUserUtterancesByAssistantBoundary(messages: VapiMessage[]): string
   }
   if (buffer.length > 0) groups.push(buffer.join(" ").trim());
   return groups;
+}
+
+/**
+ * True when merged user segments cover every session question (including the last answer still
+ * in flight, flushed at transcript end). Does not require a final assistant "thanks" — without
+ * this, `countCompletedMergedAnswerGroups === qLen` never happens if the model stops without
+ * another assistant final, so /complete and hangup never run.
+ */
+function hasMergedAnswersForAllQuestions(messages: VapiMessage[], questionCount: number): boolean {
+  if (questionCount <= 0) return false;
+  return mergeUserUtterancesByAssistantBoundary(messages).length >= questionCount;
 }
 
 /**
@@ -414,12 +447,22 @@ export default function MockInterviewSession() {
   const vapiMessagesRef = useRef<VapiMessage[]>([]);
   const isCallActiveRef = useRef(false);
   const debriefIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** If `say(..., true)` does not hang up (SDK/server edge case), force end the Daily/Vapi call. */
+  const debriefHangupSafetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDebriefHangupSafety = () => {
+    if (debriefHangupSafetyRef.current) {
+      clearTimeout(debriefHangupSafetyRef.current);
+      debriefHangupSafetyRef.current = null;
+    }
+  };
 
   const handleCallEnd = async (
     _heuristicQAPairs: { question: string; answer: string }[],
     rawMessages: VapiMessage[],
   ) => {
     setIsSessionActive(false);
+    clearDebriefHangupSafety();
 
     const pending = pendingVoiceDebriefModalRef.current;
     if (pending) {
@@ -513,8 +556,13 @@ export default function MockInterviewSession() {
   }, [isCallActive]);
 
   /**
-   * After all questions are answered and the assistant finishes talking, call /complete while the
-   * call is still up, then Vapi speaks the debrief and hangs up (`say(..., true)`).
+   * After merged transcript covers all questions, wait for idle, call /complete, then Vapi speaks
+   * the debrief and should hang up (`say(..., true)`). We key off merged answer segments, not
+   * `countCompletedMergedAnswerGroups === qLen`, so we still complete if the model never emits a
+   * final assistant line after the last answer.
+   *
+   * `t` is memoized in `useTranslation` (stable unless language changes) so the 1s elapsed-time
+   * ticker does not clear this effect’s idle timer every second.
    */
   useEffect(() => {
     if (!isCallActive || voiceDebriefStartedRef.current) {
@@ -530,13 +578,10 @@ export default function MockInterviewSession() {
     if (!sessionId || !cfg || qLen === 0) return;
 
     const msgs = vapiMessages;
-    const completedAnswers = countCompletedMergedAnswerGroups(msgs);
-    if (completedAnswers < qLen) return;
-
-    const last = msgs[msgs.length - 1];
-    if (!last || last.role !== "assistant") return;
+    if (!hasMergedAnswersForAllQuestions(msgs, qLen)) return;
 
     if (debriefIdleTimerRef.current) clearTimeout(debriefIdleTimerRef.current);
+    const delayMs = getDebriefScheduleDelayMs(msgs);
     debriefIdleTimerRef.current = setTimeout(async () => {
       debriefIdleTimerRef.current = null;
       if (!isCallActiveRef.current || voiceDebriefStartedRef.current) return;
@@ -544,9 +589,14 @@ export default function MockInterviewSession() {
       const latestCfg = sessionConfigRef.current;
       if (!latestCfg) return;
       const latest = vapiMessagesRef.current;
-      if (countCompletedMergedAnswerGroups(latest) < qLen) return;
+      if (!hasMergedAnswersForAllQuestions(latest, qLen)) return;
 
       voiceDebriefStartedRef.current = true;
+      say(
+        t("mockInterviewSession.voiceProcessingDebrief") ||
+          "One moment please — I'm processing your answers and preparing your feedback.",
+        false,
+      );
       const out = await submitMockInterviewCompletionToServer(
         sessionId,
         latestCfg,
@@ -565,8 +615,14 @@ export default function MockInterviewSession() {
         serverData: out.serverData,
       };
       const script = buildVoiceDebriefScript(latestCfg.position, out.serverData);
+      clearDebriefHangupSafety();
+      const safetyMs = Math.min(180_000, 20_000 + script.length * 55);
+      debriefHangupSafetyRef.current = setTimeout(() => {
+        debriefHangupSafetyRef.current = null;
+        if (isCallActiveRef.current) stopInterview();
+      }, safetyMs);
       say(script, true);
-    }, 4000);
+    }, delayMs);
 
     return () => {
       if (debriefIdleTimerRef.current) {
@@ -574,7 +630,16 @@ export default function MockInterviewSession() {
         debriefIdleTimerRef.current = null;
       }
     };
-  }, [vapiMessages, isCallActive, sessionId, say, stopInterview]);
+  }, [vapiMessages, isCallActive, sessionId, say, stopInterview, t]);
+
+  useEffect(() => {
+    return () => {
+      if (debriefHangupSafetyRef.current) {
+        clearTimeout(debriefHangupSafetyRef.current);
+        debriefHangupSafetyRef.current = null;
+      }
+    };
+  }, []);
 
   const { stream, isLoading: streamLoading, error: streamError } = useMediaStream({
     audioEnabled: micEnabled,

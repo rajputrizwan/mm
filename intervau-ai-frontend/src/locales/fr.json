@@ -576,6 +576,7 @@
     "bySectionTitle": "Par type de question",
     "improveLabel": "À améliorer :",
     "strengthLabel": "Points positifs :",
+    "voiceProcessingDebrief": "Un instant, s'il vous plaît — je traite vos réponses et prépare votre retour.",
     "continueToDashboard": "Continuer vers le tableau de bord"
   }
 }
