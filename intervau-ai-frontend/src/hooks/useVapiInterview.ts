@@ -138,7 +138,10 @@ export function useVapiInterview({
    *  - An object (inline assistant config)
    */
   const startInterview = useCallback(
-    async (assistantConfig: string | Record<string, unknown>) => {
+    async (
+      assistantConfig: string | Record<string, unknown>,
+      assistantOverrides?: Record<string, unknown>,
+    ) => {
       if (!vapiRef.current) {
         console.error("[Vapi] SDK not initialised");
         return;
@@ -151,6 +154,7 @@ export function useVapiInterview({
       try {
         await (vapiRef.current as Vapi).start(
           assistantConfig as Parameters<Vapi["start"]>[0],
+          assistantOverrides as Parameters<Vapi["start"]>[1],
         );
       } catch (err) {
         setStatus("error");

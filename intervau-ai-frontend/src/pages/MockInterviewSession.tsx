@@ -18,6 +18,49 @@ import MockSessionVideoSection from "../components/interview/MockSessionVideoSec
 import MockSessionSpeakingPatterns from "../components/interview/MockSessionSpeakingPatterns";
 import MockSessionSidebar from "../components/interview/MockSessionSidebar";
 
+/** Payload from PUT .../complete used for the post-session feedback modal */
+type MockInterviewCompletePayload = {
+  metrics: {
+    overallScore: number;
+    overallRating?: string;
+    recommendation?: string;
+    confidence: number;
+    clarity: number;
+    technicalAccuracy: number;
+    communicationSkills: number;
+    fillerWords: number;
+    averageResponseTime: number;
+    totalWordsSpoken?: number;
+    speakingPaceWPM?: number;
+  };
+  summaryStructured?: {
+    text?: string;
+    strengths?: string[];
+    areasForImprovement?: string[];
+    recommendations?: string[];
+    keyInsights?: string[];
+  };
+  questionInsights?: Array<{
+    id: number;
+    category: string;
+    difficulty: string;
+    score?: number;
+    improvements: string[];
+    strengths: string[];
+    feedback?: string;
+  }>;
+};
+
+/** Spoken last; Vapi hangs up when this is detected (case-insensitive) or when the model uses the endCall tool. */
+const MOCK_INTERVIEW_END_PHRASE = "This concludes your mock interview session.";
+
+const MOCK_INTERVIEW_END_CALL_PHRASE_NORM = MOCK_INTERVIEW_END_PHRASE.replace(/\.$/, "");
+
+const mockInterviewAssistantOverrides: Record<string, unknown> = {
+  "tools:append": [{ type: "endCall" }],
+  endCallPhrases: [MOCK_INTERVIEW_END_CALL_PHRASE_NORM],
+};
+
 /**
  * VAPI assistant config for mock interview: AI asks questions one by one,
  * user answers with voice, then next question — chatbot style, all via voice.
@@ -40,12 +83,12 @@ Your job:
 - Ask the remaining interview questions ONE at a time (Question 2, then 3, …).
 - Keep your turn short: ask the question, then stay silent so the candidate can answer.
 - Do NOT repeat a question unless they ask. Do NOT give long feedback between questions — just move to the next.
-- After the last question and their answer, say: "That was the last question. Thank you for completing this mock interview. You can end the call when ready."
+- After the last question and their answer: (1) Thank them briefly for completing the mock interview. (2) Add one short encouraging remark about their practice (one sentence). (3) Say exactly this as your final sentence: "${MOCK_INTERVIEW_END_PHRASE}" (4) Immediately call the endCall tool in the same turn to hang up — do NOT tell the candidate to hang up, press end, or end the call themselves.
 
 Questions to ask (in order):
 ${numberedQuestions}
 
-Flow: Opening already delivered Q1 → wait for answer → brief ack → Ask Q2 → … → after last answer, closing message as above.`;
+Flow: Opening already delivered Q1 → wait for answer → brief ack → Ask Q2 → … → after last answer, closing remarks + exact final sentence + endCall tool.`;
 
   return {
     transcriber: {
@@ -58,13 +101,15 @@ Flow: Opening already delivered Q1 → wait for answer → brief ack → Ask Q2 
       model: "gpt-3.5-turbo",
       messages: [{ role: "system", content: systemPrompt }],
       temperature: 0.5,
-      maxTokens: 150,
+      maxTokens: 220,
+      tools: [{ type: "endCall" }],
     },
     voice: {
       provider: "11labs",
       voiceId: "paula",
     },
     name: "Mock Interviewer",
+    endCallPhrases: [MOCK_INTERVIEW_END_CALL_PHRASE_NORM],
     firstMessage: firstQuestionText
       ? `Hello. This is your mock interview for the ${position} role. I'll ask you ${questions.length} questions — please answer each one out loud after I ask it. Here's your first question: ${firstQuestionText}`
       : `Hello. This is your mock interview for the ${position} role. I'll ask you ${questions.length} questions. Answer out loud when I finish each question. Let's begin.`,
@@ -125,6 +170,71 @@ function computeSpeakingPatternsFromMessages(
   return { fillerWords, avgResponseTimeSeconds, totalWords, avgWordsPerMinute };
 }
 
+const NO_ANSWER_PLACEHOLDER = "(No answer provided)";
+
+/**
+ * Vapi often emits many short "final" user transcripts in one speaking turn. Merge consecutive
+ * user chunks until the assistant speaks again — one merged block ≈ one answer for the current question.
+ */
+function mergeUserUtterancesByAssistantBoundary(messages: VapiMessage[]): string[] {
+  const groups: string[] = [];
+  const buffer: string[] = [];
+
+  for (const msg of messages) {
+    if (msg.role === "user") {
+      const t = msg.content.trim();
+      if (t) buffer.push(t);
+    } else if (msg.role === "assistant") {
+      if (buffer.length > 0) {
+        groups.push(buffer.join(" ").trim());
+        buffer.length = 0;
+      }
+    }
+  }
+  if (buffer.length > 0) groups.push(buffer.join(" ").trim());
+  return groups;
+}
+
+/** Map N answer groups to M session questions (pad short; merge tail if too many groups). */
+function alignAnswerGroupsToQuestionCount(
+  groups: string[],
+  questionCount: number,
+  placeholder: string,
+): string[] {
+  if (questionCount === 0) return [];
+  if (groups.length === 0) {
+    return Array.from({ length: questionCount }, () => placeholder);
+  }
+  if (groups.length <= questionCount) {
+    const out = [...groups];
+    while (out.length < questionCount) out.push(placeholder);
+    return out;
+  }
+  const head = groups.slice(0, questionCount - 1);
+  const tail = groups.slice(questionCount - 1).join(" ");
+  return [...head, tail];
+}
+
+/**
+ * Build Q&A rows for the complete API using session questions as the source of truth.
+ * Question text is always from the session; answers come from merged user turns (not raw chunk count).
+ */
+function buildQAPairsForMockSession(
+  questions: Question[],
+  messages: VapiMessage[],
+): { question: string; answer: string }[] {
+  const n = questions.length;
+  if (n === 0) return [];
+
+  const grouped = mergeUserUtterancesByAssistantBoundary(messages);
+  const answers = alignAnswerGroupsToQuestionCount(grouped, n, NO_ANSWER_PLACEHOLDER);
+
+  return questions.map((q, i) => ({
+    question: q.text,
+    answer: answers[i] ?? NO_ANSWER_PLACEHOLDER,
+  }));
+}
+
 /** Map VAPI messages to transcript entries for the UI */
 function vapiMessagesToTranscript(msgs: VapiMessage[]): TranscriptEntry[] {
   return msgs.map((msg, i) => ({
@@ -171,6 +281,11 @@ export default function MockInterviewSession() {
     { type: "warning", message: "Avoid long pauses — the call may time out." },
   ]);
 
+  const [completionModal, setCompletionModal] = useState<{
+    results: Record<string, unknown>;
+    serverData: MockInterviewCompletePayload;
+  } | null>(null);
+
   const vapiPublicKey = import.meta.env.VITE_VAPI_API_KEY as string;
   const hasVapiKey = Boolean(vapiPublicKey?.trim());
 
@@ -180,12 +295,13 @@ export default function MockInterviewSession() {
   elapsedTimeRef.current = elapsedTime;
 
   const handleCallEnd = async (
-    qaPairs: { question: string; answer: string }[],
+    _heuristicQAPairs: { question: string; answer: string }[],
     rawMessages: VapiMessage[],
   ) => {
     setIsSessionActive(false);
     const config = sessionConfigRef.current;
     const durationSeconds = elapsedTimeRef.current;
+    const qaPairs = buildQAPairsForMockSession(config?.questions ?? [], rawMessages);
 
     // Build transcript in backend format for storage and pattern metrics
     const transcriptForApi = rawMessages.map((msg) => ({
@@ -196,9 +312,24 @@ export default function MockInterviewSession() {
 
     const speakingPatterns = computeSpeakingPatternsFromMessages(rawMessages, durationSeconds);
 
-    try {
-      if (sessionId) {
-        await api.completeMockInterviewSession(sessionId, {
+    const results = {
+      sessionId,
+      position: config?.position,
+      duration: durationSeconds,
+      questionsAnswered: qaPairs.filter(
+        (qa) =>
+          qa.answer.trim().length > 0 &&
+          !/^\(no answer provided\)$/i.test(qa.answer.trim()),
+      ).length,
+      totalQuestions: config?.questions.length ?? 0,
+      transcript: vapiMessagesToTranscript(rawMessages),
+      qaPairs,
+      completedAt: new Date().toISOString(),
+    };
+
+    if (sessionId) {
+      try {
+        const res = await api.completeMockInterviewSession(sessionId, {
           transcript: transcriptForApi,
           qaPairs,
           durationSeconds,
@@ -209,25 +340,42 @@ export default function MockInterviewSession() {
             avgWordsPerMinute: speakingPatterns.avgWordsPerMinute,
           },
         });
+        if (res.success && res.data) {
+          setCompletionModal({
+            results,
+            serverData: {
+              metrics: res.data.metrics,
+              summaryStructured: res.data.summaryStructured,
+              questionInsights: res.data.questionInsights,
+            },
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to complete session:", e);
       }
-    } catch (e) {
-      console.error("Failed to complete session:", e);
     }
 
-    const results = {
-      sessionId,
-      position: config?.position,
-      duration: durationSeconds,
-      questionsAnswered: qaPairs.length,
-      totalQuestions: config?.questions.length ?? 0,
-      transcript: vapiMessagesToTranscript(rawMessages),
-      qaPairs,
-      completedAt: new Date().toISOString(),
-    };
     localStorage.setItem("lastInterviewResults", JSON.stringify(results));
     localStorage.removeItem("currentInterviewSession");
     toast.success(t("mockInterviewSession.sessionCompleted"));
     navigate(ROUTES.CANDIDATE_DASHBOARD);
+  };
+
+  const dismissCompletionModal = () => {
+    if (!completionModal) return;
+    const { results, serverData } = completionModal;
+    const stored = {
+      ...results,
+      metrics: serverData.metrics,
+      summaryStructured: serverData.summaryStructured,
+      questionInsights: serverData.questionInsights,
+    };
+    localStorage.setItem("lastInterviewResults", JSON.stringify(stored));
+    localStorage.removeItem("currentInterviewSession");
+    toast.success(t("mockInterviewSession.sessionCompleted"));
+    navigate(ROUTES.CANDIDATE_DASHBOARD);
+    setCompletionModal(null);
   };
 
   const {
@@ -247,6 +395,33 @@ export default function MockInterviewSession() {
     onTranscriptUpdate: (msgs) => setTranscript(vapiMessagesToTranscript(msgs)),
     onError: (err) => toast.error(`Voice: ${err.message}`),
   });
+
+  /** Reset when a new call connects; Vapi should end via endCall tool / endCallPhrases — this is a fallback. */
+  const autoHangupScheduledRef = useRef(false);
+  useEffect(() => {
+    if (isCallActive) autoHangupScheduledRef.current = false;
+  }, [isCallActive]);
+
+  useEffect(() => {
+    if (!isCallActive || autoHangupScheduledRef.current) return;
+    let lastUser = -1;
+    for (let j = vapiMessages.length - 1; j >= 0; j--) {
+      if (vapiMessages[j].role === "user") {
+        lastUser = j;
+        break;
+      }
+    }
+    const tail = lastUser >= 0 ? vapiMessages.slice(lastUser + 1) : vapiMessages;
+    const assistantText = tail
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content)
+      .join(" ")
+      .toLowerCase();
+    const needle = MOCK_INTERVIEW_END_CALL_PHRASE_NORM.toLowerCase();
+    if (!assistantText.includes(needle)) return;
+    autoHangupScheduledRef.current = true;
+    window.setTimeout(() => stopInterview(), 3500);
+  }, [vapiMessages, isCallActive, stopInterview]);
 
   const { stream, isLoading: streamLoading, error: streamError } = useMediaStream({
     audioEnabled: micEnabled,
@@ -331,8 +506,8 @@ export default function MockInterviewSession() {
 
     vapiStartedRef.current = true;
     const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID as string | undefined;
-    if (assistantId) {
-      startInterview(assistantId);
+    if (assistantId?.trim()) {
+      startInterview(assistantId.trim(), mockInterviewAssistantOverrides);
     } else {
       const config = buildMockSessionVapiConfig(
         sessionConfig.position,
@@ -553,6 +728,141 @@ export default function MockInterviewSession() {
           />
         </div>
       </div>
+
+      {completionModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mock-completion-title"
+        >
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[88vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+            <div className="p-6 space-y-5">
+              <div>
+                <h2
+                  id="mock-completion-title"
+                  className="text-xl font-semibold text-gray-900 dark:text-white"
+                >
+                  {t("mockInterviewSession.feedbackTitle") || "Your interview feedback"}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {completionModal.results.position as string}
+                  {" · "}
+                  {t("mockInterviewSession.scoreLabel") || "Score"}{" "}
+                  <span className="font-medium text-gray-800 dark:text-gray-200">
+                    {completionModal.serverData.metrics.overallScore}/100
+                  </span>
+                  {completionModal.serverData.metrics.overallRating
+                    ? ` (${completionModal.serverData.metrics.overallRating})`
+                    : ""}
+                </p>
+              </div>
+
+              {(() => {
+                const s = completionModal.serverData.summaryStructured;
+                const improve = s?.areasForImprovement?.filter(Boolean) ?? [];
+                const recs = s?.recommendations?.filter(Boolean) ?? [];
+                const strengths = s?.strengths?.filter(Boolean) ?? [];
+                return (
+                  <>
+                    {improve.length > 0 && (
+                      <section>
+                        <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200 uppercase tracking-wide mb-2">
+                          {t("mockInterviewSession.improveAreasTitle") || "Where to improve"}
+                        </h3>
+                        <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1.5">
+                          {improve.map((item, i) => (
+                            <li key={`imp-${i}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+
+                    {recs.length > 0 && (
+                      <section>
+                        <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 uppercase tracking-wide mb-2">
+                          {t("mockInterviewSession.recommendationsTitle") || "Recommendations"}
+                        </h3>
+                        <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1.5">
+                          {recs.map((item, i) => (
+                            <li key={`rec-${i}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+
+                    {strengths.length > 0 && (
+                      <section>
+                        <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 uppercase tracking-wide mb-2">
+                          {t("mockInterviewSession.strengthsTitle") || "Strengths"}
+                        </h3>
+                        <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1.5">
+                          {strengths.map((item, i) => (
+                            <li key={`str-${i}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </>
+                );
+              })()}
+
+              {completionModal.serverData.questionInsights &&
+                completionModal.serverData.questionInsights.some(
+                  (q) => q.improvements.length > 0 || q.strengths.length > 0,
+                ) && (
+                  <section>
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide mb-2">
+                      {t("mockInterviewSession.bySectionTitle") || "By question type"}
+                    </h3>
+                    <div className="space-y-3">
+                      {completionModal.serverData.questionInsights.map((q) => (
+                        <div
+                          key={q.id}
+                          className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm"
+                        >
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <span className="font-medium capitalize text-gray-900 dark:text-white">
+                              {q.category}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {q.difficulty}
+                              {q.score != null ? ` · ${q.score}%` : ""}
+                            </span>
+                          </div>
+                          {q.improvements.length > 0 && (
+                            <p className="text-amber-800 dark:text-amber-200/90 text-xs mt-1">
+                              <span className="font-medium">
+                                {t("mockInterviewSession.improveLabel") || "Improve:"}{" "}
+                              </span>
+                              {q.improvements.join(" · ")}
+                            </p>
+                          )}
+                          {q.strengths.length > 0 && (
+                            <p className="text-green-800 dark:text-green-200/90 text-xs mt-1">
+                              <span className="font-medium">
+                                {t("mockInterviewSession.strengthLabel") || "Good:"}{" "}
+                              </span>
+                              {q.strengths.join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+              <button
+                type="button"
+                onClick={dismissCompletionModal}
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+              >
+                {t("mockInterviewSession.continueToDashboard") || "Continue to dashboard"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

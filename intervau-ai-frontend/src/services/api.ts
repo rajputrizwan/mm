@@ -776,11 +776,21 @@ export const api = {
       };
       summary: string;
       summaryStructured?: {
+        text?: string;
         strengths?: string[];
         areasForImprovement?: string[];
         recommendations?: string[];
         keyInsights?: string[];
       };
+      questionInsights?: Array<{
+        id: number;
+        category: string;
+        difficulty: string;
+        score?: number;
+        improvements: string[];
+        strengths: string[];
+        feedback?: string;
+      }>;
       questionsAnswered: number;
       totalQuestions: number;
     }>(`/interviews/mock-interviews/sessions/${sessionId}/complete`, {

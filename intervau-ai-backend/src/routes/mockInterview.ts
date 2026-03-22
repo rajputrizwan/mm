@@ -732,6 +732,18 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         console.log(`  Group ${i + 1}: "${ans.substring(0, 100)}${ans.length > 100 ? '...' : ''}"`);
       });
 
+      /** Match grouped answers to session question count (pad; merge overflow into last slot). */
+      const alignAnswerGroupsToQuestionCount = (groups: string[], numQ: number): string[] => {
+        if (numQ === 0) return [];
+        if (groups.length === 0) return Array(numQ).fill('');
+        if (groups.length <= numQ) {
+          return [...groups, ...Array(numQ - groups.length).fill('')];
+        }
+        const head = groups.slice(0, numQ - 1);
+        const tail = groups.slice(numQ - 1).join(' ').trim();
+        return [...head, tail];
+      };
+
       // Build full transcript array so Mongoose persists all entries
       console.log(`\n📋 BUILDING TRANSCRIPT ARRAY WITH QUESTION INDICES...`);
       const newTranscript = transcriptPayload.map((t, idx) => {
@@ -744,17 +756,26 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         };
       });
 
-      let qIndex = 0;
+      // One question index per candidate *turn* (not per transcript chunk): advance only when
+      // speaker switches from candidate → ai, so split user utterances stay on the same question.
+      const numQs = session.questions.length;
+      const lastQ = Math.max(0, numQs - 1);
+      let qIdx = 0;
+      let prevWasCandidate = false;
       for (let i = 0; i < newTranscript.length; i++) {
-        if (newTranscript[i].speaker === 'candidate') {
-          newTranscript[i].questionIndex = qIndex;
-          console.log(`  Entry ${i} (candidate) → questionIndex: ${qIndex}`);
-          qIndex++;
+        const isCandidate = newTranscript[i].speaker === 'candidate';
+        if (isCandidate) {
+          newTranscript[i].questionIndex = Math.min(Math.max(0, qIdx), lastQ);
+          console.log(`  Entry ${i} (candidate) → questionIndex: ${newTranscript[i].questionIndex}`);
         } else {
-          newTranscript[i].questionIndex =
-            qIndex < session.questions.length ? qIndex : Math.max(0, qIndex - 1);
+          if (prevWasCandidate) {
+            qIdx++;
+            prevWasCandidate = false;
+          }
+          newTranscript[i].questionIndex = Math.min(Math.max(0, qIdx), lastQ);
           console.log(`  Entry ${i} (ai) → questionIndex: ${newTranscript[i].questionIndex}`);
         }
+        if (isCandidate) prevWasCandidate = true;
       }
 
       console.log(`✅ FINAL TRANSCRIPT WITH INDICES:`);
@@ -765,15 +786,21 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
       session.transcript = newTranscript;
       session.markModified('transcript');
 
-      // Prefer qaPairs from frontend (by index); fallback to transcript-derived answer groups
+      // Prefer transcript-derived answer groups (consecutive candidate lines merged). They match how
+      // Vapi splits one spoken answer into many finals. qaPairs are fallback for older clients.
       const durationSeconds = body.durationSeconds ?? sessionDurationMinutes * 60;
       const numQuestions = session.questions.length;
       console.log(`\n📝 PREPARING ANSWERS FOR ANALYSIS (${numQuestions} questions)`);
 
       const answersToUse =
-        body.qaPairs && body.qaPairs.length > 0
-          ? body.qaPairs.slice(0, numQuestions).map(qa => qa.answer ?? '')
-          : answerGroups.slice(0, numQuestions);
+        answerGroups.length > 0
+          ? alignAnswerGroupsToQuestionCount(answerGroups, numQuestions)
+          : body.qaPairs && body.qaPairs.length > 0
+            ? alignAnswerGroupsToQuestionCount(
+                body.qaPairs.map(qa => (qa.answer ?? '').trim()),
+                numQuestions
+              )
+            : Array(numQuestions).fill('');
 
       questionsAnsweredCount = answersToUse.length;
       console.log(`📝 Using ${questionsAnsweredCount} answers for analysis:`);
@@ -1016,18 +1043,21 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
     }
 
     console.log(`\n📋 PARSING SUMMARY MARKDOWN...`);
-    const parsed = parseSummaryMarkdown(summaryText);
-    console.log(`  Strengths: ${parsed.strengths?.length || 0}`);
-    console.log(`  Areas for Improvement: ${parsed.areasForImprovement?.length || 0}`);
-    console.log(`  Recommendations: ${parsed.recommendations?.length || 0}`);
-    console.log(`  Key Insights: ${parsed.keyInsights?.length || 0}`);
+    let structured = parseSummaryMarkdown(summaryText);
+    if (session.metrics) {
+      structured = enrichSummaryStructured(session, structured, session.metrics);
+    }
+    console.log(`  Strengths: ${structured.strengths?.length || 0}`);
+    console.log(`  Areas for Improvement: ${structured.areasForImprovement?.length || 0}`);
+    console.log(`  Recommendations: ${structured.recommendations?.length || 0}`);
+    console.log(`  Key Insights: ${structured.keyInsights?.length || 0}`);
 
     session.summary = {
       text: summaryText,
-      strengths: parsed.strengths ?? [],
-      areasForImprovement: parsed.areasForImprovement ?? [],
-      recommendations: parsed.recommendations ?? [],
-      keyInsights: parsed.keyInsights ?? [],
+      strengths: structured.strengths ?? [],
+      areasForImprovement: structured.areasForImprovement ?? [],
+      recommendations: structured.recommendations ?? [],
+      keyInsights: structured.keyInsights ?? [],
     };
     session.markModified('summary');
     session.status = 'completed';
@@ -1056,6 +1086,16 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
       )
     );
 
+    const questionInsights = session.questions.map(q => ({
+      id: q.id,
+      category: q.category,
+      difficulty: q.difficulty,
+      score: q.aiAnalysis?.score,
+      improvements: q.aiAnalysis?.improvements ?? [],
+      strengths: q.aiAnalysis?.strengths ?? [],
+      feedback: q.aiAnalysis?.feedback,
+    }));
+
     console.log(`\n📤 SENDING RESPONSE...`);
     res.status(200).json({
       success: true,
@@ -1066,6 +1106,7 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
         metrics: session.metrics,
         summary: session.summary?.text ?? summaryText,
         summaryStructured: session.summary,
+        questionInsights,
         questionsAnswered: effectiveQuestionsAnswered,
         totalQuestions: session.questions.length,
       },
@@ -1084,6 +1125,106 @@ router.put('/sessions/:sessionId/complete', async (req: AuthRequest, res: Respon
   }
 });
 
+type SummaryStructured = {
+  strengths: string[];
+  areasForImprovement: string[];
+  recommendations: string[];
+  keyInsights: string[];
+};
+
+function pushUniqueNormalized(arr: string[], item: string, seen: Set<string>) {
+  const t = item.replace(/\s+/g, ' ').trim();
+  if (!t) return;
+  const k = t.toLowerCase();
+  if (seen.has(k)) return;
+  seen.add(k);
+  arr.push(t);
+}
+
+/** Merge parsed summary with per-question AI analysis and metrics so UI always has actionable items. */
+function enrichSummaryStructured(
+  session: IMockInterviewSession,
+  parsed: SummaryStructured,
+  metrics: NonNullable<IMockInterviewSession['metrics']>
+): SummaryStructured {
+  const seenS = new Set<string>();
+  const seenI = new Set<string>();
+  const seenR = new Set<string>();
+  const seenK = new Set<string>();
+
+  const out: SummaryStructured = {
+    strengths: [],
+    areasForImprovement: [],
+    recommendations: [],
+    keyInsights: [],
+  };
+
+  for (const s of parsed.strengths) pushUniqueNormalized(out.strengths, s, seenS);
+  for (const s of parsed.areasForImprovement) pushUniqueNormalized(out.areasForImprovement, s, seenI);
+  for (const s of parsed.recommendations) pushUniqueNormalized(out.recommendations, s, seenR);
+  for (const s of parsed.keyInsights) pushUniqueNormalized(out.keyInsights, s, seenK);
+
+  for (const q of session.questions) {
+    for (const s of q.aiAnalysis?.strengths ?? []) pushUniqueNormalized(out.strengths, s, seenS);
+    for (const s of q.aiAnalysis?.improvements ?? []) pushUniqueNormalized(out.areasForImprovement, s, seenI);
+  }
+
+  const words = metrics.totalWordsSpoken ?? 0;
+  const nq = session.questions.length || 1;
+  const wordsPerQ = words / nq;
+  if (wordsPerQ < 40 && session.questions.length > 0) {
+    pushUniqueNormalized(
+      out.areasForImprovement,
+      'Add more detail per answer: context, actions you took, and measurable results',
+      seenI
+    );
+  }
+  const wpm = metrics.speakingPaceWPM ?? 0;
+  if (wpm > 0 && wpm < 90) {
+    pushUniqueNormalized(
+      out.areasForImprovement,
+      'Speaking pace was on the low side — practice concise answers while staying clear',
+      seenI
+    );
+  }
+  if ((metrics.technicalAccuracy ?? 0) < 70) {
+    pushUniqueNormalized(
+      out.areasForImprovement,
+      'Technical answers: name specific tools, trade-offs, and how you validated your approach',
+      seenI
+    );
+  }
+  if ((metrics.clarity ?? 0) < 72) {
+    pushUniqueNormalized(
+      out.areasForImprovement,
+      'Structure answers with a clear beginning, middle (what you did), and outcome',
+      seenI
+    );
+  }
+
+  if (out.strengths.length === 0) pushUniqueNormalized(out.strengths, 'Completed the mock interview', seenS);
+  if (out.areasForImprovement.length === 0) {
+    pushUniqueNormalized(
+      out.areasForImprovement,
+      'Keep practicing: rehearse aloud and time yourself on common role questions',
+      seenI
+    );
+  }
+
+  const recLine =
+    metrics.recommendation ??
+    ((metrics.overallScore ?? 0) >= 70 ? 'Move to Next Round' : 'Practice and retry');
+  if (out.recommendations.length === 0) pushUniqueNormalized(out.recommendations, recLine, seenR);
+
+  pushUniqueNormalized(
+    out.recommendations,
+    'Focus next practice on the categories below where your per-question feedback flags improvements',
+    seenR
+  );
+
+  return out;
+}
+
 /** Build a fallback summary from metrics when AI summary fails */
 function buildFallbackSummary(
   metrics: NonNullable<IMockInterviewSession['metrics']>,
@@ -1098,55 +1239,101 @@ function buildFallbackSummary(
     metrics.recommendation ?? (score >= 70 ? 'Move to Next Round' : 'Practice and retry');
   const strengths: string[] = [];
   const improvements: string[] = [];
+  const recs: string[] = [];
   if ((metrics.totalWordsSpoken ?? 0) > 100) strengths.push('Provided detailed responses');
   if ((metrics.fillerWords ?? 0) === 0) strengths.push('No filler words detected');
   if ((metrics.confidence ?? 0) >= 70) strengths.push('Good confidence level');
   if ((metrics.fillerWords ?? 0) > 2) improvements.push('Reduce filler words (um, uh, like)');
   if ((metrics.totalWordsSpoken ?? 0) < 50 && questionsAnswered > 0)
-    improvements.push('Elaborate more on answers');
+    improvements.push('Elaborate more on answers with examples and outcomes');
+  if ((metrics.technicalAccuracy ?? 0) < 70)
+    improvements.push('Deepen technical specificity (tools, constraints, validation)');
   if (strengths.length === 0) strengths.push('Completed the interview');
-  if (improvements.length === 0) improvements.push('Continue practicing for improvement');
-  return `## Mock Interview Summary – ${position}\n\n**Overall Score:** ${score}/100\n**Rating:** ${rating}\n**Recommendation:** ${recommendation}\n\n**Key Strengths:**\n${strengths.map(s => `- ${s}`).join('\n')}\n\n**Areas for Improvement:**\n${improvements.map(i => `- ${i}`).join('\n')}\n\nQuestions answered: ${questionsAnswered}/${totalQuestions}. Response time avg: ${metrics.averageResponseTime?.toFixed(1) ?? '—'}s. Words spoken: ${metrics.totalWordsSpoken ?? 0}.`;
+  if (improvements.length === 0) improvements.push('Continue building depth and structure in answers');
+  recs.push(recommendation);
+  if (score < 75) recs.push('Revisit job description keywords and rehearse 2–3 stories that map to them');
+  recs.push('Review per-question feedback on your results page for targeted practice');
+  return `## Mock Interview Summary – ${position}\n\n**Overall Score:** ${score}/100\n**Rating:** ${rating}\n\n**Key Strengths:**\n${strengths.map(s => `- ${s}`).join('\n')}\n\n**Areas for Improvement:**\n${improvements.map(i => `- ${i}`).join('\n')}\n\n**Recommendations:**\n${recs.map(r => `- ${r}`).join('\n')}\n\nQuestions answered: ${questionsAnswered}/${totalQuestions}. Response time avg: ${metrics.averageResponseTime?.toFixed(1) ?? '—'}s. Words spoken: ${metrics.totalWordsSpoken ?? 0}.`;
 }
 
-/** Parse AI summary markdown into structured fields for Overview tab */
-function parseSummaryMarkdown(markdown: string): {
-  strengths: string[];
-  areasForImprovement: string[];
-  recommendations: string[];
-  keyInsights: string[];
-} {
-  const result = {
-    strengths: [] as string[],
-    areasForImprovement: [] as string[],
-    recommendations: [] as string[],
-    keyInsights: [] as string[],
+/** Parse summary markdown into structured fields (headers like **Key Strengths:** + bullet lines). */
+function parseSummaryMarkdown(markdown: string): SummaryStructured {
+  const result: SummaryStructured = {
+    strengths: [],
+    areasForImprovement: [],
+    recommendations: [],
+    keyInsights: [],
   };
 
-  const extractBullets = (text: string, sectionTitle: string): string[] => {
-    const regex = new RegExp(`${sectionTitle}[\\s\\S]*?(?=\\n##|\\n\\d\\.|\\n\\*\\*|$)`, 'i');
-    const match = text.match(regex);
-    if (!match) return [];
-    const section = match[0].replace(new RegExp(`^.*?${sectionTitle}`, 'i'), '').trim();
-    const bullets = section
-      .split(/\n/)
-      .map(l => l.replace(/^[\s*\-•]\s*/, '').trim())
-      .filter(Boolean);
-    return bullets.slice(0, 8);
+  type Bucket = keyof SummaryStructured;
+  let bucket: Bucket | null = null;
+
+  const setBucketFromTitle = (title: string): boolean => {
+    const x = title.replace(/\*+/g, '').trim().toLowerCase();
+    if (/^key strengths/.test(x)) {
+      bucket = 'strengths';
+      return true;
+    }
+    if (/^areas?\s+for\s+improvement/.test(x) || /^improvements?$/.test(x)) {
+      bucket = 'areasForImprovement';
+      return true;
+    }
+    if (/^recommendations?$/.test(x) || /^final recommendation/.test(x)) {
+      bucket = 'recommendations';
+      return true;
+    }
+    if (/^key insights/.test(x) || /^communication quality/.test(x)) {
+      bucket = 'keyInsights';
+      return true;
+    }
+    return false;
   };
 
-  result.strengths = extractBullets(markdown, 'strength|key strength');
-  result.areasForImprovement = extractBullets(markdown, 'improvement|area for improvement');
-  result.recommendations = extractBullets(markdown, 'recommendation|final recommendation');
-  result.keyInsights = extractBullets(markdown, 'insight|communication quality');
+  const lines = markdown.split(/\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
 
-  if (result.strengths.length === 0 && markdown.includes('*')) {
-    result.strengths = markdown
-      .split(/\n/)
-      .filter(l => /^[\s*\-•]/.test(l))
-      .map(l => l.replace(/^[\s*\-•]\s*/, '').trim())
-      .slice(0, 6);
+    const inlineRec = line.match(/^\*{0,2}Recommendation\*{0,2}:\s*(.+)$/i);
+    if (inlineRec) {
+      result.recommendations.push(inlineRec[1].trim());
+      continue;
+    }
+
+    const boldOnly = line.match(/^\*{1,2}([^*]+)\*{1,2}:\s*(.*)$/);
+    if (boldOnly) {
+      const title = boldOnly[1].trim();
+      const rest = boldOnly[2].trim();
+      if (/overall score|rating$/i.test(title)) {
+        bucket = null;
+        continue;
+      }
+      if (setBucketFromTitle(title)) {
+        if (rest && /^[-*•]/.test(rest)) {
+          const t = rest.replace(/^[-*•]\s+/, '').trim();
+          if (t) result[bucket!].push(t);
+        } else if (rest && bucket === 'recommendations') {
+          result.recommendations.push(rest);
+        }
+        continue;
+      }
+      bucket = null;
+      continue;
+    }
+
+    const hash = line.match(/^#{1,3}\s+(.+)/);
+    if (hash) {
+      if (setBucketFromTitle(hash[1])) continue;
+      bucket = null;
+      continue;
+    }
+
+    if (bucket && /^[-*•]/.test(line)) {
+      const text = line.replace(/^[-*•]\s+/, '').trim();
+      if (text && !/^\*\*[^*]+\*\*$/.test(text)) result[bucket].push(text);
+    }
   }
+
   return result;
 }
 
