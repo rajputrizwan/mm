@@ -217,9 +217,20 @@ function buildQAPairs(msgs: VapiMessage[]): QAPair[] {
     );
   }
 
+  /** Opening message may bundle welcome + "Here's your first question: …" — extract Q1 for pairing. */
+  function extractOpeningFirstQuestion(text: string): string | null {
+    const m = text.match(/here'?s your first question:\s*(.+)$/is);
+    return m?.[1]?.trim() ? m[1].trim() : null;
+  }
+
   for (const msg of msgs) {
     if (msg.role === "assistant") {
-      if (looksLikeQuestion(msg.content)) {
+      const fromOpening = extractOpeningFirstQuestion(msg.content);
+      const questionBody =
+        fromOpening ??
+        (looksLikeQuestion(msg.content) ? msg.content.trim() : "");
+
+      if (questionBody) {
         // If we have an unanswered question already, save it with an empty answer
         if (pendingQuestion) {
           pairs.push({
@@ -227,7 +238,7 @@ function buildQAPairs(msgs: VapiMessage[]): QAPair[] {
             answer: "(No answer provided)",
           });
         }
-        pendingQuestion = msg.content;
+        pendingQuestion = questionBody;
       }
     } else if (msg.role === "user") {
       if (pendingQuestion) {

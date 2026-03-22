@@ -30,19 +30,22 @@ function buildMockSessionVapiConfig(
     .map((q, i) => `${i + 1}. ${q.text}`)
     .join("\n");
 
+  const firstQuestionText = questions[0]?.text?.trim() ?? "";
+
   const systemPrompt = `You are a professional mock interviewer conducting a practice job interview for the role: "${position}".
 
 Your job:
-- Ask the interview questions below ONE at a time, in order.
-- After the candidate answers, give a brief acknowledgment (e.g. "Thanks." or "Good.") then ask the next question.
+- Your opening line (first message) already includes a short welcome AND Question 1. Do NOT greet again or repeat Question 1.
+- After the candidate answers Question 1, give a brief acknowledgment (e.g. "Thanks." or "Good.") then ask Question 2 from the list below, and so on in order.
+- Ask the remaining interview questions ONE at a time (Question 2, then 3, …).
 - Keep your turn short: ask the question, then stay silent so the candidate can answer.
-- Do NOT repeat the question unless they ask. Do NOT give long feedback between questions — just move to the next.
+- Do NOT repeat a question unless they ask. Do NOT give long feedback between questions — just move to the next.
 - After the last question and their answer, say: "That was the last question. Thank you for completing this mock interview. You can end the call when ready."
 
 Questions to ask (in order):
 ${numberedQuestions}
 
-Flow: Greet briefly → Ask Q1 → wait for answer → brief ack → Ask Q2 → … → after last answer, closing message as above.`;
+Flow: Opening already delivered Q1 → wait for answer → brief ack → Ask Q2 → … → after last answer, closing message as above.`;
 
   return {
     transcriber: {
@@ -62,7 +65,9 @@ Flow: Greet briefly → Ask Q1 → wait for answer → brief ack → Ask Q2 → 
       voiceId: "paula",
     },
     name: "Mock Interviewer",
-    firstMessage: `Hello. This is your mock interview for the ${position} role. I'll ask you ${questions.length} questions. Answer out loud when I finish each question. Let's begin.`,
+    firstMessage: firstQuestionText
+      ? `Hello. This is your mock interview for the ${position} role. I'll ask you ${questions.length} questions — please answer each one out loud after I ask it. Here's your first question: ${firstQuestionText}`
+      : `Hello. This is your mock interview for the ${position} role. I'll ask you ${questions.length} questions. Answer out loud when I finish each question. Let's begin.`,
     silenceTimeoutSeconds: 45,
     maxDurationSeconds: 3600,
   };
