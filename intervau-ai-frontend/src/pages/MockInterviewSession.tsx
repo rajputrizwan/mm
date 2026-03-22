@@ -284,7 +284,7 @@ function buildVoiceDebriefScript(
     `Your overall score is ${m.overallScore} out of 100${m.overallRating ? `, rated ${m.overallRating}` : ""}.`,
   );
   const strengths = (s?.strengths ?? []).filter(Boolean).slice(0, 2);
-  if (strengths.length) parts.push(`Strengths we noted: ${strengths.join(". ")}.`);
+  if (strengths.length) parts.push(`Strengths we noted: ${strengths?.filter((s): s is string => s !== "s:**").join(". ")}.`);
   const improve = (s?.areasForImprovement ?? []).filter(Boolean).slice(0, 2);
   if (improve.length) parts.push(`Areas to work on: ${improve.join(". ")}.`);
   const recs = (s?.recommendations ?? []).filter(Boolean).slice(0, 2);
@@ -915,7 +915,7 @@ export default function MockInterviewSession() {
                 const s = completionModal.serverData.summaryStructured;
                 const improve = s?.areasForImprovement?.filter(Boolean) ?? [];
                 const recs = s?.recommendations?.filter(Boolean) ?? [];
-                const strengths = s?.strengths?.filter(Boolean) ?? [];
+                const strengths = s?.strengths?.filter(Boolean).filter(s => s !== "s:**") ?? [];
                 return (
                   <>
                     {improve.length > 0 && (
@@ -950,7 +950,7 @@ export default function MockInterviewSession() {
                           {t("mockInterviewSession.strengthsTitle")}
                         </h3>
                         <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1.5">
-                          {strengths.map((item, i) => (
+                          {strengths.filter((s): s is string => s !== "s:**").map((item, i) => (
                             <li key={`str-${i}`}>{item}</li>
                           ))}
                         </ul>
@@ -996,7 +996,7 @@ export default function MockInterviewSession() {
                               <span className="font-medium">
                                 {t("mockInterviewSession.strengthLabel")}{" "}
                               </span>
-                              {q.strengths.join(" · ")}
+                              {q.strengths?.filter((s): s is string => s !== "s:**").join(" · ")}
                             </p>
                           )}
                         </div>
