@@ -1,0 +1,425 @@
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AppProvider } from "./contexts/AppContext";
+import { ProtectedRoute, ROUTES } from "./router";
+
+import AppLayout from "./components/layout/AppLayout";
+import Navbar from "./components/Navbar";
+import NotificationToast from "./components/common/NotificationToast";
+
+// Public Pages
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import Pricing from "./pages/Pricing";
+import About from "./pages/About";
+import FAQ from "./pages/FAQ";
+import Contact from "./pages/Contact";
+import EngagementDemo from "./pages/EngagementDemo";
+
+// Candidate Pages
+import Dashboard from "./pages/Dashboard";
+import Resume from "./pages/Resume";
+import MockInterview from "./pages/MockInterview";
+import MockInterviewSetup from "./pages/MockInterviewSetup";
+import MockInterviewReady from "./pages/MockInterviewReady";
+import MockInterviewSession from "./pages/MockInterviewSession";
+import MockInterviewErrorBoundary from "./components/interview/MockInterviewErrorBoundary";
+import InterviewHistory from "./pages/InterviewHistory";
+import InterviewReport from "./pages/InterviewReport";
+import ProfileSettings from "./pages/ProfileSettings";
+import DeviceManagement from "./pages/DeviceManagement";
+
+// HR Pages
+import HRDashboard from "./pages/HRDashboard";
+import JobPositions from "./pages/JobPositions";
+import HRCandidates from "./pages/HRCandidates";
+import CandidateReview from "./pages/CandidateReview";
+import HRCreateInterview from "./pages/HRCreateInterview";
+
+// Shared Pages
+import LiveInterview from "./pages/LiveInterview";
+import InterviewSummary from "./pages/InterviewSummary";
+
+// Public Interview Pages (Shareable Link Access)
+import CandidateInterviewLanding from "./pages/CandidateInterviewLanding";
+import AIInterviewSession from "./pages/AIInterviewSession";
+import PublicInterviewComplete from "./pages/PublicInterviewComplete";
+
+// Error Pages
+import NotFound from "./pages/NotFound";
+
+// Layout wrapper for authenticated pages
+function AuthenticatedLayout({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return <AppLayout title={title}>{children}</AppLayout>;
+}
+
+// Layout wrapper for public pages
+function PublicLayout({
+  children,
+  showNavbar = true,
+}: {
+  children: React.ReactNode;
+  showNavbar?: boolean;
+}) {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      {showNavbar && <Navbar />}
+      {children}
+    </div>
+  );
+}
+
+function AppRoutes() {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route
+        path={ROUTES.LANDING}
+        element={
+          <PublicLayout showNavbar={false}>
+            <Landing />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.LOGIN}
+        element={
+          <PublicLayout showNavbar={false}>
+            <Login />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.REGISTER}
+        element={
+          <PublicLayout showNavbar={false}>
+            <Register />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.FORGOT_PASSWORD}
+        element={
+          <PublicLayout showNavbar={false}>
+            <ForgotPassword />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.RESET_PASSWORD}
+        element={
+          <PublicLayout showNavbar={false}>
+            <ResetPassword />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.PRICING}
+        element={
+          <PublicLayout>
+            <Pricing />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.ABOUT}
+        element={
+          <PublicLayout>
+            <About />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.FAQ}
+        element={
+          <PublicLayout>
+            <FAQ />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.CONTACT}
+        element={
+          <PublicLayout>
+            <Contact />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.ENGAGEMENT_DEMO}
+        element={
+          <PublicLayout showNavbar={false}>
+            <EngagementDemo />
+          </PublicLayout>
+        }
+      />
+
+      {/* Public Interview Routes (Shareable Link Access) */}
+      <Route
+        path={ROUTES.PUBLIC_INTERVIEW}
+        element={<CandidateInterviewLanding />}
+      />
+      <Route
+        path={ROUTES.PUBLIC_INTERVIEW_SESSION}
+        element={<AIInterviewSession />}
+      />
+      <Route
+        path={ROUTES.PUBLIC_INTERVIEW_SUMMARY}
+        element={<PublicInterviewComplete />}
+      />
+
+      {/* Candidate Routes */}
+      <Route
+        path={ROUTES.CANDIDATE_DASHBOARD}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <Dashboard />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.RESUME}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <Resume />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.MOCK_INTERVIEW}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <MockInterview />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.MOCK_INTERVIEW_SETUP}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <MockInterviewSetup />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.MOCK_INTERVIEW_READY}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <MockInterviewReady />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.MOCK_INTERVIEW_SESSION}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <MockInterviewErrorBoundary>
+                <MockInterviewSession />
+              </MockInterviewErrorBoundary>
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.INTERVIEW_HISTORY}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <InterviewHistory />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.INTERVIEW_HISTORY_SESSION}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <InterviewHistory />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.INTERVIEW_REPORT}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <InterviewReport />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.CANDIDATE_PROFILE_SETTINGS}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <ProfileSettings />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.CANDIDATE_DEVICES}
+        element={
+          <ProtectedRoute roles={["candidate"]}>
+            <AuthenticatedLayout>
+              <DeviceManagement />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* HR Routes */}
+      <Route
+        path={ROUTES.HR_DASHBOARD}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <HRDashboard />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.JOB_POSITIONS}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <JobPositions />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HR_CANDIDATES}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <HRCandidates />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.CANDIDATE_REVIEW}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <CandidateReview />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HR_PROFILE_SETTINGS}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <ProfileSettings />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HR_DEVICES}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <DeviceManagement />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HR_CREATE_INTERVIEW}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <HRCreateInterview />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HR_INTERVIEW_HISTORY}
+        element={
+          <ProtectedRoute roles={["hr"]}>
+            <AuthenticatedLayout>
+              <InterviewHistory />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Shared Routes */}
+      <Route
+        path={ROUTES.LIVE_INTERVIEW}
+        element={
+          <ProtectedRoute>
+            <AuthenticatedLayout>
+              <LiveInterview userRole={user?.role} />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.INTERVIEW_SUMMARY}
+        element={
+          <ProtectedRoute>
+            <AuthenticatedLayout>
+              <InterviewSummary />
+            </AuthenticatedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 404 and Catch-all */}
+      <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
+      <Route path="*" element={<Navigate to={ROUTES.NOT_FOUND} replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <Router basename={import.meta.env.BASE_URL}>
+      <AuthProvider>
+        <AppProvider>
+          <NotificationToast />
+          <AppRoutes />
+        </AppProvider>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;
