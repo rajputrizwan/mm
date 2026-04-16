@@ -1499,8 +1499,9 @@ function enrichSummaryStructured(
     );
   }
 
-  if (out.strengths.length === 0)
+  if (out.strengths.length === 0 && (metrics.overallScore ?? 0) >= 40) {
     pushUniqueNormalized(out.strengths, 'Completed the mock interview', seenS);
+  }
   if (out.areasForImprovement.length === 0) {
     pushUniqueNormalized(
       out.areasForImprovement,

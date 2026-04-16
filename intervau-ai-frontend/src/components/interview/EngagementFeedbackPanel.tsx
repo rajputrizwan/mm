@@ -31,6 +31,34 @@ function computePercentages(focusSec: number, distractSec: number) {
   };
 }
 
+function normalizeDurations(
+  focusSec: number,
+  distractSec: number,
+  framesAnalyzed: number,
+): { focusSec: number; distractSec: number } {
+  const safeFocus = Number.isFinite(focusSec) ? Math.max(0, focusSec) : 0;
+  const safeDistract = Number.isFinite(distractSec)
+    ? Math.max(0, distractSec)
+    : 0;
+  const total = safeFocus + safeDistract;
+  if (total <= 0 || framesAnalyzed <= 0) {
+    return { focusSec: safeFocus, distractSec: safeDistract };
+  }
+
+  // Engagement service processes roughly 1 frame per sample; with capped 2s deltas,
+  // total tracked duration should not exceed framesAnalyzed * 2 seconds.
+  const maxPlausibleSeconds = framesAnalyzed * 2;
+  if (total <= maxPlausibleSeconds) {
+    return { focusSec: safeFocus, distractSec: safeDistract };
+  }
+
+  const scale = maxPlausibleSeconds / total;
+  return {
+    focusSec: safeFocus * scale,
+    distractSec: safeDistract * scale,
+  };
+}
+
 /** Mini donut/pie chart drawn on a <canvas> — no external lib needed. */
 function DonutChart({
   focusPct,
@@ -145,7 +173,13 @@ function SparkLine({ trend }: { trend: number[] }) {
           <stop offset="100%" stopColor="#818cf8" stopOpacity="0.9" />
         </linearGradient>
       </defs>
-      <path d={d} fill="none" stroke="url(#sparkGrad)" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d={d}
+        fill="none"
+        stroke="url(#sparkGrad)"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -162,9 +196,15 @@ export default function EngagementFeedbackPanel({
     framesAnalyzed = 0,
   } = engagement ?? {};
 
-  const { focusPct, distractPct } = computePercentages(
+  const normalizedDurations = normalizeDurations(
     totalEyeContactDuration,
     totalDistractionDuration,
+    framesAnalyzed,
+  );
+
+  const { focusPct, distractPct } = computePercentages(
+    normalizedDurations.focusSec,
+    normalizedDurations.distractionSec,
   );
 
   const scoreColor =
@@ -234,7 +274,7 @@ export default function EngagementFeedbackPanel({
                 />
               </div>
               <p className="text-[10px] text-emerald-400/70 mt-1 font-mono">
-                {formatDuration(totalEyeContactDuration)} eye contact
+                {formatDuration(normalizedDurations.focusSec)} eye contact
               </p>
             </div>
 
@@ -258,7 +298,7 @@ export default function EngagementFeedbackPanel({
                 />
               </div>
               <p className="text-[10px] text-rose-400/70 mt-1 font-mono">
-                {formatDuration(totalDistractionDuration)} distracted
+                {formatDuration(normalizedDurations.distractionSec)} distracted
               </p>
             </div>
           </div>
@@ -318,7 +358,7 @@ export default function EngagementFeedbackPanel({
           <div className="rounded-lg bg-slate-800/70 border border-slate-700/50 px-2.5 py-2 text-center">
             <Eye className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-0.5" />
             <p className="text-[11px] font-bold text-white tabular-nums">
-              {formatDuration(totalEyeContactDuration)}
+              {formatDuration(normalizedDurations.focusSec)}
             </p>
             <p className="text-[9px] text-slate-400">Eye Contact</p>
           </div>
