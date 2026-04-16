@@ -37,6 +37,13 @@ interface EngagementOverlayProps {
   className?: string;
 }
 
+const MAX_SAMPLE_DELTA_SECONDS = 2;
+
+function toEpochMs(ts: number): number {
+  // Support both second-based and millisecond-based timestamps.
+  return ts < 1_000_000_000_000 ? ts * 1000 : ts;
+}
+
 /** Format seconds → "0m 00s" */
 function fmtTime(s: number): string {
   const sec = Math.round(Math.abs(s));
@@ -50,10 +57,10 @@ function RingMeter({
   strokeWidth = 5,
   color,
 }: {
-  value: number;           // 0-100
+  value: number; // 0-100
   size?: number;
   strokeWidth?: number;
-  color: string;           // CSS color
+  color: string; // CSS color
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -104,6 +111,46 @@ export function EngagementOverlay({
   metrics,
   className = "",
 }: EngagementOverlayProps) {
+  const totalsRef = useRef<{
+    focusSeconds: number;
+    distractionSeconds: number;
+    lastTimestampMs: number | null;
+  }>({
+    focusSeconds: 0,
+    distractionSeconds: 0,
+    lastTimestampMs: null,
+  });
+
+  // Recompute cumulative focus/distraction durations from frame cadence.
+  useEffect(() => {
+    if (!metrics) {
+      totalsRef.current = {
+        focusSeconds: 0,
+        distractionSeconds: 0,
+        lastTimestampMs: null,
+      };
+      return;
+    }
+
+    const nowMs = toEpochMs(metrics.timestamp);
+    const prevMs = totalsRef.current.lastTimestampMs;
+
+    if (prevMs !== null && nowMs > prevMs) {
+      const deltaSeconds = Math.min(
+        MAX_SAMPLE_DELTA_SECONDS,
+        (nowMs - prevMs) / 1000,
+      );
+
+      if (metrics.is_focused || metrics.eye_contact) {
+        totalsRef.current.focusSeconds += deltaSeconds;
+      } else {
+        totalsRef.current.distractionSeconds += deltaSeconds;
+      }
+    }
+
+    totalsRef.current.lastTimestampMs = nowMs;
+  }, [metrics]);
+
   /* ---------- Initializing state ---------- */
   if (!metrics) {
     return (
@@ -122,11 +169,12 @@ export function EngagementOverlay({
 
   /* ---------- Derived values ---------- */
   const score = metrics.engagement_score;
-  const focusSec = metrics.eye_contact_duration;
-  const distractSec = metrics.distraction_duration;
+  const focusSec = totalsRef.current.focusSeconds;
+  const distractSec = totalsRef.current.distractionSeconds;
   const totalSec = focusSec + distractSec;
   const focusPct = totalSec > 0 ? Math.round((focusSec / totalSec) * 100) : 0;
-  const distractPct = totalSec > 0 ? Math.round((distractSec / totalSec) * 100) : 0;
+  const distractPct =
+    totalSec > 0 ? Math.round((distractSec / totalSec) * 100) : 0;
 
   const scoreColor =
     score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#f43f5e";
@@ -174,10 +222,17 @@ export function EngagementOverlay({
         {/* ── Score row with ring ── */}
         <div className="flex items-center gap-3">
           <div className="relative flex-shrink-0">
-            <RingMeter value={score} size={52} strokeWidth={5} color={scoreColor} />
+            <RingMeter
+              value={score}
+              size={52}
+              strokeWidth={5}
+              color={scoreColor}
+            />
             {/* Center value */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-[11px] font-bold leading-none ${scoreTailwind}`}>
+              <span
+                className={`text-[11px] font-bold leading-none ${scoreTailwind}`}
+              >
                 {Math.round(score)}
               </span>
             </div>
