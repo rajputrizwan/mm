@@ -16,6 +16,7 @@ interface EngagementFeedbackPanelProps {
 
 /** Format seconds → "1m 23s" or "45s" */
 function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds)) return "0s";
   const s = Math.round(Math.abs(seconds));
   if (s < 60) return `${s}s`;
   return `${Math.floor(s / 60)}m ${s % 60}s`;
@@ -204,7 +205,7 @@ export default function EngagementFeedbackPanel({
 
   const { focusPct, distractPct } = computePercentages(
     normalizedDurations.focusSec,
-    normalizedDurations.distractionSec,
+    normalizedDurations.distractSec,
   );
 
   const scoreColor =
@@ -298,7 +299,7 @@ export default function EngagementFeedbackPanel({
                 />
               </div>
               <p className="text-[10px] text-rose-400/70 mt-1 font-mono">
-                {formatDuration(normalizedDurations.distractionSec)} distracted
+                {formatDuration(normalizedDurations.distractSec)} distracted
               </p>
             </div>
           </div>
