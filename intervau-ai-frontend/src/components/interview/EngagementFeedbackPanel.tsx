@@ -35,12 +35,29 @@ function computePercentages(focusSec: number, distractSec: number) {
 function normalizeDurations(
   focusSec: number,
   distractSec: number,
+  framesAnalyzed: number,
 ): { focusSec: number; distractSec: number } {
   const safeFocus = Number.isFinite(focusSec) ? Math.max(0, focusSec) : 0;
   const safeDistract = Number.isFinite(distractSec)
     ? Math.max(0, distractSec)
     : 0;
-  return { focusSec: safeFocus, distractSec: safeDistract };
+  const total = safeFocus + safeDistract;
+  if (total <= 0 || framesAnalyzed <= 0) {
+    return { focusSec: safeFocus, distractSec: safeDistract };
+  }
+
+  // Engagement service processes roughly 1 frame per sample; with capped 2s deltas,
+  // total tracked duration should not exceed framesAnalyzed * 2 seconds.
+  const maxPlausibleSeconds = framesAnalyzed * 2;
+  if (total <= maxPlausibleSeconds) {
+    return { focusSec: safeFocus, distractSec: safeDistract };
+  }
+
+  const scale = maxPlausibleSeconds / total;
+  return {
+    focusSec: safeFocus * scale,
+    distractSec: safeDistract * scale,
+  };
 }
 
 /** Mini donut/pie chart drawn on a <canvas> — no external lib needed. */
@@ -183,6 +200,7 @@ export default function EngagementFeedbackPanel({
   const normalizedDurations = normalizeDurations(
     totalEyeContactDuration,
     totalDistractionDuration,
+    framesAnalyzed,
   );
 
   const { focusPct, distractPct } = computePercentages(
@@ -192,10 +210,10 @@ export default function EngagementFeedbackPanel({
 
   const scoreColor =
     averageScore >= 70
-      ? "text-emerald-400"
+      ? "text-emerald-600 dark:text-emerald-400"
       : averageScore >= 40
-        ? "text-amber-400"
-        : "text-rose-400";
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-rose-600 dark:text-rose-400";
 
   const scoreBarColor =
     averageScore >= 70
@@ -206,19 +224,19 @@ export default function EngagementFeedbackPanel({
 
   return (
     <section
-      className="rounded-2xl border border-sky-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 overflow-hidden shadow-[0_4px_24px_rgba(15,23,42,0.5)]"
+      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-sm"
       aria-labelledby="eng-feedback-heading"
     >
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-700/60 bg-slate-800/50">
-        <Activity className="w-4 h-4 text-sky-400 flex-shrink-0" />
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+        <Activity className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0" />
         <h3
           id="eng-feedback-heading"
-          className="text-sm font-semibold text-white tracking-wide"
+          className="text-sm font-semibold text-slate-900 dark:text-white tracking-wide"
         >
           Engagement Analysis
         </h3>
-        <span className="ml-auto text-xs text-slate-400 font-mono">
+        <span className="ml-auto text-xs text-slate-600 dark:text-slate-300 font-mono">
           {framesAnalyzed.toLocaleString()} frames
         </span>
       </div>
@@ -238,49 +256,49 @@ export default function EngagementFeedbackPanel({
           {/* Cards */}
           <div className="flex-1 space-y-2.5">
             {/* Focus card */}
-            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-3.5 py-2.5">
+            <div className="rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-3.5 py-2.5">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-xs font-semibold text-emerald-300">
+                  <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                     Focus Time
                   </span>
                 </div>
-                <span className="text-xs font-bold text-emerald-300 tabular-nums">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">
                   {focusPct}%
                 </span>
               </div>
-              <div className="w-full bg-slate-700/60 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-slate-300/80 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
                 <div
                   className="bg-emerald-500 h-1.5 rounded-full transition-all duration-700 ease-out"
                   style={{ width: `${focusPct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-emerald-400/70 mt-1 font-mono">
+              <p className="text-[11px] text-emerald-800 dark:text-emerald-300/90 mt-1 font-mono">
                 {formatDuration(normalizedDurations.focusSec)} eye contact
               </p>
             </div>
 
             {/* Distraction card */}
-            <div className="rounded-xl bg-rose-500/10 border border-rose-500/25 px-3.5 py-2.5">
+            <div className="rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 px-3.5 py-2.5">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                  <span className="text-xs font-semibold text-rose-300">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                  <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">
                     Distraction Time
                   </span>
                 </div>
-                <span className="text-xs font-bold text-rose-300 tabular-nums">
+                <span className="text-xs font-bold text-rose-700 dark:text-rose-300 tabular-nums">
                   {distractPct}%
                 </span>
               </div>
-              <div className="w-full bg-slate-700/60 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-slate-300/80 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
                 <div
                   className="bg-rose-500 h-1.5 rounded-full transition-all duration-700 ease-out"
                   style={{ width: `${distractPct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-rose-400/70 mt-1 font-mono">
+              <p className="text-[11px] text-rose-800 dark:text-rose-300/90 mt-1 font-mono">
                 {formatDuration(normalizedDurations.distractSec)} distracted
               </p>
             </div>
@@ -291,8 +309,8 @@ export default function EngagementFeedbackPanel({
         <div>
           <div className="flex justify-between items-center mb-1.5">
             <div className="flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-sky-400" />
-              <span className="text-xs font-semibold text-slate-300">
+              <Zap className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Avg Engagement Score
               </span>
             </div>
@@ -300,7 +318,7 @@ export default function EngagementFeedbackPanel({
               {Math.round(averageScore)}%
             </span>
           </div>
-          <div className="w-full bg-slate-700/60 rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-slate-300/80 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
             <div
               className={`${scoreBarColor} h-2.5 rounded-full transition-all duration-700 ease-out relative`}
               style={{ width: `${averageScore}%` }}
@@ -308,7 +326,7 @@ export default function EngagementFeedbackPanel({
               <div className="absolute inset-0 bg-white/20 rounded-full" />
             </div>
           </div>
-          <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+          <div className="flex justify-between text-[11px] text-slate-600 dark:text-slate-300 mt-1">
             <span>0</span>
             <span>Low</span>
             <span>Moderate</span>
@@ -321,15 +339,15 @@ export default function EngagementFeedbackPanel({
         {engagementTrend.length >= 2 && (
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-xs font-semibold text-slate-300">
+              <TrendingUp className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Engagement Trend
               </span>
-              <span className="ml-auto text-[10px] text-slate-500">
+              <span className="ml-auto text-[11px] text-slate-600 dark:text-slate-300">
                 last {Math.min(engagementTrend.length, 40)} readings
               </span>
             </div>
-            <div className="rounded-xl bg-slate-800/70 border border-slate-700/50 px-3 py-2.5 overflow-hidden">
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 px-3 py-2.5 overflow-hidden">
               <SparkLine trend={engagementTrend} />
             </div>
           </div>
@@ -338,26 +356,30 @@ export default function EngagementFeedbackPanel({
         {/* Stats footer row */}
         <div className="grid grid-cols-3 gap-2">
           {/* Eye contact */}
-          <div className="rounded-lg bg-slate-800/70 border border-slate-700/50 px-2.5 py-2 text-center">
-            <Eye className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-0.5" />
-            <p className="text-[11px] font-bold text-white tabular-nums">
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center">
+            <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 mx-auto mb-0.5" />
+            <p className="text-[11px] font-bold text-slate-900 dark:text-white tabular-nums">
               {formatDuration(normalizedDurations.focusSec)}
             </p>
-            <p className="text-[9px] text-slate-400">Eye Contact</p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-300">
+              Eye Contact
+            </p>
           </div>
 
           {/* Yawns */}
-          <div className="rounded-lg bg-slate-800/70 border border-slate-700/50 px-2.5 py-2 text-center">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mx-auto mb-0.5" />
-            <p className="text-[11px] font-bold text-white tabular-nums">
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 mx-auto mb-0.5" />
+            <p className="text-[11px] font-bold text-slate-900 dark:text-white tabular-nums">
               {yawnCount}×
             </p>
-            <p className="text-[9px] text-slate-400">Yawns</p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-300">
+              Yawns
+            </p>
           </div>
 
           {/* Score level */}
-          <div className="rounded-lg bg-slate-800/70 border border-slate-700/50 px-2.5 py-2 text-center">
-            <Activity className="w-3.5 h-3.5 text-sky-400 mx-auto mb-0.5" />
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 px-2.5 py-2 text-center">
+            <Activity className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 mx-auto mb-0.5" />
             <p className={`text-[11px] font-bold tabular-nums ${scoreColor}`}>
               {averageScore >= 70
                 ? "High"
@@ -365,12 +387,14 @@ export default function EngagementFeedbackPanel({
                   ? "Moderate"
                   : "Low"}
             </p>
-            <p className="text-[9px] text-slate-400">Level</p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-300">
+              Level
+            </p>
           </div>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 justify-center text-[10px] text-slate-400">
+        <div className="flex items-center gap-4 justify-center text-[11px] text-slate-600 dark:text-slate-300">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0" />
             <span>Focused</span>
