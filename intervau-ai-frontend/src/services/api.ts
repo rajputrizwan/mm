@@ -70,6 +70,14 @@ export interface MockInterviewSessionDetail {
     recommendation?: string;
     aiAnalysisPercentage?: number;
     resumeMatchPercentage?: number;
+    engagement?: {
+      averageScore: number;
+      totalEyeContactDuration: number;
+      totalDistractionDuration: number;
+      yawnCount: number;
+      engagementTrend: number[];
+      framesAnalyzed: number;
+    };
   };
   summary?: {
     text?: string;
@@ -82,7 +90,9 @@ export interface MockInterviewSessionDetail {
 
 // Get auth token - checks sessionStorage first, then localStorage
 export function getAuthToken(): string | null {
-  return sessionStorage.getItem("authToken") || localStorage.getItem("authToken");
+  return (
+    sessionStorage.getItem("authToken") || localStorage.getItem("authToken")
+  );
 }
 
 // Set auth token - uses localStorage if rememberMe, else sessionStorage
@@ -821,8 +831,6 @@ export const api = {
 
   apiLogout: () => request("/auth/logout", { method: "POST" }),
 };
-
-
 
 // Set up unauthorized event listener
 if (typeof window !== "undefined") {

@@ -35,29 +35,12 @@ function computePercentages(focusSec: number, distractSec: number) {
 function normalizeDurations(
   focusSec: number,
   distractSec: number,
-  framesAnalyzed: number,
 ): { focusSec: number; distractSec: number } {
   const safeFocus = Number.isFinite(focusSec) ? Math.max(0, focusSec) : 0;
   const safeDistract = Number.isFinite(distractSec)
     ? Math.max(0, distractSec)
     : 0;
-  const total = safeFocus + safeDistract;
-  if (total <= 0 || framesAnalyzed <= 0) {
-    return { focusSec: safeFocus, distractSec: safeDistract };
-  }
-
-  // Engagement service processes roughly 1 frame per sample; with capped 2s deltas,
-  // total tracked duration should not exceed framesAnalyzed * 2 seconds.
-  const maxPlausibleSeconds = framesAnalyzed * 2;
-  if (total <= maxPlausibleSeconds) {
-    return { focusSec: safeFocus, distractSec: safeDistract };
-  }
-
-  const scale = maxPlausibleSeconds / total;
-  return {
-    focusSec: safeFocus * scale,
-    distractSec: safeDistract * scale,
-  };
+  return { focusSec: safeFocus, distractSec: safeDistract };
 }
 
 /** Mini donut/pie chart drawn on a <canvas> — no external lib needed. */
@@ -200,7 +183,6 @@ export default function EngagementFeedbackPanel({
   const normalizedDurations = normalizeDurations(
     totalEyeContactDuration,
     totalDistractionDuration,
-    framesAnalyzed,
   );
 
   const { focusPct, distractPct } = computePercentages(

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import api, { type MockInterviewSessionDetail } from "../services/api";
 import { ROUTES, routeHelpers } from "../router";
+import EngagementFeedbackPanel from "../components/interview/EngagementFeedbackPanel";
 
 function formatDate(
   iso: string | { $date?: string } | undefined,
@@ -42,6 +43,87 @@ function formatTimestamp(iso: string | undefined) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatDuration(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0s";
+  const s = Math.round(seconds);
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+function normalizeEngagementDurations(
+  focusSec: number,
+  distractSec: number,
+  framesAnalyzed: number,
+): { focusSec: number; distractSec: number } {
+  const safeFocus = Number.isFinite(focusSec) ? Math.max(0, focusSec) : 0;
+  const safeDistract = Number.isFinite(distractSec)
+    ? Math.max(0, distractSec)
+    : 0;
+  const total = safeFocus + safeDistract;
+
+  if (total <= 0 || framesAnalyzed <= 0) {
+    return { focusSec: safeFocus, distractSec: safeDistract };
+  }
+
+  const maxPlausibleSeconds = framesAnalyzed * 2;
+  if (total <= maxPlausibleSeconds) {
+    return { focusSec: safeFocus, distractSec: safeDistract };
+  }
+
+  const scale = maxPlausibleSeconds / total;
+  return {
+    focusSec: safeFocus * scale,
+    distractSec: safeDistract * scale,
+  };
+}
+
+function buildTrendPoints(trend: number[]) {
+  const safeTrend = trend.map((value) => (Number.isFinite(value) ? value : 0));
+  if (safeTrend.length < 2) return [] as Array<{ x: number; y: number }>;
+
+  const width = 100;
+  const height = 36;
+  const min = Math.min(...safeTrend);
+  const max = Math.max(...safeTrend);
+  const range = max - min || 1;
+
+  return safeTrend.map((value, index) => ({
+    x: (index / (safeTrend.length - 1)) * width,
+    y: height - ((value - min) / range) * (height - 4) - 2,
+  }));
+}
+
+function TrendSparkline({ trend }: { trend: number[] }) {
+  const points = buildTrendPoints(trend);
+  if (points.length < 2) return null;
+
+  const path = points
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`,
+    )
+    .join(" ");
+
+  return (
+    <svg viewBox="0 0 100 36" className="w-full h-10 overflow-visible">
+      <defs>
+        <linearGradient id="eng-trend-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#10b981" stopOpacity="0.9" />
+        </linearGradient>
+      </defs>
+      <path
+        d={path}
+        fill="none"
+        stroke="url(#eng-trend-grad)"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -285,6 +367,112 @@ function createInterviewReportHtml({
     .map((item) => `<li>${escapeHtml(item)}</li>`)
     .join("");
 
+  const engagement = session.metrics?.engagement;
+  const hasEngagement = Boolean(
+    engagement && Number(engagement.framesAnalyzed) > 0,
+  );
+
+  const engagementSectionHtml = hasEngagement
+    ? (() => {
+        const averageScore = Math.max(
+          0,
+          Math.min(100, Number(engagement?.averageScore) || 0),
+        );
+        const framesAnalyzed = Math.max(
+          0,
+          Number(engagement?.framesAnalyzed) || 0,
+        );
+        const normalizedDurations = normalizeEngagementDurations(
+          Number(engagement?.totalEyeContactDuration) || 0,
+          Number(engagement?.totalDistractionDuration) || 0,
+          framesAnalyzed,
+        );
+        const eyeContactSec = normalizedDurations.focusSec;
+        const distractionSec = normalizedDurations.distractSec;
+        const trackedSec = eyeContactSec + distractionSec;
+        const focusPct =
+          trackedSec > 0 ? Math.round((eyeContactSec / trackedSec) * 100) : 0;
+        const distractionPct =
+          trackedSec > 0 ? Math.round((distractionSec / trackedSec) * 100) : 0;
+        const yawnCount = Math.max(0, Number(engagement?.yawnCount) || 0);
+        const trend = Array.isArray(engagement?.engagementTrend)
+          ? engagement.engagementTrend
+          : [];
+        const trendAvg =
+          trend.length > 0
+            ? Math.round(
+                trend.reduce((sum, value) => sum + (Number(value) || 0), 0) /
+                  trend.length,
+              )
+            : 0;
+        const trendDelta =
+          trend.length >= 2
+            ? Math.round(
+                (Number(trend[trend.length - 1]) || 0) -
+                  (Number(trend[0]) || 0),
+              )
+            : 0;
+        const trendLabel =
+          trend.length < 2
+            ? "Limited trend data"
+            : trendDelta > 0
+              ? `Improving (+${trendDelta})`
+              : trendDelta < 0
+                ? `Dropping (${trendDelta})`
+                : "Stable";
+        const trendPoints = buildTrendPoints(trend);
+        const trendSvg =
+          trendPoints.length >= 2
+            ? `<svg viewBox="0 0 100 36" width="100%" height="120" preserveAspectRatio="none" style="overflow:visible"><defs><linearGradient id="report-eng-trend" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.55" /><stop offset="100%" stop-color="#10b981" stop-opacity="0.9" /></linearGradient></defs><path d="${trendPoints.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ")}" fill="none" stroke="url(#report-eng-trend)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></svg>`
+            : "<p>No trend data available.</p>";
+
+        return `
+        <h2 class="section-title">Engagement Report</h2>
+        <div class="cards">
+          <section class="card">
+            <h3>Average Engagement</h3>
+            <p><strong>${averageScore}%</strong></p>
+            <p class="label">Across ${framesAnalyzed.toLocaleString()} analyzed frames</p>
+          </section>
+          <section class="card">
+            <h3>Focus vs Distraction</h3>
+            <p><strong>${focusPct}%</strong> focus • <strong>${distractionPct}%</strong> distracted</p>
+            <p class="label">Eye contact: ${escapeHtml(formatDuration(eyeContactSec))} • Distraction: ${escapeHtml(formatDuration(distractionSec))}</p>
+          </section>
+          <section class="card">
+            <h3>Behavior Signals</h3>
+            <p><strong>${yawnCount}</strong> yawns detected</p>
+            <p class="label">Trend: ${escapeHtml(trendLabel)} • Last-10 average: ${trendAvg}%</p>
+          </section>
+        </div>
+        <div class="cards" style="margin-top: 12px;">
+          <section class="card">
+            <h3>Focus</h3>
+            <p><strong>${focusPct}%</strong> of tracked time</p>
+            <p class="label">Eye contact maintained for ${escapeHtml(formatDuration(eyeContactSec))}</p>
+          </section>
+          <section class="card">
+            <h3>Distraction</h3>
+            <p><strong>${distractionPct}%</strong> of tracked time</p>
+            <p class="label">Distracted for ${escapeHtml(formatDuration(distractionSec))}</p>
+          </section>
+          <section class="card">
+            <h3>Trend</h3>
+            <p><strong>${escapeHtml(trendLabel)}</strong></p>
+            <p class="label">Last-10 average: ${trendAvg}%</p>
+          </section>
+        </div>
+        <section class="card" style="margin-top: 12px;">
+          <h3>Trend Chart</h3>
+          ${trendSvg}
+        </section>`;
+      })()
+    : `
+      <h2 class="section-title">Engagement Report</h2>
+      <section class="card">
+        <p>No engagement analytics available for this session.</p>
+      </section>`;
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -398,6 +586,8 @@ function createInterviewReportHtml({
       <section class="card"><h3>Recommendations</h3><ul>${recommendationsList || "<li>No recommendations available.</li>"}</ul></section>
     </div>
 
+    ${engagementSectionHtml}
+
     <h2 class="section-title">Question Analysis</h2>
     ${questionsHtml}
 
@@ -437,7 +627,7 @@ export default function InterviewHistory() {
     text: string;
   } | null>(null);
   const [detailTab, setDetailTab] = useState<
-    "overview" | "metrics" | "responses" | "transcript"
+    "overview" | "metrics" | "engagement" | "responses" | "transcript"
   >("overview");
 
   const isDetailView = Boolean(sessionId);
@@ -855,6 +1045,7 @@ export default function InterviewHistory() {
                       [
                         "overview",
                         "metrics",
+                        "engagement",
                         "responses",
                         "transcript",
                       ] as const
@@ -1133,6 +1324,205 @@ export default function InterviewHistory() {
                         <p className="text-gray-500 dark:text-gray-400">
                           No question analysis available.
                         </p>
+                      )}
+                    </div>
+                  )}
+
+                  {detailTab === "engagement" && (
+                    <div className="space-y-8">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
+                        <BarChart3 className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                        <span>Engagement Analysis</span>
+                      </h3>
+
+                      {m?.engagement && m.engagement.framesAnalyzed > 0 ? (
+                        <>
+                          <EngagementFeedbackPanel engagement={m.engagement} />
+
+                          {(() => {
+                            const eng = m.engagement!;
+                            const normalizedDurations =
+                              normalizeEngagementDurations(
+                                Number(eng.totalEyeContactDuration) || 0,
+                                Number(eng.totalDistractionDuration) || 0,
+                                Number(eng.framesAnalyzed) || 0,
+                              );
+                            const focusSec = normalizedDurations.focusSec;
+                            const distractSec = normalizedDurations.distractSec;
+                            const trackedSec = focusSec + distractSec;
+                            const focusPct =
+                              trackedSec > 0
+                                ? Math.round((focusSec / trackedSec) * 100)
+                                : 0;
+                            const distractPct =
+                              trackedSec > 0
+                                ? Math.round((distractSec / trackedSec) * 100)
+                                : 0;
+                            const trend = Array.isArray(eng.engagementTrend)
+                              ? eng.engagementTrend
+                              : [];
+                            const trendDelta =
+                              trend.length >= 2
+                                ? Math.round(trend[trend.length - 1] - trend[0])
+                                : 0;
+                            const trendLabel =
+                              trend.length < 2
+                                ? "Limited trend data"
+                                : trendDelta > 0
+                                  ? `Improving (+${trendDelta})`
+                                  : trendDelta < 0
+                                    ? `Dropping (${trendDelta})`
+                                    : "Stable";
+
+                            return (
+                              <>
+                                <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                                      Focus Ratio
+                                    </p>
+                                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300 mt-1">
+                                      {focusPct}%
+                                    </p>
+                                    <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80 mt-1">
+                                      {formatDuration(focusSec)} eye contact
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                                      Distraction Ratio
+                                    </p>
+                                    <p className="text-2xl font-bold text-rose-700 dark:text-rose-300 mt-1">
+                                      {distractPct}%
+                                    </p>
+                                    <p className="text-xs text-rose-700/80 dark:text-rose-300/80 mt-1">
+                                      {formatDuration(distractSec)} distracted
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                                      Tracked Time
+                                    </p>
+                                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300 mt-1">
+                                      {formatDuration(trackedSec)}
+                                    </p>
+                                    <p className="text-xs text-blue-700/80 dark:text-blue-300/80 mt-1">
+                                      {eng.framesAnalyzed.toLocaleString()}{" "}
+                                      frames analyzed
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                                      Behavior Signals
+                                    </p>
+                                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-300 mt-1">
+                                      {eng.yawnCount} yawns
+                                    </p>
+                                    <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1">
+                                      Trend: {trendLabel}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-5">
+                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                                    Engagement Interpretation
+                                  </h4>
+                                  <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <p>
+                                      {focusPct >= 75
+                                        ? "Strong focus consistency across the interview."
+                                        : focusPct >= 50
+                                          ? "Moderate focus; occasional distraction periods were detected."
+                                          : "Focus was inconsistent; long distracted periods likely impacted delivery."}
+                                    </p>
+                                    <p>
+                                      {eng.yawnCount === 0
+                                        ? "No fatigue events detected from yawn signals."
+                                        : eng.yawnCount <= 2
+                                          ? "Some fatigue signals detected; maintain energy and posture through answers."
+                                          : "Frequent fatigue signals detected; consider shorter sessions and better pacing."}
+                                    </p>
+                                    <p>
+                                      {trend.length < 2
+                                        ? "Not enough trend points to assess momentum."
+                                        : trendDelta >= 5
+                                          ? "Engagement momentum improved toward the end of the session."
+                                          : trendDelta <= -5
+                                            ? "Engagement dropped over time; practice sustained concentration in later questions."
+                                            : "Engagement remained relatively stable through the session."}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-5">
+                                  <div className="flex items-center justify-between gap-3 mb-3">
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                                      Engagement Trend
+                                    </h4>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      last {Math.min(trend.length, 40)} readings
+                                    </span>
+                                  </div>
+                                  <TrendSparkline trend={trend} />
+                                </div>
+
+                                <div className="grid md:grid-cols-3 gap-4">
+                                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/70 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                      Average Score
+                                    </p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                      {Math.round(eng.averageScore)}%
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                      Overall engagement rating
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/70 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                      Eye Contact / Distraction
+                                    </p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                      {focusPct}% / {distractPct}%
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                      {formatDuration(focusSec)} focused,{" "}
+                                      {formatDuration(distractSec)} distracted
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/70 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                      Yawn Events
+                                    </p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                      {eng.yawnCount}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                      Fatigue / attentiveness signal
+                                    </p>
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-6">
+                          <p className="text-gray-600 dark:text-gray-300 font-medium">
+                            No engagement analytics available for this session.
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Enable camera-based engagement tracking during
+                            interview sessions to view eye contact, distraction,
+                            trend, and behavior signals here.
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}
