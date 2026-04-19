@@ -594,7 +594,7 @@ export default function Resume() {
                 value={targetJobPosition}
                 onChange={(e) => setTargetJobPosition(e.target.value)}
                 placeholder="e.g. Frontend Developer"
-                className="w-full rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-2xl border border-gray-200 dark:border-gray-600/60 bg-gray-50 dark:bg-gray-900/60 px-4 py-3.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 transition-colors"
               />
             </div>
             <div className="space-y-2">
@@ -606,7 +606,7 @@ export default function Resume() {
                 onChange={(e) => setTargetJobDescription(e.target.value)}
                 rows={4}
                 placeholder="Paste role requirements"
-                className="w-full rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full rounded-2xl border border-gray-200 dark:border-gray-600/60 bg-gray-50 dark:bg-gray-900/60 px-4 py-3.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 resize-none transition-colors"
               />
             </div>
           </div>
