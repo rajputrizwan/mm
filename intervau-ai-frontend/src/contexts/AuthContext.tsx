@@ -120,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     setLoading(true);
     try {
-      // Try API first
       const response = await api.register(
         name,
         email,
@@ -129,21 +128,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         companyName,
       );
 
-      if (response.success && response.data?.accessToken) {
-        setAuthToken(response.data.accessToken);
-        // Fetch user info
-        const userResponse = await api.getCurrentUser();
-        if (userResponse.success) {
-          setUser(userResponse.data);
+      if (response.success) {
+        if (response.data?.accessToken) {
+          // Legacy / direct-login path (kept for backward compatibility)
+          setAuthToken(response.data.accessToken);
+          const userResponse = await api.getCurrentUser();
+          if (userResponse.success) {
+            setUser(userResponse.data);
+          }
         }
+        // If no accessToken → email verification required.
+        // Register.tsx handles the "check your inbox" UI — nothing to do here.
       } else {
         if (response.statusCode === 409) {
           throw new Error(
             "An account with this email already exists. Please sign in instead.",
           );
         }
-        // Show error message
-        throw new Error(response.error || "Registration failed");
+        throw new Error(response.error || response.message || "Registration failed");
       }
     } catch (error) {
       console.error("Register error:", error);

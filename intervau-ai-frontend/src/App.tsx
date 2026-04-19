@@ -16,6 +16,7 @@ import NotificationToast from "./components/common/NotificationToast";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Pricing from "./pages/Pricing";
@@ -110,6 +111,14 @@ function AppRoutes() {
         element={
           <PublicLayout showNavbar={false}>
             <Register />
+          </PublicLayout>
+        }
+      />
+      <Route
+        path={ROUTES.VERIFY_EMAIL}
+        element={
+          <PublicLayout showNavbar={false}>
+            <VerifyEmail />
           </PublicLayout>
         }
       />

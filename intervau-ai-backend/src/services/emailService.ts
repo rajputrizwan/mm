@@ -660,9 +660,169 @@ The Intervau.AI Team
   }
 };
 
+/**
+ * Send email verification email after registration
+ */
+export const sendEmailVerificationEmail = async (
+  email: string,
+  name: string,
+  verificationToken: string
+): Promise<void> => {
+  try {
+    const verifyUrl = `${config.frontendUrl}/verify-email?token=${verificationToken}`;
+    const expiryHours = 24;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f4f4f4;
+            }
+            .container {
+              background: white;
+              border-radius: 12px;
+              padding: 30px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+              color: white;
+              padding: 25px;
+              border-radius: 8px;
+              margin-bottom: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 600;
+            }
+            .header p {
+              margin: 8px 0 0 0;
+              opacity: 0.9;
+              font-size: 14px;
+            }
+            .content {
+              color: #475569;
+              line-height: 1.8;
+            }
+            .expiry-info {
+              background: #dbeafe;
+              padding: 12px;
+              border-radius: 6px;
+              text-align: center;
+              margin: 20px 0;
+              font-weight: 500;
+              color: #1e40af;
+            }
+            .warning-box {
+              background: #fef3c7;
+              border-left: 4px solid #f59e0b;
+              padding: 15px;
+              border-radius: 8px;
+              margin: 20px 0;
+              font-size: 14px;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 2px solid #e2e8f0;
+              text-align: center;
+              color: #64748b;
+              font-size: 13px;
+            }
+            .footer a {
+              color: #2563eb;
+              text-decoration: none;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✉️ Verify Your Email</h1>
+              <p>Intervau.AI — AI-Powered Interview Intelligence</p>
+            </div>
+
+            <div class="content">
+              <p>Hi <strong>${name}</strong>,</p>
+
+              <p>Thanks for signing up for <strong>Intervau.AI</strong>! To activate your account, please verify your email address by clicking the button below:</p>
+
+              <div style="text-align: center;">
+                <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#2563eb 0%,#06b6d4 100%);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;margin:25px 0;text-align:center;">Verify My Email</a>
+              </div>
+
+              <div class="expiry-info">
+                ⏰ This link will expire in ${expiryHours} hours
+              </div>
+
+              <div class="warning-box">
+                <strong>⚠️ Didn't create an account?</strong> If you did not sign up for Intervau.AI, you can safely ignore this email. No account will be created.
+              </div>
+
+              <p style="font-size: 13px; color: #64748b; margin-top: 20px;">
+                If the button doesn't work, copy and paste this link into your browser:<br>
+                <a href="${verifyUrl}" style="color: #2563eb; word-break: break-all;">${verifyUrl}</a>
+              </p>
+            </div>
+
+            <div class="footer">
+              <p><strong>Intervau.AI</strong> - AI-Powered Interview Intelligence</p>
+              <p>Need help? Contact us at <a href="mailto:${config.smtp.user}">${config.smtp.user}</a></p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textContent = `
+Hi ${name},
+
+Thanks for signing up for Intervau.AI! To activate your account, please verify your email address by visiting the link below:
+
+${verifyUrl}
+
+This link will expire in ${expiryHours} hours.
+
+If you did not sign up for Intervau.AI, you can safely ignore this email.
+
+Best regards,
+The Intervau.AI Team
+
+Need help? Contact us at ${config.smtp.user}
+    `.trim();
+
+    const info = await transporter.sendMail({
+      from: `"Intervau.AI" <${config.smtp.from}>`,
+      to: email,
+      subject: '✉️ Verify your email - Intervau.AI',
+      text: textContent,
+      html: htmlContent,
+    });
+
+    console.log('✓ Email verification mail sent:', info.messageId);
+  } catch (error) {
+    console.error('❌ Failed to send email verification mail:', error);
+    throw error;
+  }
+};
+
 export default {
   sendContactNotification,
   sendContactConfirmation,
   sendPasswordResetEmail,
   sendPasswordResetConfirmation,
+  sendEmailVerificationEmail,
 };
+

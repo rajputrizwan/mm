@@ -83,6 +83,13 @@ router.post('/forgot-password', AuthController.forgotPassword);
 router.post('/reset-password', AuthController.resetPassword);
 
 /**
+ * GET /api/auth/verify-email?token=<token>
+ * Verify email address using token from verification email
+ * Creates the actual User account after successful verification
+ */
+router.get('/verify-email', AuthController.verifyEmail);
+
+/**
  * Device/Session Management Routes
  */
 

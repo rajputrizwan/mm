@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { User } from '../models/User';
 import { Candidate } from '../models/Candidate';
 import { HRProfile } from '../models/HRProfile';
+import { PendingRegistration } from '../models/PendingRegistration';
 import { config } from '../config/environment';
 import { AppError } from '../utils/errors';
 
@@ -41,7 +42,7 @@ export class AuthController {
         });
       }
 
-      // Check if user already exists
+      // Check if a verified account already exists with this email
       const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
       if (existingUser) {
         console.log('❌ USER ALREADY EXISTS:', email);
@@ -51,97 +52,175 @@ export class AuthController {
         });
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, config.bcryptSaltRounds);
-
-      // Create user
-      const user = new User({
+      // Check if a pending (unverified) registration already exists for this email
+      const existingPending = await PendingRegistration.findOne({
         email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        name,
-        role,
-        isActive: true,
       });
-
-      await user.save();
-
-      // Debug logging
-      console.log('=== REGISTRATION DEBUG ===');
-      console.log('Role received from request:', role);
-      console.log('User role saved in DB:', user.role);
-      console.log('Creating profile for role:', role);
-
-      // Create role-specific profile
-      if (role === 'candidate') {
-        console.log('Creating Candidate profile...');
-        try {
-          const candidateProfile = await Candidate.create({
-            userId: user._id,
-            status: 'active',
-          });
-
-          console.log('✅ Candidate profile created successfully:', candidateProfile._id);
-        } catch (candidateError) {
-          console.log('❌ CANDIDATE PROFILE CREATION FAILED:');
-          console.error(candidateError);
-          throw new Error(
-            `Failed to create candidate profile: ${candidateError instanceof Error ? candidateError.message : 'Unknown error'}`
-          );
-        }
-      } else if (role === 'hr') {
-        console.log('Creating HR profile with company:', companyName);
-        try {
-          const hrProfile = await HRProfile.create({
-            userId: user._id,
-            companyName,
-            isVerified: false,
-          });
-          console.log('✅ HR profile created successfully:', hrProfile._id);
-        } catch (hrError) {
-          console.log('❌ HR PROFILE CREATION FAILED:');
-          console.error(hrError);
-          throw new Error(
-            `Failed to create HR profile: ${hrError instanceof Error ? hrError.message : 'Unknown error'}`
-          );
-        }
-      } else {
-        console.log('WARNING: Unknown role, no profile created:', role);
+      if (existingPending) {
+        // Delete and re-create so we can send a fresh token
+        await PendingRegistration.deleteOne({ email: email.toLowerCase().trim() });
+        console.log('♻️  Replacing existing pending registration for:', email);
       }
 
-      // Generate tokens
-      const accessToken = AuthController.generateAccessToken(user);
-      const refreshToken = AuthController.generateRefreshToken(user);
+      // Hash password before storing in PendingRegistration
+      const hashedPassword = await bcrypt.hash(password, config.bcryptSaltRounds);
 
-      // Save refresh token to database
-      user.refreshTokens.push(refreshToken);
-      await user.save();
+      // Generate a secure raw token (sent in email) and its SHA-256 hash (stored in DB)
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-      // Set refresh token in cookie
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: config.nodeEnv === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      // Store the pending registration (24-hour TTL)
+      await PendingRegistration.create({
+        email: email.toLowerCase().trim(),
+        hashedPassword,
+        name,
+        role,
+        companyName: companyName || undefined,
+        verificationToken: hashedToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       });
 
-      res.status(201).json({
+      // Send verification email
+      try {
+        const { sendEmailVerificationEmail } = require('../services/emailService');
+        await sendEmailVerificationEmail(email.toLowerCase().trim(), name, rawToken);
+        console.log(`✓ Verification email sent to: ${email}`);
+      } catch (emailError) {
+        // Clean up pending registration if email fails
+        await PendingRegistration.deleteOne({ email: email.toLowerCase().trim() });
+        console.error('❌ Failed to send verification email:', emailError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send verification email. Please try again later.',
+          error: emailError instanceof Error ? emailError.message : 'Email service error',
+        });
+      }
+
+      // Respond — no token, no user object (account not created yet)
+      res.status(200).json({
         success: true,
-        message: 'User registered successfully',
-        data: {
-          user: {
-            id: user._id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          },
-          accessToken,
-        },
+        message:
+          'Verification email sent! Please check your inbox and click the link to activate your account.',
       });
     } catch (error) {
       console.error('Registration error:', error);
       res.status(500).json({
         success: false,
         message: 'Registration failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * Verify email and create the actual user account
+   * GET /api/auth/verify-email?token=<rawToken>
+   */
+  static async verifyEmail(req: Request, res: Response) {
+    try {
+      const { token } = req.query as { token?: string };
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification token is required.',
+        });
+      }
+
+      // Hash the raw token from query param to compare against stored hash
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Find matching pending registration
+      const pending = await PendingRegistration.findOne({
+        verificationToken: hashedToken,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (!pending) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired verification link. Please register again.',
+        });
+      }
+
+      // Double-check the email isn't already taken (e.g. race condition)
+      const existingUser = await User.findOne({ email: pending.email });
+      if (existingUser) {
+        await PendingRegistration.deleteOne({ _id: pending._id });
+        return res.status(409).json({
+          success: false,
+          message: 'An account with this email already exists. Please sign in.',
+        });
+      }
+
+      // Create the real User document
+      const user = new User({
+        email: pending.email,
+        password: pending.hashedPassword,
+        name: pending.name,
+        role: pending.role,
+        isEmailVerified: true,
+        isActive: true,
+      });
+      await user.save();
+
+      console.log('=== EMAIL VERIFICATION — ACCOUNT CREATION ===');
+      console.log('Email:', user.email);
+      console.log('Role:', user.role);
+
+      // Create role-specific profile
+      if (pending.role === 'candidate') {
+        try {
+          await Candidate.create({ userId: user._id, status: 'active' });
+          console.log('✅ Candidate profile created for:', user.email);
+        } catch (profileError) {
+          // Roll back user creation if profile fails
+          await User.deleteOne({ _id: user._id });
+          console.error('❌ Candidate profile creation failed, rolling back:', profileError);
+          return res.status(500).json({
+            success: false,
+            message: 'Account creation failed. Please try again.',
+            error: profileError instanceof Error ? profileError.message : 'Unknown error',
+          });
+        }
+      } else if (pending.role === 'hr') {
+        try {
+          await HRProfile.create({
+            userId: user._id,
+            companyName: pending.companyName,
+            isVerified: false,
+          });
+          console.log('✅ HR profile created for:', user.email);
+        } catch (profileError) {
+          await User.deleteOne({ _id: user._id });
+          console.error('❌ HR profile creation failed, rolling back:', profileError);
+          return res.status(500).json({
+            success: false,
+            message: 'Account creation failed. Please try again.',
+            error: profileError instanceof Error ? profileError.message : 'Unknown error',
+          });
+        }
+      }
+
+      // Remove the pending registration now that the real account exists
+      await PendingRegistration.deleteOne({ _id: pending._id });
+
+      console.log('✅ Account verified and created for:', user.email);
+
+      res.status(201).json({
+        success: true,
+        message: 'Email verified successfully! Your account has been created. You can now log in.',
+        data: {
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error('Email verification error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Email verification failed. Please try again.',
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }

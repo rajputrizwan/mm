@@ -220,6 +220,12 @@ export const api = {
       body: { email },
     }),
 
+  verifyEmail: (token: string) =>
+    request("/auth/verify-email", {
+      method: "GET",
+      params: { token },
+    }),
+
   // Resume Analysis persistence
   getResumeAnalysis: () =>
     request<{

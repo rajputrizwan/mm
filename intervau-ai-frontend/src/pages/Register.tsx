@@ -10,6 +10,8 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  CheckCircle,
+  ArrowRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "../hooks/useTranslation";
@@ -29,6 +31,8 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const { register } = useAuth();
   const { addNotification, addToast } = useApp();
   const { t } = useTranslation();
@@ -75,16 +79,10 @@ export default function Register() {
 
     try {
       await register(name, email, password, role, companyName);
-      // Persistent welcome notification in the bell panel
-      addNotification(
-        `Welcome to Intervau.AI, ${name || "there"}! Your account is ready.`,
-        "success",
-        "Account created!",
-      );
-      setTimeout(() => {
-        setLoading(false);
-        navigate(getDefaultRoute(role));
-      }, 800);
+      // Show email-sent confirmation state
+      setSubmittedEmail(email);
+      setEmailSent(true);
+      setLoading(false);
     } catch (error: any) {
       setLoading(false);
       const errorMessage =
@@ -120,6 +118,107 @@ export default function Register() {
     { icon: Target, value: "95%", label: t("auth.successRate") },
     { icon: TrendingUp, value: "45%", label: t("auth.improvement") },
   ];
+
+  // ── Email-sent confirmation screen ─────────────────────────────────────────
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-6">
+        {/* Background blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-blue-500/5 dark:bg-blue-500/10 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-cyan-500/5 dark:bg-cyan-500/10 blur-3xl" />
+        </div>
+
+        <div className="relative w-full max-w-md text-center">
+          {/* Logo */}
+          <div className="flex items-center justify-center space-x-2 mb-8">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
+              <LogoIcon className="w-6 h-6" />
+            </div>
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">
+              Intervau.AI
+            </span>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
+            {/* Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
+                <Mail className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+
+            {/* Heading */}
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Check your inbox!
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+              We sent a verification link to:
+            </p>
+
+            {/* Email pill */}
+            <div className="inline-flex items-center space-x-2 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full text-sm font-semibold mb-6 border border-blue-200 dark:border-blue-800">
+              <CheckCircle className="w-4 h-4 text-blue-500" />
+              <span>{submittedEmail}</span>
+            </div>
+
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+              Click the <strong>"Verify My Email"</strong> button in the email to
+              activate your account. The link will expire in{" "}
+              <strong>24 hours</strong>.
+            </p>
+
+            {/* Steps */}
+            <div className="text-left space-y-3 mb-8">
+              {[
+                "Open the email from Intervau.AI",
+                'Click "Verify My Email"',
+                "You'll be redirected to login",
+              ].map((step, i) => (
+                <div key={i} className="flex items-start space-x-3">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">{i + 1}</span>
+                  </div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                    {step}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <button
+              onClick={() => navigate(ROUTES.LOGIN)}
+              className="w-full flex items-center justify-center space-x-2 py-3 px-6 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg mb-3"
+            >
+              <span>Go to Login</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setEmailSent(false);
+                setSubmittedEmail("");
+              }}
+              className="w-full py-3 px-6 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl transition-all duration-200 text-sm"
+            >
+              Use a different email
+            </button>
+          </div>
+
+          <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
+            Didn't receive it? Check your spam folder or{" "}
+            <button
+              onClick={() => setEmailSent(false)}
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            >
+              try again
+            </button>
+            .
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
