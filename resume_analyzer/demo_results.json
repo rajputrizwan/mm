@@ -1,0 +1,1518 @@
+{
+  "Full-Stack Resume × Full-Stack JD": {
+    "extracted_skills": [
+      {
+        "name": "AWS",
+        "category": "Cloud",
+        "level": 95,
+        "confidence": 90
+      },
+      {
+        "name": "React",
+        "category": "Frontend",
+        "level": 95,
+        "confidence": 90
+      },
+      {
+        "name": "GitHub",
+        "category": "Tools",
+        "level": 92,
+        "confidence": 90
+      },
+      {
+        "name": "Node.js",
+        "category": "Backend",
+        "level": 92,
+        "confidence": 90
+      },
+      {
+        "name": "Docker",
+        "category": "Cloud",
+        "level": 88,
+        "confidence": 90
+      },
+      {
+        "name": "CI/CD",
+        "category": "DevOps",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "GitHub Actions",
+        "category": "DevOps",
+        "level": 76,
+        "confidence": 85
+      },
+      {
+        "name": "Kubernetes",
+        "category": "Cloud",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "Redux",
+        "category": "Frontend",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "EC2",
+        "category": "Cloud",
+        "level": 75,
+        "confidence": 90
+      },
+      {
+        "name": "S3",
+        "category": "Cloud",
+        "level": 75,
+        "confidence": 90
+      },
+      {
+        "name": "MongoDB",
+        "category": "Database",
+        "level": 74,
+        "confidence": 90
+      },
+      {
+        "name": "GraphQL",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "Microservices",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "RESTful API",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90.0
+      },
+      {
+        "name": "TypeScript",
+        "category": "Programming Languages",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "Express",
+        "category": "Backend",
+        "level": 71,
+        "confidence": 90
+      },
+      {
+        "name": "SQL",
+        "category": "Database",
+        "level": 67,
+        "confidence": 90
+      },
+      {
+        "name": "PostgreSQL",
+        "category": "Database",
+        "level": 66,
+        "confidence": 90
+      },
+      {
+        "name": "CSS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Git",
+        "category": "Tools",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Jenkins",
+        "category": "DevOps",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Lambda",
+        "category": "Cloud",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Next.js",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "SASS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Tailwind CSS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90.0
+      },
+      {
+        "name": "Vue",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Django",
+        "category": "Backend",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "Java",
+        "category": "Programming Languages",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "NestJS",
+        "category": "Backend",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "Python",
+        "category": "Programming Languages",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "JavaScript",
+        "category": "Programming Languages",
+        "level": 56,
+        "confidence": 90
+      },
+      {
+        "name": "Redis",
+        "category": "Database",
+        "level": 54,
+        "confidence": 90
+      },
+      {
+        "name": "WebSocket",
+        "category": "Frontend",
+        "level": 50,
+        "confidence": 90
+      },
+      {
+        "name": "Google Cloud",
+        "category": "Cloud",
+        "level": 49,
+        "confidence": 90.0
+      },
+      {
+        "name": "Azure",
+        "category": "Cloud",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Confluence",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Figma",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "GitLab",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Infrastructure as Code",
+        "category": "DevOps",
+        "level": 35,
+        "confidence": 87.77777777777777
+      },
+      {
+        "name": "IntelliJ",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Jira",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "MySQL",
+        "category": "Database",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "NoSQL",
+        "category": "Database",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Postman",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Terraform",
+        "category": "DevOps",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "VS Code",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 85
+      },
+      {
+        "name": "Scrum",
+        "category": "Soft Skills",
+        "level": 32,
+        "confidence": 90
+      },
+      {
+        "name": "CloudFront",
+        "category": "Cloud",
+        "level": 31,
+        "confidence": 90
+      },
+      {
+        "name": "JWT",
+        "category": "Backend",
+        "level": 31,
+        "confidence": 90
+      }
+    ],
+    "missing_skills": [
+      "Artificial Intelligence",
+      "Agile",
+      "Kafka",
+      "RabbitMQ"
+    ],
+    "match_score": 60,
+    "breakdown": {
+      "skills_match": 82.1,
+      "experience_match": 14.4,
+      "keyword_match": 70.6
+    },
+    "matched_skills": [
+      "TypeScript",
+      "JavaScript",
+      "React",
+      "Node.js",
+      "RESTful API",
+      "GraphQL",
+      "MongoDB",
+      "PostgreSQL",
+      "Docker",
+      "Kubernetes",
+      "AWS",
+      "EC2",
+      "S3",
+      "Lambda",
+      "CI/CD",
+      "Jenkins",
+      "GitHub Actions",
+      "GitHub",
+      "Scrum",
+      "Next.js",
+      "NestJS",
+      "Terraform",
+      "Infrastructure as Code",
+      "Redis"
+    ],
+    "skill_gaps": [
+      {
+        "skill": "Artificial Intelligence",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing Artificial Intelligence or obtain a relevant certification."
+      },
+      {
+        "skill": "Agile",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing Agile or obtain a relevant certification."
+      },
+      {
+        "skill": "Kafka",
+        "priority": "High",
+        "recommendation": "Kafka is listed as preferred by the employer. Adding a portfolio project using Kafka would strengthen your application."
+      },
+      {
+        "skill": "RabbitMQ",
+        "priority": "High",
+        "recommendation": "RabbitMQ is listed as preferred by the employer. Adding a portfolio project using RabbitMQ would strengthen your application."
+      }
+    ],
+    "partial_matches": [],
+    "resume_sections": {
+      "experience_count": 2,
+      "project_count": 2,
+      "certification_count": 3,
+      "education_count": 1,
+      "has_skills_section": true
+    }
+  },
+  "Electrical Engineer Resume × EE JD": {
+    "extracted_skills": [
+      {
+        "name": "C",
+        "category": "Programming Languages",
+        "level": 95,
+        "confidence": 90
+      },
+      {
+        "name": "MATLAB",
+        "category": "Programming Languages",
+        "level": 83,
+        "confidence": 90
+      },
+      {
+        "name": "PLC",
+        "category": "Electrical Engineering",
+        "level": 83,
+        "confidence": 90
+      },
+      {
+        "name": "Simulink",
+        "category": "Electrical Engineering",
+        "level": 83,
+        "confidence": 90
+      },
+      {
+        "name": "C++",
+        "category": "Programming Languages",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "Automation",
+        "category": "Electrical Engineering",
+        "level": 67,
+        "confidence": 90
+      },
+      {
+        "name": "Arduino",
+        "category": "Electrical Engineering",
+        "level": 66,
+        "confidence": 90
+      },
+      {
+        "name": "Raspberry Pi",
+        "category": "Electrical Engineering",
+        "level": 66,
+        "confidence": 85
+      },
+      {
+        "name": "STM32",
+        "category": "Electrical Engineering",
+        "level": 66,
+        "confidence": 90
+      },
+      {
+        "name": "Control Systems",
+        "category": "Electrical Engineering",
+        "level": 63,
+        "confidence": 86.7741935483871
+      },
+      {
+        "name": "Embedded Systems",
+        "category": "Electrical Engineering",
+        "level": 63,
+        "confidence": 85
+      },
+      {
+        "name": "Power Electronics",
+        "category": "Electrical Engineering",
+        "level": 63,
+        "confidence": 85
+      },
+      {
+        "name": "I2C",
+        "category": "Electrical Engineering",
+        "level": 62,
+        "confidence": 90
+      },
+      {
+        "name": "PCB Design",
+        "category": "Electrical Engineering",
+        "level": 62,
+        "confidence": 90.0
+      },
+      {
+        "name": "SPI",
+        "category": "Electrical Engineering",
+        "level": 62,
+        "confidence": 90
+      },
+      {
+        "name": "FPGA",
+        "category": "Electrical Engineering",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "LTspice",
+        "category": "Electrical Engineering",
+        "level": 54,
+        "confidence": 90
+      },
+      {
+        "name": "Microcontrollers",
+        "category": "Electrical Engineering",
+        "level": 54,
+        "confidence": 90
+      },
+      {
+        "name": "Motor Control",
+        "category": "Electrical Engineering",
+        "level": 54,
+        "confidence": 86.2962962962963
+      },
+      {
+        "name": "Power Systems",
+        "category": "Electrical Engineering",
+        "level": 54,
+        "confidence": 90.0
+      },
+      {
+        "name": "SCADA",
+        "category": "Electrical Engineering",
+        "level": 54,
+        "confidence": 90
+      },
+      {
+        "name": "Communication",
+        "category": "Soft Skills",
+        "level": 53,
+        "confidence": 90
+      },
+      {
+        "name": "PID Controller",
+        "category": "Electrical Engineering",
+        "level": 53,
+        "confidence": 90.0
+      },
+      {
+        "name": "Python",
+        "category": "Programming Languages",
+        "level": 53,
+        "confidence": 90
+      },
+      {
+        "name": "Altium Designer",
+        "category": "Electrical Engineering",
+        "level": 49,
+        "confidence": 85
+      },
+      {
+        "name": "UART",
+        "category": "Electrical Engineering",
+        "level": 49,
+        "confidence": 90
+      },
+      {
+        "name": "ANSYS",
+        "category": "Mechanical Engineering",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "AVR",
+        "category": "Electrical Engineering",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Analog Electronics",
+        "category": "Electrical Engineering",
+        "level": 35,
+        "confidence": 85
+      },
+      {
+        "name": "Circuit Design",
+        "category": "Electrical Engineering",
+        "level": 35,
+        "confidence": 90.0
+      },
+      {
+        "name": "Digital Electronics",
+        "category": "Electrical Engineering",
+        "level": 35,
+        "confidence": 90.0
+      },
+      {
+        "name": "KiCad",
+        "category": "Electrical Engineering",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "LabVIEW",
+        "category": "Programming Languages",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Proteus",
+        "category": "Electrical Engineering",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Wireless Networks",
+        "category": "Electrical Engineering",
+        "level": 35,
+        "confidence": 85
+      },
+      {
+        "name": "Signal Processing",
+        "category": "Electrical Engineering",
+        "level": 32,
+        "confidence": 85
+      },
+      {
+        "name": "VHDL",
+        "category": "Programming Languages",
+        "level": 32,
+        "confidence": 90
+      },
+      {
+        "name": "IoT",
+        "category": "Electrical Engineering",
+        "level": 31,
+        "confidence": 90
+      },
+      {
+        "name": "Sensor Integration",
+        "category": "Electrical Engineering",
+        "level": 31,
+        "confidence": 87.2972972972973
+      },
+      {
+        "name": "Ant Design",
+        "category": "Frontend",
+        "level": 30,
+        "confidence": 80.0
+      },
+      {
+        "name": "Artificial Intelligence",
+        "category": "AI/ML",
+        "level": 30,
+        "confidence": 85
+      },
+      {
+        "name": "Deep Learning",
+        "category": "AI/ML",
+        "level": 30,
+        "confidence": 85
+      },
+      {
+        "name": "Power BI",
+        "category": "Data Science",
+        "level": 30,
+        "confidence": 77.5
+      },
+      {
+        "name": "Stress Analysis",
+        "category": "Mechanical Engineering",
+        "level": 30,
+        "confidence": 73.87096774193549
+      },
+      {
+        "name": "Transformers",
+        "category": "AI/ML",
+        "level": 30,
+        "confidence": 85.65217391304348
+      },
+      {
+        "name": "TypeScript",
+        "category": "Programming Languages",
+        "level": 30,
+        "confidence": 85
+      }
+    ],
+    "missing_skills": [
+      "Verilog",
+      "Instrumentation"
+    ],
+    "match_score": 69,
+    "breakdown": {
+      "skills_match": 89.2,
+      "experience_match": 15.0,
+      "keyword_match": 98.0
+    },
+    "matched_skills": [
+      "Embedded Systems",
+      "TypeScript",
+      "C",
+      "Microcontrollers",
+      "C++",
+      "MATLAB",
+      "Simulink",
+      "VHDL",
+      "FPGA",
+      "Deep Learning",
+      "PCB Design",
+      "Altium Designer",
+      "KiCad",
+      "Arduino",
+      "Raspberry Pi",
+      "STM32",
+      "PLC",
+      "SCADA",
+      "UART",
+      "SPI",
+      "I2C",
+      "Communication",
+      "Signal Processing",
+      "Control Systems",
+      "IoT",
+      "Python",
+      "Automation",
+      "LabVIEW"
+    ],
+    "skill_gaps": [
+      {
+        "skill": "Verilog",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing Verilog or obtain a relevant certification."
+      },
+      {
+        "skill": "Instrumentation",
+        "priority": "High",
+        "recommendation": "Instrumentation is listed as preferred by the employer. Adding a portfolio project using Instrumentation would strengthen your application."
+      }
+    ],
+    "partial_matches": [
+      {
+        "group": "embedded systems",
+        "jd_skills": [
+          "fpga",
+          "c",
+          "embedded systems",
+          "pcb design",
+          "microcontrollers",
+          "c++",
+          "vhdl",
+          "arduino",
+          "verilog",
+          "matlab"
+        ],
+        "resume_skills": [
+          "fpga",
+          "c",
+          "embedded systems",
+          "pcb design",
+          "microcontrollers",
+          "c++",
+          "vhdl",
+          "arduino",
+          "matlab"
+        ],
+        "credit": 0.3
+      }
+    ],
+    "resume_sections": {
+      "experience_count": 4,
+      "project_count": 2,
+      "certification_count": 2,
+      "education_count": 1,
+      "has_skills_section": true
+    }
+  },
+  "Full-Stack Resume × EE JD  (Expected LOW score)": {
+    "extracted_skills": [
+      {
+        "name": "AWS",
+        "category": "Cloud",
+        "level": 95,
+        "confidence": 90
+      },
+      {
+        "name": "React",
+        "category": "Frontend",
+        "level": 95,
+        "confidence": 90
+      },
+      {
+        "name": "GitHub",
+        "category": "Tools",
+        "level": 92,
+        "confidence": 90
+      },
+      {
+        "name": "Node.js",
+        "category": "Backend",
+        "level": 92,
+        "confidence": 90
+      },
+      {
+        "name": "Docker",
+        "category": "Cloud",
+        "level": 88,
+        "confidence": 90
+      },
+      {
+        "name": "CI/CD",
+        "category": "DevOps",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "GitHub Actions",
+        "category": "DevOps",
+        "level": 76,
+        "confidence": 85
+      },
+      {
+        "name": "Kubernetes",
+        "category": "Cloud",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "Redux",
+        "category": "Frontend",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "EC2",
+        "category": "Cloud",
+        "level": 75,
+        "confidence": 90
+      },
+      {
+        "name": "S3",
+        "category": "Cloud",
+        "level": 75,
+        "confidence": 90
+      },
+      {
+        "name": "MongoDB",
+        "category": "Database",
+        "level": 74,
+        "confidence": 90
+      },
+      {
+        "name": "GraphQL",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "Microservices",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "RESTful API",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90.0
+      },
+      {
+        "name": "TypeScript",
+        "category": "Programming Languages",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "Express",
+        "category": "Backend",
+        "level": 71,
+        "confidence": 90
+      },
+      {
+        "name": "SQL",
+        "category": "Database",
+        "level": 67,
+        "confidence": 90
+      },
+      {
+        "name": "PostgreSQL",
+        "category": "Database",
+        "level": 66,
+        "confidence": 90
+      },
+      {
+        "name": "CSS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Git",
+        "category": "Tools",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Jenkins",
+        "category": "DevOps",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Lambda",
+        "category": "Cloud",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Next.js",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "SASS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Tailwind CSS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90.0
+      },
+      {
+        "name": "Vue",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Django",
+        "category": "Backend",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "Java",
+        "category": "Programming Languages",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "NestJS",
+        "category": "Backend",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "Python",
+        "category": "Programming Languages",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "JavaScript",
+        "category": "Programming Languages",
+        "level": 56,
+        "confidence": 90
+      },
+      {
+        "name": "Redis",
+        "category": "Database",
+        "level": 54,
+        "confidence": 90
+      },
+      {
+        "name": "WebSocket",
+        "category": "Frontend",
+        "level": 50,
+        "confidence": 90
+      },
+      {
+        "name": "Google Cloud",
+        "category": "Cloud",
+        "level": 49,
+        "confidence": 90.0
+      },
+      {
+        "name": "Azure",
+        "category": "Cloud",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Confluence",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Figma",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "GitLab",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Infrastructure as Code",
+        "category": "DevOps",
+        "level": 35,
+        "confidence": 87.77777777777777
+      },
+      {
+        "name": "IntelliJ",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Jira",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "MySQL",
+        "category": "Database",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "NoSQL",
+        "category": "Database",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Postman",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Terraform",
+        "category": "DevOps",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "VS Code",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 85
+      },
+      {
+        "name": "Scrum",
+        "category": "Soft Skills",
+        "level": 32,
+        "confidence": 90
+      },
+      {
+        "name": "CloudFront",
+        "category": "Cloud",
+        "level": 31,
+        "confidence": 90
+      },
+      {
+        "name": "JWT",
+        "category": "Backend",
+        "level": 31,
+        "confidence": 90
+      }
+    ],
+    "missing_skills": [
+      "Embedded Systems",
+      "C",
+      "Microcontrollers",
+      "C++",
+      "MATLAB",
+      "Simulink",
+      "VHDL",
+      "Verilog",
+      "FPGA",
+      "Deep Learning",
+      "PCB Design",
+      "Altium Designer",
+      "KiCad",
+      "Arduino",
+      "Raspberry Pi",
+      "STM32",
+      "PLC",
+      "SCADA",
+      "UART",
+      "SPI",
+      "I2C",
+      "Communication",
+      "Signal Processing",
+      "Control Systems",
+      "IoT",
+      "Automation",
+      "LabVIEW",
+      "Instrumentation"
+    ],
+    "match_score": 4,
+    "breakdown": {
+      "skills_match": 7.0,
+      "experience_match": 1.1,
+      "keyword_match": 3.1
+    },
+    "matched_skills": [
+      "TypeScript",
+      "Python"
+    ],
+    "skill_gaps": [
+      {
+        "skill": "Embedded Systems",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing Embedded Systems or obtain a relevant certification."
+      },
+      {
+        "skill": "C",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing C or obtain a relevant certification."
+      },
+      {
+        "skill": "Microcontrollers",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing Microcontrollers or obtain a relevant certification."
+      },
+      {
+        "skill": "C++",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing C++ or obtain a relevant certification."
+      },
+      {
+        "skill": "MATLAB",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing MATLAB or obtain a relevant certification."
+      },
+      {
+        "skill": "Simulink",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing Simulink or obtain a relevant certification."
+      },
+      {
+        "skill": "VHDL",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing VHDL or obtain a relevant certification."
+      },
+      {
+        "skill": "Verilog",
+        "priority": "Critical",
+        "recommendation": "This skill is required by the target role. Build at least one project showcasing Verilog or obtain a relevant certification."
+      },
+      {
+        "skill": "IoT",
+        "priority": "High",
+        "recommendation": "IoT is listed as preferred by the employer. Adding a portfolio project using IoT would strengthen your application."
+      },
+      {
+        "skill": "Automation",
+        "priority": "High",
+        "recommendation": "Automation is listed as preferred by the employer. Adding a portfolio project using Automation would strengthen your application."
+      }
+    ],
+    "partial_matches": [],
+    "resume_sections": {
+      "experience_count": 2,
+      "project_count": 2,
+      "certification_count": 3,
+      "education_count": 1,
+      "has_skills_section": true
+    }
+  },
+  "Full-Stack Resume (No JD — General Score)": {
+    "extracted_skills": [
+      {
+        "name": "AWS",
+        "category": "Cloud",
+        "level": 95,
+        "confidence": 90
+      },
+      {
+        "name": "React",
+        "category": "Frontend",
+        "level": 95,
+        "confidence": 90
+      },
+      {
+        "name": "GitHub",
+        "category": "Tools",
+        "level": 92,
+        "confidence": 90
+      },
+      {
+        "name": "Node.js",
+        "category": "Backend",
+        "level": 92,
+        "confidence": 90
+      },
+      {
+        "name": "Docker",
+        "category": "Cloud",
+        "level": 88,
+        "confidence": 90
+      },
+      {
+        "name": "CI/CD",
+        "category": "DevOps",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "GitHub Actions",
+        "category": "DevOps",
+        "level": 76,
+        "confidence": 85
+      },
+      {
+        "name": "Kubernetes",
+        "category": "Cloud",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "Redux",
+        "category": "Frontend",
+        "level": 76,
+        "confidence": 90
+      },
+      {
+        "name": "EC2",
+        "category": "Cloud",
+        "level": 75,
+        "confidence": 90
+      },
+      {
+        "name": "S3",
+        "category": "Cloud",
+        "level": 75,
+        "confidence": 90
+      },
+      {
+        "name": "MongoDB",
+        "category": "Database",
+        "level": 74,
+        "confidence": 90
+      },
+      {
+        "name": "GraphQL",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "Microservices",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "RESTful API",
+        "category": "Backend",
+        "level": 72,
+        "confidence": 90.0
+      },
+      {
+        "name": "TypeScript",
+        "category": "Programming Languages",
+        "level": 72,
+        "confidence": 90
+      },
+      {
+        "name": "Express",
+        "category": "Backend",
+        "level": 71,
+        "confidence": 90
+      },
+      {
+        "name": "SQL",
+        "category": "Database",
+        "level": 67,
+        "confidence": 90
+      },
+      {
+        "name": "PostgreSQL",
+        "category": "Database",
+        "level": 66,
+        "confidence": 90
+      },
+      {
+        "name": "CSS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Git",
+        "category": "Tools",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Jenkins",
+        "category": "DevOps",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Lambda",
+        "category": "Cloud",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Next.js",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "SASS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Tailwind CSS",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90.0
+      },
+      {
+        "name": "Vue",
+        "category": "Frontend",
+        "level": 63,
+        "confidence": 90
+      },
+      {
+        "name": "Django",
+        "category": "Backend",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "Java",
+        "category": "Programming Languages",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "NestJS",
+        "category": "Backend",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "Python",
+        "category": "Programming Languages",
+        "level": 59,
+        "confidence": 90
+      },
+      {
+        "name": "JavaScript",
+        "category": "Programming Languages",
+        "level": 56,
+        "confidence": 90
+      },
+      {
+        "name": "Redis",
+        "category": "Database",
+        "level": 54,
+        "confidence": 90
+      },
+      {
+        "name": "WebSocket",
+        "category": "Frontend",
+        "level": 50,
+        "confidence": 90
+      },
+      {
+        "name": "Google Cloud",
+        "category": "Cloud",
+        "level": 49,
+        "confidence": 90.0
+      },
+      {
+        "name": "Azure",
+        "category": "Cloud",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Confluence",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Figma",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "GitLab",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Infrastructure as Code",
+        "category": "DevOps",
+        "level": 35,
+        "confidence": 87.77777777777777
+      },
+      {
+        "name": "IntelliJ",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Jira",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "MySQL",
+        "category": "Database",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "NoSQL",
+        "category": "Database",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Postman",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "Terraform",
+        "category": "DevOps",
+        "level": 35,
+        "confidence": 90
+      },
+      {
+        "name": "VS Code",
+        "category": "Tools",
+        "level": 35,
+        "confidence": 85
+      },
+      {
+        "name": "Scrum",
+        "category": "Soft Skills",
+        "level": 32,
+        "confidence": 90
+      },
+      {
+        "name": "CloudFront",
+        "category": "Cloud",
+        "level": 31,
+        "confidence": 90
+      },
+      {
+        "name": "JWT",
+        "category": "Backend",
+        "level": 31,
+        "confidence": 90
+      }
+    ],
+    "missing_skills": [],
+    "match_score": 53,
+    "breakdown": {
+      "skills_match": 53.0,
+      "experience_match": 0.0,
+      "keyword_match": 0.0
+    },
+    "matched_skills": [
+      "AWS",
+      "React",
+      "GitHub",
+      "Node.js",
+      "Docker",
+      "CI/CD",
+      "GitHub Actions",
+      "Kubernetes",
+      "Redux",
+      "EC2",
+      "S3",
+      "MongoDB",
+      "GraphQL",
+      "Microservices",
+      "RESTful API",
+      "TypeScript",
+      "Express",
+      "SQL",
+      "PostgreSQL",
+      "CSS",
+      "Git",
+      "Jenkins",
+      "Lambda",
+      "Next.js",
+      "SASS",
+      "Tailwind CSS",
+      "Vue",
+      "Django",
+      "Java",
+      "NestJS",
+      "Python",
+      "JavaScript",
+      "Redis",
+      "WebSocket",
+      "Google Cloud",
+      "Azure",
+      "Confluence",
+      "Figma",
+      "GitLab",
+      "Infrastructure as Code",
+      "IntelliJ",
+      "Jira",
+      "MySQL",
+      "NoSQL",
+      "Postman",
+      "Terraform",
+      "VS Code",
+      "Scrum",
+      "CloudFront",
+      "JWT"
+    ],
+    "skill_gaps": [],
+    "partial_matches": [],
+    "resume_sections": {
+      "experience_count": 2,
+      "project_count": 2,
+      "certification_count": 3,
+      "education_count": 1,
+      "has_skills_section": true
+    }
+  }
+}
