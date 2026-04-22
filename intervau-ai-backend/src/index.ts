@@ -19,6 +19,7 @@ import interviewTemplateRoutes from './routes/interviewTemplates';
 import interviewSessionRoutes from './routes/interviewSession';
 import interviewFeedbackRoutes from './routes/interviewFeedback';
 import mockInterviewRoutes from './routes/mockInterview';
+import bugReportRoutes from './routes/bugReports';
 import { setupEngagementSocket } from './sockets/engagementSocket';
 
 const app: Express = express();
@@ -86,6 +87,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/interview-templates', interviewTemplateRoutes);
 app.use('/api/interview-session', interviewSessionRoutes);
 app.use('/api/interview-feedback', interviewFeedbackRoutes);
+app.use('/api/bug-reports', bugReportRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
   res.json({
@@ -104,6 +106,7 @@ app.get('/api', (req: Request, res: Response) => {
       interviewSession: '/api/interview-session',
       interviewFeedback: '/api/interview-feedback',
       mockInterviews: '/api/interviews/mock-interviews',
+      bugReports: '/api/bug-reports',
       health: '/api/health',
     },
   });

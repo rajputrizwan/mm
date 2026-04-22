@@ -836,6 +836,26 @@ export const api = {
     }),
 
   apiLogout: () => request("/auth/logout", { method: "POST" }),
+
+  // Bug Reports
+  submitBugReport: (data: {
+    sessionId?: string;
+    sessionType?: "mock" | "live" | "public" | "general";
+    category:
+      | "audio"
+      | "video"
+      | "ai_response"
+      | "ui_freeze"
+      | "connection"
+      | "scoring"
+      | "other";
+    description: string;
+    severity: "low" | "medium" | "high";
+  }) =>
+    request<{ id: string; status: string; createdAt: string }>(
+      "/bug-reports",
+      { method: "POST", body: data }
+    ),
 };
 
 // Set up unauthorized event listener

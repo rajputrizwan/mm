@@ -14,6 +14,7 @@ import { useVapiInterview, type VapiMessage } from "../hooks/useVapiInterview";
 import { useEngagementTracking } from "../hooks/useEngagementTracking";
 import { EngagementOverlay } from "../components/interview/EngagementOverlay";
 import EngagementFeedbackPanel from "../components/interview/EngagementFeedbackPanel";
+import BugReportModal from "../components/interview/BugReportModal";
 import type {
   SessionConfig,
   TranscriptEntry,
@@ -533,6 +534,7 @@ export default function MockInterviewSession() {
     results: Record<string, unknown>;
     serverData: MockInterviewCompletePayload;
   } | null>(null);
+  const [showBugReportModal, setShowBugReportModal] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [engagementMetrics, setEngagementMetrics] =
     useState<EngagementLiveMetrics | null>(null);
@@ -1449,19 +1451,44 @@ export default function MockInterviewSession() {
                       </section>
                     )}
 
-                  <button
-                    type="button"
-                    onClick={dismissCompletionModal}
-                    className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
-                  >
-                    {t("mockInterviewSession.continueToDashboard")}
-                  </button>
+                  {/* ── Footer actions ───────────────────────────────── */}
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={dismissCompletionModal}
+                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+                    >
+                      {t("mockInterviewSession.continueToDashboard")}
+                    </button>
+
+                    {/* Report an Issue — subtle secondary link */}
+                    <button
+                      type="button"
+                      id="open-bug-report-btn"
+                      onClick={() => setShowBugReportModal(true)}
+                      className="w-full py-2 text-sm text-gray-400 dark:text-gray-500 hover:text-indigo-400 dark:hover:text-indigo-400 transition-colors flex items-center justify-center gap-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 11V2H3a1 1 0 0 0-1 1v16l4-4h14a1 1 0 0 0 1-1v-3" />
+                        <path d="M15 6h6M18 3v6" />
+                      </svg>
+                      Report an Issue
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })()}
         </div>
       )}
+
+      {/* Bug Report Modal — triggered from completion modal footer */}
+      <BugReportModal
+        isOpen={showBugReportModal}
+        onClose={() => setShowBugReportModal(false)}
+        sessionId={sessionId}
+        sessionType="mock"
+      />
     </div>
   );
 }
