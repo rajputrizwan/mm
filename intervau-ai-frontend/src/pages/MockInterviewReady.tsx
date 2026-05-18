@@ -82,43 +82,54 @@ export default function MockInterviewReady() {
     const loadSession = async () => {
       // First try localStorage for fast loading
       const stored = localStorage.getItem("currentInterviewSession");
-      if (!stored) {
-        setError("noSessionFound");
-        return;
+      let localSession: SessionConfig | null = null;
+
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as SessionConfig;
+          if (parsed.id === sessionId) {
+            localSession = parsed;
+          }
+          // If IDs don't match, fall through to API — don't immediately error
+        } catch (err) {
+          console.error("Failed to parse localStorage session:", err);
+        }
       }
 
-      try {
-        const localSession = JSON.parse(stored) as SessionConfig;
-        if (localSession.id !== sessionId) {
-          setError("sessionMismatch");
-          return;
-        }
-
-        // Set local session immediately for fast UI
+      if (localSession) {
+        // Fast path: localStorage hit with matching ID
         setSessionConfig(localSession);
+      }
 
-        // Verify session exists in backend
+      // Always verify / fetch from backend to get the latest data
+      // (also serves as the sole source when localStorage is stale/empty)
+      try {
         const response = await api.getMockInterviewSession(sessionId!);
-        if (!response.success) {
-          console.warn("Session not found in backend, using local data");
-          return;
-        }
-
-        // Update with backend data if available
-        if (response.data) {
-          setSessionConfig({
-            id: response.data.sessionId,
-            position: response.data.position,
-            duration: response.data.duration,
-            questionCount: response.data.questionCount,
-            difficulty: response.data.difficulty,
-            questions: response.data.questions,
-            startedAt: response.data.createdAt,
-          });
+        if (response.success && response.data) {
+          const data = response.data;
+          const session: SessionConfig = {
+            id: data.sessionId || sessionId!,
+            position: data.position || "Unknown Position",
+            duration: data.duration || 30,
+            questionCount: data.questionCount ?? data.questions?.length ?? 0,
+            difficulty: data.difficulty || "medium",
+            questions: data.questions || [],
+            startedAt: data.createdAt || data.startedAt || new Date().toISOString(),
+          };
+          setSessionConfig(session);
+          // Keep localStorage in sync so the session page can also use it
+          localStorage.setItem("currentInterviewSession", JSON.stringify(session));
+        } else if (!localSession) {
+          // Neither localStorage nor backend has this session
+          setError("sessionMismatch");
         }
       } catch (err) {
-        console.error("Error loading session:", err);
-        setError("invalidSessionData");
+        console.error("Error fetching session from backend:", err);
+        if (!localSession) {
+          // No local copy and backend call failed — nothing to show
+          setError("noSessionFound");
+        }
+        // If localSession is set, keep showing it (offline / network degraded)
       }
     };
 
