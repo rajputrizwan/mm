@@ -2,6 +2,9 @@
  * AI Interview Service
  * Handles AI-powered interview question generation and live interview conduction
  * Uses OpenRouter API with configurable model selection
+ *
+ * All fetch() calls are now wrapped with an AbortController timeout so that
+ * a slow or hung OpenRouter response can never freeze a route handler indefinitely.
  */
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -12,6 +15,12 @@ const DEFAULT_OPENROUTER_MODELS = [
   'google/gemini-2.0-flash-001',
 ];
 const DEFAULT_SUMMARY_MODEL = 'openai/gpt-4o-mini';
+
+// ─── Timeout constants ────────────────────────────────────────────────────────
+/** Max time to wait for question generation or conduction responses (ms) */
+const FETCH_TIMEOUT_MS = 20_000;
+/** Max time to wait for summary generation — longer because the prompt is large (ms) */
+const SUMMARY_FETCH_TIMEOUT_MS = 45_000;
 
 const dedupeModels = (models: string[]): string[] => {
   const seen = new Set<string>();
@@ -61,10 +70,15 @@ interface Message {
 
 interface QuestionGenerationParams {
   jobTitle: string;
-  techStack: string[];
-  difficulty: 'junior' | 'mid' | 'senior';
-  interviewModes: string[];
-  questionCount: number;
+  techStack?: string[];
+  difficulty?: 'junior' | 'mid' | 'senior';
+  interviewModes?: string[];
+  questionCount?: number;
+  // Aliases used by the route handler
+  jobPosition?: string;
+  jobDescription?: string;
+  duration?: number;
+  interviewType?: string | string[];
 }
 
 interface GeneratedQuestion {
@@ -98,8 +112,48 @@ interface OpenRouterResponse {
   }>;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 /**
- * Generate interview questions using Mistral via OpenRouter
+ * Perform a fetch() with a hard timeout enforced by AbortController.
+ * If the request takes longer than `timeoutMs`, it is aborted and an error is thrown.
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+  label: string
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+    console.error(`[AIService] ⏱️  ${label} timed out after ${timeoutMs / 1000}s — request aborted`);
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Build the common OpenRouter request headers.
+ */
+function buildHeaders(apiKey: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
+    'X-Title': 'Intervau AI Platform',
+  };
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Generate interview questions using OpenRouter.
  */
 export async function generateInterviewQuestions(
   params: QuestionGenerationParams
@@ -110,71 +164,80 @@ export async function generateInterviewQuestions(
     throw new Error('OpenRouter API key not configured');
   }
 
-  const prompt = GENERATION_SYSTEM_MESSAGE.replace('{{jobTitle}}', params.jobTitle).replace(
-    '{{difficulty}}',
-    params.difficulty
+  // Support both camelCase aliases used from the route handler
+  const jobTitle = (params.jobTitle || params.jobPosition || '').trim();
+  const difficulty = params.difficulty || 'mid';
+
+  const prompt = GENERATION_SYSTEM_MESSAGE
+    .replace('{{jobTitle}}', jobTitle)
+    .replace('{{difficulty}}', difficulty);
+
+  const techStack = params.techStack ?? [];
+  const interviewModes = params.interviewModes ?? (
+    Array.isArray(params.interviewType)
+      ? params.interviewType
+      : params.interviewType ? [params.interviewType] : []
   );
+  const questionCount = params.questionCount ?? 5;
 
-  const techStackInfo =
-    params.techStack.length > 0 ? `\nTech Stack: ${params.techStack.join(', ')}` : '';
-
+  const techStackInfo = techStack.length > 0 ? `\nTech Stack: ${techStack.join(', ')}` : '';
   const modesInfo =
-    params.interviewModes.length > 0
-      ? `\nQuestion Types to include: ${params.interviewModes.map(m => m.replace('_', ' ')).join(', ')}`
+    interviewModes.length > 0
+      ? `\nQuestion Types to include: ${interviewModes.map(m => m.replace('_', ' ')).join(', ')}`
       : '';
 
-  const userPrompt = `Generate exactly ${params.questionCount} interview questions for a ${params.jobTitle} position.${techStackInfo}${modesInfo}
+  const userPrompt = `Generate exactly ${questionCount} interview questions for a ${jobTitle} position.${techStackInfo}${modesInfo}
 
-Difficulty Level: ${params.difficulty}
+Difficulty Level: ${difficulty}
 
 ${prompt}`;
 
-  const response = await fetch(OPENROUTER_CHAT_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
-      'X-Title': 'Intervau AI Platform',
+  const model = process.env.OPENROUTER_MODEL?.trim() || 'mistralai/mistral-small-3.1-24b-instruct:free';
+  console.log(`[AIService] generateInterviewQuestions → model=${model}, jobTitle=${jobTitle}`);
+
+  const response = await fetchWithTimeout(
+    OPENROUTER_CHAT_URL,
+    {
+      method: 'POST',
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: userPrompt }],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
     },
-    body: JSON.stringify({
-      model:
-        process.env.OPENROUTER_MODEL?.trim() || 'mistralai/mistral-small-3.1-24b-instruct:free',
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    }),
-  });
+    FETCH_TIMEOUT_MS,
+    'generateInterviewQuestions'
+  );
 
   if (!response.ok) {
     const errorData = await response.text();
-    console.error('OpenRouter API error:', errorData);
-    throw new Error('Failed to generate questions from AI service');
+    console.error('[AIService] generateInterviewQuestions OpenRouter error:', {
+      status: response.status,
+      body: errorData.substring(0, 500),
+    });
+    throw new Error(`Failed to generate questions from AI service (HTTP ${response.status})`);
   }
 
   const data = (await response.json()) as OpenRouterResponse;
   const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
-    throw new Error('No response from AI service');
+    throw new Error('No response content from AI service');
   }
 
-  // Parse JSON response
   const jsonMatch = content.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
-    throw new Error('Invalid JSON response from AI');
+    console.error('[AIService] generateInterviewQuestions — unexpected response format:', content.substring(0, 300));
+    throw new Error('Invalid JSON response from AI — no array found');
   }
 
   return JSON.parse(jsonMatch[0]) as GeneratedQuestion[];
 }
 
 /**
- * Conduct live interview - get AI response to candidate's answer
+ * Conduct live interview — get AI response to candidate's answer.
  */
 export async function conductInterview(params: LiveInterviewParams): Promise<AIResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -183,12 +246,10 @@ export async function conductInterview(params: LiveInterviewParams): Promise<AIR
     throw new Error('OpenRouter API key not configured');
   }
 
-  const systemContext = LIVE_INTERVIEW_CONTEXT.replace(
-    '{{candidateName}}',
-    params.candidateName
-  ).replace('{{jobTitle}}', params.jobTitle);
+  const systemContext = LIVE_INTERVIEW_CONTEXT
+    .replace('{{candidateName}}', params.candidateName)
+    .replace('{{jobTitle}}', params.jobTitle);
 
-  // Build conversation messages
   const messages: Message[] = [
     {
       role: 'system',
@@ -210,31 +271,36 @@ Keep responses concise (2-3 sentences max).`,
     },
   ];
 
-  const response = await fetch(OPENROUTER_CHAT_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
-      'X-Title': 'Intervau AI Platform',
+  const model = process.env.OPENROUTER_MODEL?.trim() || 'mistralai/mistral-small-3.1-24b-instruct:free';
+
+  const response = await fetchWithTimeout(
+    OPENROUTER_CHAT_URL,
+    {
+      method: 'POST',
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 500,
+      }),
     },
-    body: JSON.stringify({
-      model:
-        process.env.OPENROUTER_MODEL?.trim() || 'mistralai/mistral-small-3.1-24b-instruct:free',
-      messages,
-      temperature: 0.7,
-      max_tokens: 500,
-    }),
-  });
+    FETCH_TIMEOUT_MS,
+    `conductInterview q=${params.currentQuestionIndex + 1}`
+  );
 
   if (!response.ok) {
-    throw new Error('Failed to get AI response');
+    const errorData = await response.text();
+    console.error('[AIService] conductInterview OpenRouter error:', {
+      status: response.status,
+      body: errorData.substring(0, 300),
+    });
+    throw new Error(`Failed to get AI response (HTTP ${response.status})`);
   }
 
   const data = (await response.json()) as OpenRouterResponse;
   const content = data.choices?.[0]?.message?.content || '';
 
-  // Determine if this is a follow-up or if we should move to next question
   const wordCount = params.candidateResponse.trim().split(/\s+/).length;
   const isShortAnswer = wordCount < 10;
   const isFollowUp =
@@ -251,7 +317,7 @@ Keep responses concise (2-3 sentences max).`,
 }
 
 /**
- * Generate interview summary after completion
+ * Generate interview summary after completion.
  */
 export async function generateInterviewSummary(
   candidateName: string,
@@ -287,40 +353,40 @@ Format as clean markdown.`;
   let lastError = 'Unknown summary generation error';
 
   for (const model of modelCandidates) {
-    const response = await fetch(OPENROUTER_CHAT_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
-        'X-Title': 'Intervau AI Platform',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: summaryPrompt,
-          },
-        ],
-        temperature: 0.5,
-        max_tokens: 1000,
-      }),
-    });
+    console.log(`[AIService] generateInterviewSummary → trying model=${model}`);
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(
+        OPENROUTER_CHAT_URL,
+        {
+          method: 'POST',
+          headers: buildHeaders(apiKey),
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: summaryPrompt }],
+            temperature: 0.5,
+            max_tokens: 1000,
+          }),
+        },
+        SUMMARY_FETCH_TIMEOUT_MS,
+        `generateInterviewSummary model=${model}`
+      );
+    } catch (fetchErr) {
+      lastError = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+      console.warn(`[AIService] generateInterviewSummary model=${model} fetch error: ${lastError}`);
+      continue;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      lastError = `${response.status} ${response.statusText}`;
-      console.error('OpenRouter summary API error:', {
+      lastError = `HTTP ${response.status} ${response.statusText}`;
+      console.error('[AIService] generateInterviewSummary OpenRouter error:', {
         model,
         status: response.status,
         statusText: response.statusText,
         error: errorText.substring(0, 500),
       });
-
-      if (response.status === 404 || response.status === 429 || response.status >= 500) {
-        continue;
-      }
       continue;
     }
 
@@ -328,14 +394,15 @@ Format as clean markdown.`;
     const content = data.choices?.[0]?.message?.content;
 
     if (content && content.trim()) {
-      console.log(`OpenRouter summary generated with model: ${model}`);
+      console.log(`[AIService] generateInterviewSummary ✓ model=${model}`);
       return content;
     }
 
     lastError = `Empty content from model ${model}`;
+    console.warn(`[AIService] generateInterviewSummary: ${lastError}`);
   }
 
-  throw new Error(`Failed to generate summary after trying multiple models: ${lastError}`);
+  throw new Error(`Failed to generate summary after trying ${modelCandidates.length} models: ${lastError}`);
 }
 
 export default {

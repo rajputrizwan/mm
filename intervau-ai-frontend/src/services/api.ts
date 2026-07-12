@@ -12,6 +12,7 @@ interface RequestConfig {
   headers?: Record<string, string>;
   body?: any;
   params?: Record<string, any>;
+  suppressUnauthorizedLogout?: boolean;
 }
 
 interface ApiResponse<T = any> {
@@ -20,6 +21,25 @@ interface ApiResponse<T = any> {
   error?: string;
   message?: string;
   statusCode?: number;
+}
+
+const NO_BODY_STATUS_CODES = new Set([204, 205, 304]);
+
+async function parseResponseBody(response: Response): Promise<any> {
+  if (NO_BODY_STATUS_CODES.has(response.status)) {
+    return undefined;
+  }
+
+  const rawBody = await response.text();
+  if (!rawBody) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(rawBody);
+  } catch {
+    return rawBody;
+  }
 }
 
 /** Mock interview session as returned by API (single session or history item). */
@@ -132,7 +152,13 @@ async function request<T = any>(
   endpoint: string,
   config: RequestConfig = {},
 ): Promise<ApiResponse<T>> {
-  const { method = "GET", headers = {}, body, params } = config;
+  const {
+    method = "GET",
+    headers = {},
+    body,
+    params,
+    suppressUnauthorizedLogout = false,
+  } = config;
 
   const url = buildUrl(endpoint, params);
   const token = getAuthToken();
@@ -151,19 +177,41 @@ async function request<T = any>(
       method,
       headers: requestHeaders,
       body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store",
     });
 
-    const data = await response.json();
+    const data = await parseResponseBody(response);
+    const normalizedData =
+      data && typeof data === "object" && "data" in data
+        ? (data as Record<string, any>).data
+        : data;
+
+    // Treat 304 as a successful no-change response and avoid forcing auth fallout.
+    if (response.status === 304) {
+      return {
+        success: true,
+        data: normalizedData,
+        statusCode: response.status,
+      };
+    }
 
     if (!response.ok) {
       // Handle 401 - Unauthorized
       if (response.status === 401) {
-        removeAuthToken();
-        // Optionally dispatch logout event or redirect to login
-        window.dispatchEvent(new CustomEvent("unauthorized"));
+        if (!suppressUnauthorizedLogout) {
+          removeAuthToken();
+          // Optionally dispatch logout event or redirect to login
+          window.dispatchEvent(new CustomEvent("unauthorized"));
+        }
       }
 
-      const errorMessage = data.error || data.message || "An error occurred";
+      const errorMessage =
+        (data && typeof data === "object"
+          ? (data as Record<string, any>).error ||
+            (data as Record<string, any>).message
+          : undefined) ||
+        (typeof data === "string" ? data : undefined) ||
+        "An error occurred";
       return {
         success: false,
         error: errorMessage,
@@ -174,7 +222,7 @@ async function request<T = any>(
 
     return {
       success: true,
-      data: data.data || data,
+      data: normalizedData,
       statusCode: response.status,
     };
   } catch (error) {
@@ -658,6 +706,8 @@ export const api = {
     }>("/interviews/mock-interviews/sessions", {
       method: "POST",
       body: data,
+      // Session creation is best-effort in setup flow; do not force logout if this save fails with 401.
+      suppressUnauthorizedLogout: true,
     }),
 
   getMockInterviewSession: (sessionId: string) =>
@@ -836,6 +886,26 @@ export const api = {
     }),
 
   apiLogout: () => request("/auth/logout", { method: "POST" }),
+
+  // Bug Reports
+  submitBugReport: (data: {
+    sessionId?: string;
+    sessionType?: "mock" | "live" | "public" | "general";
+    category:
+      | "audio"
+      | "video"
+      | "ai_response"
+      | "ui_freeze"
+      | "connection"
+      | "scoring"
+      | "other";
+    description: string;
+    severity: "low" | "medium" | "high";
+  }) =>
+    request<{ id: string; status: string; createdAt: string }>("/bug-reports", {
+      method: "POST",
+      body: data,
+    }),
 };
 
 // Set up unauthorized event listener

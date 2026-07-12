@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { DashboardStats, RecentInterview, TopSkill } from '../types/dashboard';
+import { useAuth } from '../contexts/AuthContext';
 
 interface UseDashboardDataReturn {
     stats: DashboardStats | null;
@@ -12,13 +13,20 @@ interface UseDashboardDataReturn {
 }
 
 export function useDashboardData(): UseDashboardDataReturn {
+    const { isAuthenticated, loading: authLoading } = useAuth();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [recentInterviews, setRecentInterviews] = useState<RecentInterview[]>([]);
     const [topSkills, setTopSkills] = useState<TopSkill[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const hasFetchedRef = useRef(false);
 
     const fetchDashboardData = async () => {
+        if (!isAuthenticated) {
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -28,6 +36,19 @@ export function useDashboardData(): UseDashboardDataReturn {
                 api.getRecentInterviews(),
                 api.getTopSkills(),
             ]);
+
+            const failedResponse = [statsRes, interviewsRes, skillsRes].find(
+                (response) => !response.success,
+            );
+
+            if (failedResponse) {
+                setError(
+                    failedResponse.error ||
+                    failedResponse.message ||
+                    'Failed to fetch dashboard data',
+                );
+                return;
+            }
 
             if (statsRes.success && statsRes.data) {
                 setStats(statsRes.data);
@@ -49,8 +70,16 @@ export function useDashboardData(): UseDashboardDataReturn {
     };
 
     useEffect(() => {
+        if (authLoading || !isAuthenticated || hasFetchedRef.current) {
+            if (!authLoading && !isAuthenticated) {
+                setLoading(false);
+            }
+            return;
+        }
+
+        hasFetchedRef.current = true;
         fetchDashboardData();
-    }, []);
+    }, [authLoading, isAuthenticated]);
 
     return {
         stats,
